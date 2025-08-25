@@ -39,7 +39,6 @@ export default function RootLayout({
               <div className="flex gap-6">
                 <Link href="/ingredients" className="hover:underline">재료 관리</Link>
                 <Link href="/recipes" className="hover:underline">레시피 관리</Link>
-                <Link href="/calculator" className="hover:underline">원가 계산</Link>
               </div>
             </div>
           </nav>

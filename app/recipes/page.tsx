@@ -20,6 +20,7 @@ export default function RecipesPage() {
   const [ovenTemp, setOvenTemp] = useState('');
   const [ovenTime, setOvenTime] = useState('');
   const [fermentationInfo, setFermentationInfo] = useState('');
+  const [sellingPrice, setSellingPrice] = useState('');
   const [selectedIngredients, setSelectedIngredients] = useState<
     Array<{ ingredientId: string; quantity: string }>
   >([]);
@@ -40,6 +41,7 @@ export default function RecipesPage() {
       setOvenTemp('');
       setOvenTime('');
       setFermentationInfo('');
+      setSellingPrice('');
       setSelectedIngredients([]);
     },
     onError: (error) => {
@@ -60,6 +62,7 @@ export default function RecipesPage() {
       setOvenTemp('');
       setOvenTime('');
       setFermentationInfo('');
+      setSellingPrice('');
       setSelectedIngredients([]);
     },
     onError: (error) => {
@@ -100,6 +103,7 @@ export default function RecipesPage() {
     setOvenTemp(recipe.ovenTemp ? recipe.ovenTemp.toString() : '');
     setOvenTime(recipe.ovenTime ? recipe.ovenTime.toString() : '');
     setFermentationInfo(recipe.fermentationInfo || '');
+    setSellingPrice(recipe.sellingPrice ? recipe.sellingPrice.toString() : '');
     setSelectedIngredients(
       recipe.ingredients.map((ri: any) => ({
         ingredientId: ri.ingredient.id,
@@ -133,6 +137,7 @@ export default function RecipesPage() {
       ovenTemp: ovenTemp ? parseInt(ovenTemp) : undefined,
       ovenTime: ovenTime ? parseInt(ovenTime) : undefined,
       fermentationInfo: fermentationInfo || undefined,
+      sellingPrice: sellingPrice ? parseFloat(sellingPrice) : undefined,
       ingredients: validIngredients,
     };
 
@@ -157,6 +162,7 @@ export default function RecipesPage() {
     setOvenTemp('');
     setOvenTime('');
     setFermentationInfo('');
+    setSellingPrice('');
     setSelectedIngredients([]);
   };
 
@@ -278,6 +284,23 @@ export default function RecipesPage() {
                       className="flex-1"
                     />
                   </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-medium text-gray-700">판매가격</label>
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="text-sm text-gray-600">₩</span>
+                      <Input
+                        type="number"
+                        placeholder="예: 10000"
+                        value={sellingPrice}
+                        onChange={(e) => setSellingPrice(e.target.value)}
+                        min="0"
+                        step="100"
+                        className="flex-1"
+                      />
+                      <span className="text-sm text-gray-600">원</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -289,7 +312,7 @@ export default function RecipesPage() {
                   </div>
 
                   {selectedIngredients.map((item, index) => (
-                    <div key={`ingredient-${index}-${item.ingredientId || Date.now()}-${Math.random()}`} className="flex gap-2">
+                    <div key={`ingredient-${index}`} className="flex gap-2">
                       <Select
                         value={item.ingredientId}
                         onValueChange={(value) => handleIngredientChange(index, 'ingredientId', value)}
@@ -379,11 +402,69 @@ export default function RecipesPage() {
                 <div className="space-y-1 mb-4">
                   <p className="text-sm font-medium">재료:</p>
                   {recipe.ingredients.map((ri) => (
-                    <p key={ri.id} className="text-sm text-gray-600">
+                    <p key={ri.id || `${recipe.id}-${ri.ingredient.id}`} className="text-sm text-gray-600">
                       • {ri.ingredient.name}: {ri.quantity}{ri.ingredient.unit}
                     </p>
                   ))}
                 </div>
+                
+                {/* 판매가격 및 마진율 섹션 */}
+                {(recipe as any).sellingPrice && (
+                  <div className="border-t pt-3 mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">판매가격</span>
+                      <span className="text-xl font-bold text-blue-600">
+                        ₩{Math.round((recipe as any).sellingPrice).toLocaleString()}
+                        <span className="text-xs text-gray-500 ml-1">개당</span>
+                      </span>
+                    </div>
+                    {(recipe as any).costInfo && (recipe as any).costInfo.margin !== null && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">마진율</span>
+                        <span className={`text-lg font-bold ${
+                          (recipe as any).costInfo.margin >= 30 ? 'text-green-600' : 
+                          (recipe as any).costInfo.margin >= 20 ? 'text-orange-500' : 
+                          'text-red-500'
+                        }`}>
+                          {Math.round((recipe as any).costInfo.margin)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* 원가 정보 섹션 */}
+                {(recipe as any).costInfo && (
+                  <div className="border-t pt-3 mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">원가 정보</span>
+                      <span className="text-lg font-bold text-green-600">
+                        ₩{Math.round((recipe as any).costInfo.costPerUnit).toLocaleString()}
+                        <span className="text-xs text-gray-500 ml-1">개당</span>
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-600 mb-2">
+                      총 재료비: ₩{Math.round((recipe as any).costInfo.totalCost).toLocaleString()}
+                      <span className="text-gray-400"> ({recipe.yieldCount}개 기준)</span>
+                    </div>
+                    
+                    {/* 재료별 원가 내역 */}
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
+                        재료별 원가 보기
+                      </summary>
+                      <div className="mt-2 pl-2 border-l-2 border-gray-100">
+                        {(recipe as any).costInfo.breakdown.map((item: any, index: number) => (
+                          <div key={`${recipe.id}-breakdown-${index}`} className="flex justify-between py-1">
+                            <span>{item.name} {item.quantity}{item.unit}</span>
+                            <span>₩{Math.round(item.cost).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
+                )}
+                
                 <div className="flex gap-2">
                   <Button
                     size="sm"

@@ -13,7 +13,7 @@ export default function Home() {
         <p className="text-gray-500">재료비부터 생산비까지, 정확한 원가 관리의 시작</p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
+      <div className="grid md:grid-cols-2 gap-6 mb-8 max-w-2xl mx-auto">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -31,27 +31,13 @@ export default function Home() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              📝 레시피 생성
+              📝💰 레시피 & 원가
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 mb-4">레시피별 필요한 재료와 수량을 등록하세요.</p>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/recipes">레시피 만들기</Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              💰 원가 계산
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 mb-4">생산 수량에 따른 정확한 원가를 계산하세요.</p>
+            <p className="text-gray-600 mb-4">레시피를 만들고 실시간으로 원가를 확인하세요.</p>
             <Button asChild className="w-full">
-              <Link href="/calculator">계산하기</Link>
+              <Link href="/recipes">레시피 관리하기</Link>
             </Button>
           </CardContent>
         </Card>
