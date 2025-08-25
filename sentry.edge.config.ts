@@ -6,8 +6,8 @@ Sentry.init({
   // 개발 환경에서는 비활성화
   enabled: process.env.NODE_ENV === "production",
   
-  // 성능 모니터링
-  tracesSampleRate: 0.1,
+  // 성능 모니터링 (테스트용 100%)
+  tracesSampleRate: 1.0,
   
   // 디버그 모드 비활성화
   debug: false,
