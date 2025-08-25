@@ -17,6 +17,13 @@ model Ingredient {
   name         String   // "버터", "밀가루" 등
   unit         String   // "g", "ml", "개" 등
   pricePerUnit Decimal  @db.Decimal(10, 2) // 정확한 금액 계산을 위한 Decimal 타입
+  
+  // 새로운 필드 (모두 optional로 migration 안전성 확보)
+  category     String?  // 대분류: "유제품", "곡물" 등
+  subcategory  String?  // 소분류: "버터류", "밀가루류" 등  
+  brand        String?  // 브랜드: "서울우유", "백설" 등
+  quantity     Decimal? @db.Decimal(10, 2) // 수량: 1000, 500 등
+  
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   

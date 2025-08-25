@@ -14,6 +14,8 @@ export const ingredientsRouter = router({
       ...item,
       pricePerUnit: (item.pricePerUnit as any)?.toNumber?.() 
         ?? Number(item.pricePerUnit),
+      quantity: item.quantity ? 
+        ((item.quantity as any)?.toNumber?.() ?? Number(item.quantity)) : null,
     }));
   }),
 
@@ -31,6 +33,8 @@ export const ingredientsRouter = router({
         ...item,
         pricePerUnit: (item.pricePerUnit as any)?.toNumber?.() 
           ?? Number(item.pricePerUnit),
+        quantity: item.quantity ? 
+          ((item.quantity as any)?.toNumber?.() ?? Number(item.quantity)) : null,
       };
     }),
 
@@ -40,12 +44,19 @@ export const ingredientsRouter = router({
       name: z.string().min(1, "재료명은 필수입니다"),
       unit: z.string().min(1, "단위는 필수입니다"),
       pricePerUnit: z.number().positive("단가는 0보다 커야 합니다"),
+      // 새 필드 추가 (optional)
+      category: z.string().optional(),
+      subcategory: z.string().optional(),
+      brand: z.string().optional(),
+      quantity: z.number().positive().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const { quantity, ...otherData } = input;
       const created = await ctx.prisma.ingredient.create({
         data: {
-          ...input,
+          ...otherData,
           pricePerUnit: new Decimal(input.pricePerUnit),
+          quantity: quantity ? new Decimal(quantity) : null,
         },
       });
       
@@ -54,6 +65,8 @@ export const ingredientsRouter = router({
         ...created,
         pricePerUnit: (created.pricePerUnit as any)?.toNumber?.() 
           ?? Number(created.pricePerUnit),
+        quantity: created.quantity ? 
+          ((created.quantity as any)?.toNumber?.() ?? Number(created.quantity)) : null,
       };
     }),
 
@@ -64,14 +77,20 @@ export const ingredientsRouter = router({
       name: z.string().min(1, "재료명은 필수입니다"),
       unit: z.string().min(1, "단위는 필수입니다"),
       pricePerUnit: z.number().positive("단가는 0보다 커야 합니다"),
+      // 새 필드 추가 (optional)
+      category: z.string().optional(),
+      subcategory: z.string().optional(),
+      brand: z.string().optional(),
+      quantity: z.number().positive().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input;
+      const { id, quantity, ...data } = input;
       const updated = await ctx.prisma.ingredient.update({
         where: { id },
         data: {
           ...data,
           pricePerUnit: new Decimal(data.pricePerUnit),
+          quantity: quantity ? new Decimal(quantity) : null,
         },
       });
       
@@ -79,6 +98,8 @@ export const ingredientsRouter = router({
         ...updated,
         pricePerUnit: (updated.pricePerUnit as any)?.toNumber?.() 
           ?? Number(updated.pricePerUnit),
+        quantity: updated.quantity ? 
+          ((updated.quantity as any)?.toNumber?.() ?? Number(updated.quantity)) : null,
       };
     }),
 

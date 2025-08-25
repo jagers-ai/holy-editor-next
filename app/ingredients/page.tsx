@@ -16,6 +16,10 @@ export default function IngredientsPage() {
     name: '',
     unit: '',
     pricePerUnit: '',
+    category: '',
+    subcategory: '',
+    brand: '',
+    quantity: '',
   });
 
   const utils = trpc.useUtils();
@@ -26,7 +30,7 @@ export default function IngredientsPage() {
       toast.success('재료가 추가되었습니다');
       utils.ingredients.list.invalidate();
       setIsAdding(false);
-      setFormData({ name: '', unit: '', pricePerUnit: '' });
+      setFormData({ name: '', unit: '', pricePerUnit: '', category: '', subcategory: '', brand: '', quantity: '' });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -38,7 +42,7 @@ export default function IngredientsPage() {
       toast.success('재료가 수정되었습니다');
       utils.ingredients.list.invalidate();
       setEditingId(null);
-      setFormData({ name: '', unit: '', pricePerUnit: '' });
+      setFormData({ name: '', unit: '', pricePerUnit: '', category: '', subcategory: '', brand: '', quantity: '' });
     },
     onError: (error) => {
       toast.error(error.message);
@@ -61,6 +65,10 @@ export default function IngredientsPage() {
       name: formData.name,
       unit: formData.unit,
       pricePerUnit: parseFloat(formData.pricePerUnit),
+      category: formData.category || undefined,
+      subcategory: formData.subcategory || undefined,
+      brand: formData.brand || undefined,
+      quantity: formData.quantity ? parseFloat(formData.quantity) : undefined,
     };
 
     if (editingId) {
@@ -76,6 +84,10 @@ export default function IngredientsPage() {
       name: ingredient.name,
       unit: ingredient.unit,
       pricePerUnit: ingredient.pricePerUnit.toString(),
+      category: ingredient.category || '',
+      subcategory: ingredient.subcategory || '',
+      brand: ingredient.brand || '',
+      quantity: ingredient.quantity ? ingredient.quantity.toString() : '',
     });
     setIsAdding(true);
   };
@@ -112,7 +124,17 @@ export default function IngredientsPage() {
         <CardContent>
           {isAdding && (
             <form onSubmit={handleSubmit} className="mb-6 p-4 border rounded">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
+                <Input
+                  placeholder="대분류"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                />
+                <Input
+                  placeholder="소분류"
+                  value={formData.subcategory}
+                  onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
+                />
                 <Input
                   placeholder="재료명"
                   value={formData.name}
@@ -120,7 +142,19 @@ export default function IngredientsPage() {
                   required
                 />
                 <Input
-                  placeholder="단위 (g, ml, 개 등)"
+                  placeholder="브랜드"
+                  value={formData.brand}
+                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                />
+                <Input
+                  placeholder="수량"
+                  type="number"
+                  step="0.01"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                />
+                <Input
+                  placeholder="단위"
                   value={formData.unit}
                   onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                   required
@@ -143,7 +177,7 @@ export default function IngredientsPage() {
                     onClick={() => {
                       setIsAdding(false);
                       setEditingId(null);
-                      setFormData({ name: '', unit: '', pricePerUnit: '' });
+                      setFormData({ name: '', unit: '', pricePerUnit: '', category: '', subcategory: '', brand: '', quantity: '' });
                     }}
                   >
                     취소
@@ -156,26 +190,34 @@ export default function IngredientsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>재료명</TableHead>
+                <TableHead>대분류</TableHead>
+                <TableHead>소분류</TableHead>
+                <TableHead>재료</TableHead>
+                <TableHead>브랜드</TableHead>
+                <TableHead>수량</TableHead>
                 <TableHead>단위</TableHead>
-                <TableHead className="text-right">단가</TableHead>
+                <TableHead className="text-right">단가(원)</TableHead>
                 <TableHead className="text-center">작업</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {ingredients?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-gray-500">
+                  <TableCell colSpan={8} className="text-center text-gray-500">
                     등록된 재료가 없습니다
                   </TableCell>
                 </TableRow>
               ) : (
                 ingredients?.map((ingredient) => (
                   <TableRow key={ingredient.id}>
+                    <TableCell>{ingredient.category || '-'}</TableCell>
+                    <TableCell>{ingredient.subcategory || '-'}</TableCell>
                     <TableCell className="font-medium">{ingredient.name}</TableCell>
+                    <TableCell>{ingredient.brand || '-'}</TableCell>
+                    <TableCell>{ingredient.quantity || '-'}</TableCell>
                     <TableCell>{ingredient.unit}</TableCell>
                     <TableCell className="text-right">
-                      ₩{ingredient.pricePerUnit.toLocaleString()}
+                      {ingredient.pricePerUnit.toLocaleString()}원
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex justify-center gap-2">

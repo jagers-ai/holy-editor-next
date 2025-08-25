@@ -198,11 +198,20 @@ export default function RecipesPage() {
                           <SelectValue placeholder="재료 선택" />
                         </SelectTrigger>
                         <SelectContent>
-                          {ingredients?.map((ing) => (
-                            <SelectItem key={ing.id} value={ing.id}>
-                              {ing.name} ({ing.unit})
-                            </SelectItem>
-                          ))}
+                          {ingredients?.map((ing) => {
+                            const isAlreadySelected = selectedIngredients.some(
+                              sel => sel.ingredientId === ing.id
+                            );
+                            return (
+                              <SelectItem 
+                                key={ing.id} 
+                                value={ing.id}
+                                disabled={isAlreadySelected}
+                              >
+                                {ing.name} ({ing.unit}) {isAlreadySelected && '(선택됨)'}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                       <Input
