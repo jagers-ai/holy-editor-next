@@ -1,0 +1,57 @@
+// Prisma schema for BREAD MVP
+// 3 tables: Ingredient, Recipe, RecipeIngredient
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// 재료 테이블
+model Ingredient {
+  id           String   @id @default(cuid())
+  name         String   // "버터", "밀가루" 등
+  unit         String   // "g", "ml", "개" 등
+  pricePerUnit Decimal  @db.Decimal(10, 2) // 정확한 금액 계산을 위한 Decimal 타입
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // 관계 - 이 재료를 사용하는 레시피들
+  recipes RecipeIngredient[]
+  
+  @@map("ingredients")
+}
+
+// 레시피 테이블
+model Recipe {
+  id         String   @id @default(cuid())
+  name       String   // "휘낭시에", "크로와상" 등
+  yieldCount Int      @default(1) // 1회 제작 시 생산량 (개수)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  // 관계 - 이 레시피에 필요한 재료들
+  ingredients RecipeIngredient[]
+  
+  @@map("recipes")
+}
+
+// 레시피-재료 중간 테이블 (다대다 관계)
+model RecipeIngredient {
+  id           String  @id @default(cuid())
+  recipeId     String
+  ingredientId String
+  quantity     Decimal @db.Decimal(10, 2) // 사용량 (예: 50.5g)
+  
+  // 관계
+  recipe     Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+  
+  // 같은 레시피에 같은 재료는 중복될 수 없음
+  @@unique([recipeId, ingredientId])
+  @@map("recipe_ingredients")
+}
