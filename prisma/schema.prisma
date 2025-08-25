@@ -58,7 +58,6 @@ model RecipeIngredient {
   recipe     Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   ingredient Ingredient @relation(fields: [ingredientId], references: [id])
   
-  // 같은 레시피에 같은 재료는 중복될 수 없음
-  @@unique([recipeId, ingredientId])
+  // unique constraint 제거 - 같은 재료를 여러 번 사용 가능 (예: 반죽용, 토핑용)
   @@map("recipe_ingredients")
 }

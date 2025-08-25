@@ -75,17 +75,12 @@ export const recipesRouter = router({
       })).min(1, "최소 1개 이상의 재료가 필요합니다"),
     }))
     .mutation(async ({ ctx, input }) => {
-      // 중복 재료 자동 필터링 (백엔드 방어 코드)
-      const uniqueIngredients = Array.from(
-        new Map(input.ingredients.map(i => [i.ingredientId, i])).values()
-      );
-      
       const recipe = await ctx.prisma.recipe.create({
         data: {
           name: input.name,
           yieldCount: input.yieldCount,
           ingredients: {
-            create: uniqueIngredients.map((ing) => ({
+            create: input.ingredients.map((ing) => ({
               ingredientId: ing.ingredientId,
               quantity: new Decimal(ing.quantity),
             })),
@@ -129,11 +124,6 @@ export const recipesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { id, ingredients, ...data } = input;
       
-      // 중복 재료 자동 필터링 (백엔드 방어 코드)
-      const uniqueIngredients = Array.from(
-        new Map(ingredients.map(i => [i.ingredientId, i])).values()
-      );
-      
       // 기존 재료 연결 삭제
       await ctx.prisma.recipeIngredient.deleteMany({
         where: { recipeId: id },
@@ -145,7 +135,7 @@ export const recipesRouter = router({
         data: {
           ...data,
           ingredients: {
-            create: uniqueIngredients.map((ing) => ({
+            create: ingredients.map((ing) => ({
               ingredientId: ing.ingredientId,
               quantity: new Decimal(ing.quantity),
             })),

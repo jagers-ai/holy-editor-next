@@ -149,7 +149,7 @@ export default function IngredientsPage() {
                 <Input
                   placeholder="수량"
                   type="number"
-                  step="0.01"
+                  step="1"
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                 />
