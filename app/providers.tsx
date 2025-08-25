@@ -25,13 +25,26 @@ export default function Providers({ children }: { children: ReactNode }) {
     })
   );
 
-  return (
-    <PostHogProvider>
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>
-          {children}
-        </QueryClientProvider>
-      </trpc.Provider>
-    </PostHogProvider>
+  // PostHog API 키가 있을 때만 Provider 사용
+  const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+
+  const content = (
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </trpc.Provider>
   );
+
+  // PostHog 키가 있으면 PostHogProvider로 감싸기
+  if (posthogKey) {
+    return (
+      <PostHogProvider apiKey={posthogKey}>
+        {content}
+      </PostHogProvider>
+    );
+  }
+
+  // 없으면 그냥 기본 Provider만
+  return content;
 }
