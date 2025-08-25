@@ -38,6 +38,14 @@ model Recipe {
   id         String   @id @default(cuid())
   name       String   // "휘낭시에", "크로와상" 등
   yieldCount Int      @default(1) // 1회 제작 시 생산량 (개수)
+  
+  // 베이킹 정보 (모두 optional로 기존 데이터와 호환)
+  baker            String?  // 제빵사
+  moldSize         String?  // 틀사이즈 (예: "22cm 원형틀")
+  ovenTemp         Int?     // 오븐 온도 (°C)
+  ovenTime         Int?     // 오븐 시간 (분)
+  fermentationInfo String?  // 발효/벤치/휴지 정보
+  
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   

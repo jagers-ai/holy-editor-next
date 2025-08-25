@@ -15,6 +15,11 @@ export default function RecipesPage() {
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
   const [recipeName, setRecipeName] = useState('');
   const [yieldCount, setYieldCount] = useState('1');
+  const [baker, setBaker] = useState('');
+  const [moldSize, setMoldSize] = useState('');
+  const [ovenTemp, setOvenTemp] = useState('');
+  const [ovenTime, setOvenTime] = useState('');
+  const [fermentationInfo, setFermentationInfo] = useState('');
   const [selectedIngredients, setSelectedIngredients] = useState<
     Array<{ ingredientId: string; quantity: string }>
   >([]);
@@ -30,6 +35,11 @@ export default function RecipesPage() {
       setIsCreating(false);
       setRecipeName('');
       setYieldCount('1');
+      setBaker('');
+      setMoldSize('');
+      setOvenTemp('');
+      setOvenTime('');
+      setFermentationInfo('');
       setSelectedIngredients([]);
     },
     onError: (error) => {
@@ -45,6 +55,11 @@ export default function RecipesPage() {
       setEditingRecipe(null);
       setRecipeName('');
       setYieldCount('1');
+      setBaker('');
+      setMoldSize('');
+      setOvenTemp('');
+      setOvenTime('');
+      setFermentationInfo('');
       setSelectedIngredients([]);
     },
     onError: (error) => {
@@ -80,6 +95,11 @@ export default function RecipesPage() {
     setEditingRecipe(recipe);
     setRecipeName(recipe.name);
     setYieldCount(recipe.yieldCount.toString());
+    setBaker(recipe.baker || '');
+    setMoldSize(recipe.moldSize || '');
+    setOvenTemp(recipe.ovenTemp ? recipe.ovenTemp.toString() : '');
+    setOvenTime(recipe.ovenTime ? recipe.ovenTime.toString() : '');
+    setFermentationInfo(recipe.fermentationInfo || '');
     setSelectedIngredients(
       recipe.ingredients.map((ri: any) => ({
         ingredientId: ri.ingredient.id,
@@ -108,6 +128,11 @@ export default function RecipesPage() {
     const recipeData = {
       name: recipeName,
       yieldCount: parseInt(yieldCount),
+      baker: baker || undefined,
+      moldSize: moldSize || undefined,
+      ovenTemp: ovenTemp ? parseInt(ovenTemp) : undefined,
+      ovenTime: ovenTime ? parseInt(ovenTime) : undefined,
+      fermentationInfo: fermentationInfo || undefined,
       ingredients: validIngredients,
     };
 
@@ -127,6 +152,11 @@ export default function RecipesPage() {
     setEditingRecipe(null);
     setRecipeName('');
     setYieldCount('1');
+    setBaker('');
+    setMoldSize('');
+    setOvenTemp('');
+    setOvenTime('');
+    setFermentationInfo('');
     setSelectedIngredients([]);
   };
 
@@ -163,21 +193,91 @@ export default function RecipesPage() {
           {(isCreating || isEditing) && (
             <form onSubmit={handleSubmit} className="mb-6 p-4 border rounded">
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    placeholder="레시피명"
-                    value={recipeName}
-                    onChange={(e) => setRecipeName(e.target.value)}
-                    required
-                  />
-                  <Input
-                    type="number"
-                    placeholder="생산량 (개)"
-                    value={yieldCount}
-                    onChange={(e) => setYieldCount(e.target.value)}
-                    min="1"
-                    required
-                  />
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-medium text-gray-700">제빵사</label>
+                    <Input
+                      placeholder="제빵사명을 입력하세요"
+                      value={baker}
+                      onChange={(e) => setBaker(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-medium text-gray-700">레시피명</label>
+                    <Input
+                      placeholder="레시피명을 입력하세요"
+                      value={recipeName}
+                      onChange={(e) => setRecipeName(e.target.value)}
+                      required
+                      className="flex-1"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-medium text-gray-700">생산량</label>
+                    <Input
+                      type="number"
+                      placeholder="생산량 (개)"
+                      value={yieldCount}
+                      onChange={(e) => setYieldCount(e.target.value)}
+                      min="1"
+                      required
+                      className="flex-1"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-medium text-gray-700">틀사이즈</label>
+                    <Input
+                      placeholder="예: 22cm 원형틀, 12x8cm 직사각틀"
+                      value={moldSize}
+                      onChange={(e) => setMoldSize(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-medium text-gray-700">오븐 온도</label>
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input
+                        type="number"
+                        placeholder="180"
+                        value={ovenTemp}
+                        onChange={(e) => setOvenTemp(e.target.value)}
+                        min="50"
+                        max="300"
+                        className="flex-1"
+                      />
+                      <span className="text-sm text-gray-600">°C</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-medium text-gray-700">오븐 시간</label>
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input
+                        type="number"
+                        placeholder="15"
+                        value={ovenTime}
+                        onChange={(e) => setOvenTime(e.target.value)}
+                        min="1"
+                        className="flex-1"
+                      />
+                      <span className="text-sm text-gray-600">분</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <label className="w-32 text-sm font-medium text-gray-700">발효/벤치/휴지</label>
+                    <Input
+                      placeholder="예: 1차 발효 60분, 벤치 30분, 2차 발효 40분"
+                      value={fermentationInfo}
+                      onChange={(e) => setFermentationInfo(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -259,9 +359,23 @@ export default function RecipesPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600 mb-2">
-                  생산량: {recipe.yieldCount}개
-                </p>
+                <div className="space-y-2 mb-4">
+                  {recipe.baker && (
+                    <p className="text-sm text-gray-600">제빵사: {recipe.baker}</p>
+                  )}
+                  <p className="text-sm text-gray-600">생산량: {recipe.yieldCount}개</p>
+                  {recipe.moldSize && (
+                    <p className="text-sm text-gray-600">틀사이즈: {recipe.moldSize}</p>
+                  )}
+                  {(recipe.ovenTemp || recipe.ovenTime) && (
+                    <p className="text-sm text-gray-600">
+                      오븐: {recipe.ovenTemp && `${recipe.ovenTemp}°C`}{recipe.ovenTemp && recipe.ovenTime && ', '}{recipe.ovenTime && `${recipe.ovenTime}분`}
+                    </p>
+                  )}
+                  {recipe.fermentationInfo && (
+                    <p className="text-sm text-gray-600">발효: {recipe.fermentationInfo}</p>
+                  )}
+                </div>
                 <div className="space-y-1 mb-4">
                   <p className="text-sm font-medium">재료:</p>
                   {recipe.ingredients.map((ri) => (

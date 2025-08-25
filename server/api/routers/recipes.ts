@@ -69,18 +69,24 @@ export const recipesRouter = router({
     .input(z.object({
       name: z.string().min(1, "레시피명은 필수입니다"),
       yieldCount: z.number().int().positive("생산량은 1개 이상이어야 합니다"),
+      // 베이킹 정보 (optional)
+      baker: z.string().optional(),
+      moldSize: z.string().optional(),
+      ovenTemp: z.number().int().positive().optional(),
+      ovenTime: z.number().int().positive().optional(),
+      fermentationInfo: z.string().optional(),
       ingredients: z.array(z.object({
         ingredientId: z.string(),
         quantity: z.number().positive("수량은 0보다 커야 합니다"),
       })).min(1, "최소 1개 이상의 재료가 필요합니다"),
     }))
     .mutation(async ({ ctx, input }) => {
+      const { ingredients, ...recipeData } = input;
       const recipe = await ctx.prisma.recipe.create({
         data: {
-          name: input.name,
-          yieldCount: input.yieldCount,
+          ...recipeData,
           ingredients: {
-            create: input.ingredients.map((ing) => ({
+            create: ingredients.map((ing) => ({
               ingredientId: ing.ingredientId,
               quantity: new Decimal(ing.quantity),
             })),
@@ -116,6 +122,12 @@ export const recipesRouter = router({
       id: z.string(),
       name: z.string().min(1, "레시피명은 필수입니다"),
       yieldCount: z.number().int().positive("생산량은 1개 이상이어야 합니다"),
+      // 베이킹 정보 (optional)
+      baker: z.string().optional(),
+      moldSize: z.string().optional(),
+      ovenTemp: z.number().int().positive().optional(),
+      ovenTime: z.number().int().positive().optional(),
+      fermentationInfo: z.string().optional(),
       ingredients: z.array(z.object({
         ingredientId: z.string(),
         quantity: z.number().positive("수량은 0보다 커야 합니다"),
