@@ -508,11 +508,42 @@ export default function RecipesPage() {
                             </span>
                           )}
                         </div>
-                        {(items as any[]).map((ri) => (
-                          <p key={ri.id || `${recipe.id}-${ri.ingredient.id}`} className="text-sm text-gray-600">
-                            • {ri.ingredient.name}: {ri.quantity}{ri.ingredient.unit}
-                          </p>
-                        ))}
+                        {(items as any[]).map((ri) => {
+                          // costInfo.breakdown에서 해당 재료의 원가 찾기
+                          const ingredientCost = (recipe as any).costInfo?.breakdown?.find(
+                            (item: any) => item.name === ri.ingredient.name
+                          )?.cost || 0;
+                          
+                          return (
+                            <div key={ri.id || `${recipe.id}-${ri.ingredient.id}`} className="flex justify-between items-center text-sm text-gray-600 py-1">
+                              <span>• {ri.ingredient.name}: {ri.quantity}{ri.ingredient.unit}</span>
+                              {ingredientCost > 0 && (
+                                <span className="text-green-600 font-medium">₩{Math.round(ingredientCost).toLocaleString()}</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                        
+                        {/* 섹션별 총 무게 및 개당 무게 표시 */}
+                        {(() => {
+                          const totalWeight = (items as any[]).reduce((sum, ri) => {
+                            return sum + parseFloat(ri.quantity || 0);
+                          }, 0);
+                          const weightPerUnit = totalWeight / (recipe.yieldCount || 1);
+                          
+                          return (
+                            <div className="mt-3 pt-2 border-t border-gray-200 text-xs text-gray-600">
+                              <div className="flex justify-between">
+                                <span>총 무게:</span>
+                                <span className="font-medium">{totalWeight.toFixed(1)}g</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>개당 무게:</span>
+                                <span className="font-medium">{weightPerUnit.toFixed(1)}g ({recipe.yieldCount}개 생산)</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     ));
                   })()}
@@ -557,21 +588,6 @@ export default function RecipesPage() {
                       총 재료비: ₩{Math.round((recipe as any).costInfo.totalCost).toLocaleString()}
                       <span className="text-gray-400"> ({recipe.yieldCount}개 기준)</span>
                     </div>
-                    
-                    {/* 재료별 원가 내역 */}
-                    <details className="text-xs">
-                      <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
-                        재료별 원가 보기
-                      </summary>
-                      <div className="mt-2 pl-2 border-l-2 border-gray-100">
-                        {(recipe as any).costInfo.breakdown.map((item: any, index: number) => (
-                          <div key={`${recipe.id}-breakdown-${index}`} className="flex justify-between py-1">
-                            <span>{item.name} {item.quantity}{item.unit}</span>
-                            <span>₩{Math.round(item.cost).toLocaleString()}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
                   </div>
                 )}
                 
