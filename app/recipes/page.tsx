@@ -21,9 +21,15 @@ export default function RecipesPage() {
   const [ovenTime, setOvenTime] = useState('');
   const [fermentationInfo, setFermentationInfo] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
-  const [selectedIngredients, setSelectedIngredients] = useState<
-    Array<{ ingredientId: string; quantity: string }>
-  >([]);
+  // 섹션 중심 구조로 변경
+  interface Section {
+    sectionName: string;
+    ingredients: Array<{ ingredientId: string; quantity: string }>;
+  }
+  
+  const [sections, setSections] = useState<Section[]>([
+    { sectionName: '', ingredients: [] }
+  ]);
 
   const utils = trpc.useUtils();
   const { data: recipes, isLoading: recipesLoading } = trpc.recipes.list.useQuery();
@@ -42,7 +48,7 @@ export default function RecipesPage() {
       setOvenTime('');
       setFermentationInfo('');
       setSellingPrice('');
-      setSelectedIngredients([]);
+      setSections([{ sectionName: '', ingredients: [] }]);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -63,7 +69,7 @@ export default function RecipesPage() {
       setOvenTime('');
       setFermentationInfo('');
       setSellingPrice('');
-      setSelectedIngredients([]);
+      setSections([{ sectionName: '', ingredients: [] }]);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -80,18 +86,37 @@ export default function RecipesPage() {
     },
   });
 
-  const handleAddIngredient = () => {
-    setSelectedIngredients([...selectedIngredients, { ingredientId: '', quantity: '' }]);
+  // 섹션 관리 함수들
+  const handleAddSection = () => {
+    setSections([...sections, { sectionName: '', ingredients: [] }]);
   };
 
-  const handleRemoveIngredient = (index: number) => {
-    setSelectedIngredients(selectedIngredients.filter((_, i) => i !== index));
+  const handleRemoveSection = (sectionIndex: number) => {
+    setSections(sections.filter((_, index) => index !== sectionIndex));
   };
 
-  const handleIngredientChange = (index: number, field: 'ingredientId' | 'quantity', value: string) => {
-    const updated = [...selectedIngredients];
-    updated[index][field] = value;
-    setSelectedIngredients(updated);
+  const handleSectionNameChange = (sectionIndex: number, name: string) => {
+    const updated = [...sections];
+    updated[sectionIndex].sectionName = name;
+    setSections(updated);
+  };
+
+  const handleAddIngredientToSection = (sectionIndex: number) => {
+    const updated = [...sections];
+    updated[sectionIndex].ingredients.push({ ingredientId: '', quantity: '' });
+    setSections(updated);
+  };
+
+  const handleRemoveIngredientFromSection = (sectionIndex: number, ingredientIndex: number) => {
+    const updated = [...sections];
+    updated[sectionIndex].ingredients = updated[sectionIndex].ingredients.filter((_, i) => i !== ingredientIndex);
+    setSections(updated);
+  };
+
+  const handleIngredientChange = (sectionIndex: number, ingredientIndex: number, field: 'ingredientId' | 'quantity', value: string) => {
+    const updated = [...sections];
+    updated[sectionIndex].ingredients[ingredientIndex][field] = value;
+    setSections(updated);
   };
 
   const handleEdit = (recipe: any) => {
@@ -104,12 +129,25 @@ export default function RecipesPage() {
     setOvenTime(recipe.ovenTime ? recipe.ovenTime.toString() : '');
     setFermentationInfo(recipe.fermentationInfo || '');
     setSellingPrice(recipe.sellingPrice ? recipe.sellingPrice.toString() : '');
-    setSelectedIngredients(
-      recipe.ingredients.map((ri: any) => ({
+    // 기존 데이터를 섹션 구조로 변환
+    const sectionsMap: { [key: string]: Array<{ ingredientId: string; quantity: string }> } = {};
+    recipe.ingredients.forEach((ri: any) => {
+      const sectionName = ri.sectionName || '기본 재료';
+      if (!sectionsMap[sectionName]) {
+        sectionsMap[sectionName] = [];
+      }
+      sectionsMap[sectionName].push({
         ingredientId: ri.ingredient.id,
         quantity: ri.quantity.toString(),
-      }))
-    );
+      });
+    });
+    
+    const convertedSections = Object.entries(sectionsMap).map(([sectionName, ingredients]) => ({
+      sectionName,
+      ingredients,
+    }));
+    
+    setSections(convertedSections.length > 0 ? convertedSections : [{ sectionName: '', ingredients: [] }]);
     setIsEditing(true);
     setIsCreating(false);
   };
@@ -117,12 +155,19 @@ export default function RecipesPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const validIngredients = selectedIngredients
-      .filter(ing => ing.ingredientId && ing.quantity)
-      .map(ing => ({
-        ingredientId: ing.ingredientId,
-        quantity: parseFloat(ing.quantity),
-      }));
+    // 섹션 구조를 flat 구조로 변환
+    const validIngredients: Array<{ ingredientId: string; quantity: number; sectionName?: string }> = [];
+    sections.forEach(section => {
+      section.ingredients.forEach(ing => {
+        if (ing.ingredientId && ing.quantity) {
+          validIngredients.push({
+            ingredientId: ing.ingredientId,
+            quantity: parseFloat(ing.quantity),
+            sectionName: section.sectionName || undefined,
+          });
+        }
+      });
+    });
 
     if (validIngredients.length === 0) {
       toast.error('최소 1개 이상의 재료가 필요합니다');
@@ -163,7 +208,7 @@ export default function RecipesPage() {
     setOvenTime('');
     setFermentationInfo('');
     setSellingPrice('');
-    setSelectedIngredients([]);
+    setSections([{ sectionName: '', ingredients: [] }]);
   };
 
   const handleDelete = (id: string) => {
@@ -303,49 +348,90 @@ export default function RecipesPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium">재료 목록</label>
-                    <Button type="button" size="sm" onClick={handleAddIngredient}>
-                      재료 추가
-                    </Button>
+                    <label className="text-sm font-medium">재료 섹션</label>
                   </div>
 
-                  {selectedIngredients.map((item, index) => (
-                    <div key={`ingredient-${index}`} className="flex gap-2">
-                      <Select
-                        value={item.ingredientId}
-                        onValueChange={(value) => handleIngredientChange(index, 'ingredientId', value)}
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="재료 선택" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ingredients?.map((ing) => (
-                            <SelectItem key={ing.id} value={ing.id}>
-                              {ing.name} ({ing.unit})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        type="number"
-                        step="1"
-                        placeholder="수량"
-                        value={item.quantity}
-                        onChange={(e) => handleIngredientChange(index, 'quantity', e.target.value)}
-                        className="w-32"
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleRemoveIngredient(index)}
-                      >
-                        삭제
-                      </Button>
-                    </div>
+                  {sections.map((section, sectionIndex) => (
+                    <Card key={`section-${sectionIndex}`} className="p-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <Input
+                          placeholder="섹션명 (예: 반죽, 소스, 토핑)"
+                          value={section.sectionName}
+                          onChange={(e) => handleSectionNameChange(sectionIndex, e.target.value)}
+                          className="w-64 font-semibold"
+                        />
+                        {sections.length > 1 && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleRemoveSection(sectionIndex)}
+                          >
+                            섹션 삭제
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {section.ingredients.map((item, ingredientIndex) => (
+                          <div key={`ingredient-${sectionIndex}-${ingredientIndex}`} className="flex gap-2">
+                            <Select
+                              value={item.ingredientId}
+                              onValueChange={(value) => handleIngredientChange(sectionIndex, ingredientIndex, 'ingredientId', value)}
+                            >
+                              <SelectTrigger className="flex-1">
+                                <SelectValue placeholder="재료 선택" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ingredients?.map((ing) => (
+                                  <SelectItem key={ing.id} value={ing.id}>
+                                    {ing.name} ({ing.unit})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              type="number"
+                              step="1"
+                              placeholder="수량"
+                              value={item.quantity}
+                              onChange={(e) => handleIngredientChange(sectionIndex, ingredientIndex, 'quantity', e.target.value)}
+                              className="w-32"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleRemoveIngredientFromSection(sectionIndex, ingredientIndex)}
+                            >
+                              삭제
+                            </Button>
+                          </div>
+                        ))}
+                        
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleAddIngredientToSection(sectionIndex)}
+                          className="w-full"
+                        >
+                          + 이 섹션에 재료 추가
+                        </Button>
+                      </div>
+                    </Card>
                   ))}
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddSection}
+                    className="w-full"
+                  >
+                    + 새 섹션 추가
+                  </Button>
                 </div>
 
                 <div className="flex gap-2">
@@ -399,13 +485,37 @@ export default function RecipesPage() {
                     <p className="text-sm text-gray-600">발효: {recipe.fermentationInfo}</p>
                   )}
                 </div>
-                <div className="space-y-1 mb-4">
-                  <p className="text-sm font-medium">재료:</p>
-                  {recipe.ingredients.map((ri) => (
-                    <p key={ri.id || `${recipe.id}-${ri.ingredient.id}`} className="text-sm text-gray-600">
-                      • {ri.ingredient.name}: {ri.quantity}{ri.ingredient.unit}
-                    </p>
-                  ))}
+                {/* 섹션별 재료 그룹화 표시 */}
+                <div className="space-y-3 mb-4">
+                  {(() => {
+                    // 섹션별로 재료 그룹화
+                    const sections = recipe.ingredients.reduce((acc: any, ri: any) => {
+                      const section = ri.sectionName || '기본 재료';
+                      if (!acc[section]) acc[section] = [];
+                      acc[section].push(ri);
+                      return acc;
+                    }, {});
+                    
+                    return Object.entries(sections).map(([sectionName, items]: [string, any]) => (
+                      <div key={sectionName} className="border rounded p-3 bg-gray-50">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="text-sm font-semibold">
+                            📦 {sectionName}
+                          </h4>
+                          {(recipe as any).costInfo?.sectionCosts && (
+                            <span className="text-xs text-green-600 font-medium">
+                              ₩{Math.round((recipe as any).costInfo.sectionCosts[sectionName] || 0).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        {(items as any[]).map((ri) => (
+                          <p key={ri.id || `${recipe.id}-${ri.ingredient.id}`} className="text-sm text-gray-600">
+                            • {ri.ingredient.name}: {ri.quantity}{ri.ingredient.unit}
+                          </p>
+                        ))}
+                      </div>
+                    ));
+                  })()}
                 </div>
                 
                 {/* 판매가격 및 마진율 섹션 */}

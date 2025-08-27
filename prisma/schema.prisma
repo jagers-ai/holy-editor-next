@@ -62,6 +62,7 @@ model RecipeIngredient {
   recipeId     String
   ingredientId String
   quantity     Decimal @db.Decimal(10, 2) // 사용량 (예: 50.5g)
+  sectionName  String? // 섹션명 (예: "반죽", "카레소스", "토핑")
   
   // 관계
   recipe     Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)

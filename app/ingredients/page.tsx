@@ -16,11 +16,12 @@ export default function IngredientsPage() {
     name: '',
     unit: '',
     pricePerUnit: '',
-    category: '',
-    subcategory: '',
     brand: '',
     quantity: '',
   });
+  
+  // 구매가격 state (단가 자동 계산용)
+  const [purchasePrice, setPurchasePrice] = useState('');
 
   const utils = trpc.useUtils();
   const { data: ingredients, isLoading } = trpc.ingredients.list.useQuery();
@@ -30,7 +31,8 @@ export default function IngredientsPage() {
       toast.success('재료가 추가되었습니다');
       utils.ingredients.list.invalidate();
       setIsAdding(false);
-      setFormData({ name: '', unit: '', pricePerUnit: '', category: '', subcategory: '', brand: '', quantity: '' });
+      setFormData({ name: '', unit: '', pricePerUnit: '', brand: '', quantity: '' });
+      setPurchasePrice('');
     },
     onError: (error) => {
       toast.error(error.message);
@@ -42,7 +44,8 @@ export default function IngredientsPage() {
       toast.success('재료가 수정되었습니다');
       utils.ingredients.list.invalidate();
       setEditingId(null);
-      setFormData({ name: '', unit: '', pricePerUnit: '', category: '', subcategory: '', brand: '', quantity: '' });
+      setFormData({ name: '', unit: '', pricePerUnit: '', brand: '', quantity: '' });
+      setPurchasePrice('');
     },
     onError: (error) => {
       toast.error(error.message);
@@ -61,12 +64,16 @@ export default function IngredientsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 단가 계산 (구매가격 ÷ 무게)
+    const calculatedPricePerUnit = purchasePrice && formData.quantity 
+      ? parseFloat(purchasePrice) / parseFloat(formData.quantity)
+      : parseFloat(formData.pricePerUnit);
+    
     const data = {
       name: formData.name,
       unit: formData.unit,
-      pricePerUnit: parseFloat(formData.pricePerUnit),
-      category: formData.category || undefined,
-      subcategory: formData.subcategory || undefined,
+      pricePerUnit: calculatedPricePerUnit,
       brand: formData.brand || undefined,
       quantity: formData.quantity ? parseFloat(formData.quantity) : undefined,
     };
@@ -84,17 +91,39 @@ export default function IngredientsPage() {
       name: ingredient.name,
       unit: ingredient.unit,
       pricePerUnit: ingredient.pricePerUnit.toString(),
-      category: ingredient.category || '',
-      subcategory: ingredient.subcategory || '',
       brand: ingredient.brand || '',
       quantity: ingredient.quantity ? ingredient.quantity.toString() : '',
     });
+    // 구매가격 역산 (단가 × 무게)
+    if (ingredient.quantity && ingredient.pricePerUnit) {
+      setPurchasePrice((ingredient.quantity * ingredient.pricePerUnit).toString());
+    } else {
+      setPurchasePrice('');
+    }
     setIsAdding(true);
   };
 
   const handleDelete = (id: string) => {
     if (confirm('정말 삭제하시겠습니까?')) {
       deleteMutation.mutate(id);
+    }
+  };
+  
+  // 구매가격 변경 시 단가 자동 계산
+  const handlePurchasePriceChange = (value: string) => {
+    setPurchasePrice(value);
+    if (value && formData.quantity) {
+      const calculatedPrice = parseFloat(value) / parseFloat(formData.quantity);
+      setFormData({ ...formData, pricePerUnit: calculatedPrice.toFixed(2) });
+    }
+  };
+  
+  // 무게 변경 시 단가 자동 계산
+  const handleQuantityChange = (value: string) => {
+    setFormData({ ...formData, quantity: value });
+    if (purchasePrice && value) {
+      const calculatedPrice = parseFloat(purchasePrice) / parseFloat(value);
+      setFormData({ ...formData, quantity: value, pricePerUnit: calculatedPrice.toFixed(2) });
     }
   };
 
@@ -124,17 +153,7 @@ export default function IngredientsPage() {
         <CardContent>
           {isAdding && (
             <form onSubmit={handleSubmit} className="mb-6 p-4 border rounded">
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
-                <Input
-                  placeholder="대분류"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                />
-                <Input
-                  placeholder="소분류"
-                  value={formData.subcategory}
-                  onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
-                />
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
                 <Input
                   placeholder="재료명"
                   value={formData.name}
@@ -147,26 +166,38 @@ export default function IngredientsPage() {
                   onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                 />
                 <Input
-                  placeholder="수량"
-                  type="number"
-                  step="1"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                />
-                <Input
                   placeholder="단위"
                   value={formData.unit}
                   onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                   required
                 />
                 <Input
+                  placeholder="무게"
                   type="number"
-                  step="0.01"
-                  placeholder="단가"
-                  value={formData.pricePerUnit}
-                  onChange={(e) => setFormData({ ...formData, pricePerUnit: e.target.value })}
-                  required
+                  step="1"
+                  value={formData.quantity}
+                  onChange={(e) => handleQuantityChange(e.target.value)}
                 />
+                <Input
+                  placeholder="구매가격"
+                  type="number"
+                  step="1"
+                  value={purchasePrice}
+                  onChange={(e) => handlePurchasePriceChange(e.target.value)}
+                />
+                <div className="flex flex-col">
+                  <label className="text-xs text-gray-600 mb-1">
+                    단가 (자동계산)
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="자동 계산됨"
+                    value={formData.pricePerUnit}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                </div>
                 <div className="flex gap-2">
                   <Button type="submit">
                     {editingId ? '수정' : '추가'}
@@ -177,7 +208,8 @@ export default function IngredientsPage() {
                     onClick={() => {
                       setIsAdding(false);
                       setEditingId(null);
-                      setFormData({ name: '', unit: '', pricePerUnit: '', category: '', subcategory: '', brand: '', quantity: '' });
+                      setFormData({ name: '', unit: '', pricePerUnit: '', brand: '', quantity: '' });
+      setPurchasePrice('');
                     }}
                   >
                     취소
@@ -190,11 +222,9 @@ export default function IngredientsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>대분류</TableHead>
-                <TableHead>소분류</TableHead>
                 <TableHead>재료</TableHead>
                 <TableHead>브랜드</TableHead>
-                <TableHead>수량</TableHead>
+                <TableHead>무게</TableHead>
                 <TableHead>단위</TableHead>
                 <TableHead className="text-right">단가(원)</TableHead>
                 <TableHead className="text-center">작업</TableHead>
@@ -203,21 +233,28 @@ export default function IngredientsPage() {
             <TableBody>
               {ingredients?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-gray-500">
+                  <TableCell colSpan={6} className="text-center text-gray-500">
                     등록된 재료가 없습니다
                   </TableCell>
                 </TableRow>
               ) : (
                 ingredients?.map((ingredient) => (
                   <TableRow key={ingredient.id}>
-                    <TableCell>{ingredient.category || '-'}</TableCell>
-                    <TableCell>{ingredient.subcategory || '-'}</TableCell>
                     <TableCell className="font-medium">{ingredient.name}</TableCell>
                     <TableCell>{ingredient.brand || '-'}</TableCell>
                     <TableCell>{ingredient.quantity || '-'}</TableCell>
                     <TableCell>{ingredient.unit}</TableCell>
                     <TableCell className="text-right">
-                      {ingredient.pricePerUnit.toLocaleString()}원
+                      <div>
+                        <div className="font-medium">
+                          ₩{ingredient.pricePerUnit.toLocaleString()}/{ingredient.unit}
+                        </div>
+                        {ingredient.quantity && (
+                          <div className="text-xs text-gray-500">
+                            구매가: ₩{(ingredient.pricePerUnit * Number(ingredient.quantity)).toLocaleString()} ({ingredient.quantity}{ingredient.unit})
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex justify-center gap-2">
