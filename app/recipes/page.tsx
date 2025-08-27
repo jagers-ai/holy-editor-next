@@ -503,15 +503,17 @@ export default function RecipesPage() {
                             📦 {sectionName}
                           </h4>
                           {(recipe as any).costInfo?.sectionCosts && (
-                            <span className="text-xs text-green-600 font-medium">
+                            <span className="text-sm text-green-600 font-bold">
                               ₩{Math.round((recipe as any).costInfo.sectionCosts[sectionName] || 0).toLocaleString()}
                             </span>
                           )}
                         </div>
                         {(items as any[]).map((ri) => {
-                          // costInfo.breakdown에서 해당 재료의 원가 찾기
+                          // costInfo.breakdown에서 해당 재료의 원가 찾기 (재료명과 수량 모두 비교)
                           const ingredientCost = (recipe as any).costInfo?.breakdown?.find(
-                            (item: any) => item.name === ri.ingredient.name
+                            (item: any) => 
+                              item.name === ri.ingredient.name && 
+                              parseFloat(item.quantity) === parseFloat(ri.quantity)
                           )?.cost || 0;
                           
                           return (
@@ -537,7 +539,7 @@ export default function RecipesPage() {
                                 <span>총 무게:</span>
                                 <span className="font-medium">{totalWeight.toFixed(1)}g</span>
                               </div>
-                              <div className="flex justify-between">
+                              <div className="flex justify-between mt-1">
                                 <span>개당 무게:</span>
                                 <span className="font-medium">{weightPerUnit.toFixed(1)}g ({recipe.yieldCount}개 생산)</span>
                               </div>
