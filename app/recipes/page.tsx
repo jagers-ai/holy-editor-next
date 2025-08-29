@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function RecipesPage() {
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
@@ -105,6 +106,7 @@ export default function RecipesPage() {
       ovenTime: null,
       fermentationInfo: '',
       sellingPrice: null,
+      memo: '',
       ingredients: []
     };
     
@@ -167,6 +169,7 @@ export default function RecipesPage() {
       ovenTime: editingRecipe.ovenTime || undefined,
       fermentationInfo: editingRecipe.fermentationInfo || undefined,
       sellingPrice: editingRecipe.sellingPrice || undefined,
+      memo: editingRecipe.memo && editingRecipe.memo.trim() ? editingRecipe.memo.trim() : undefined,
       ingredients: validIngredients,
     };
 
@@ -408,6 +411,25 @@ export default function RecipesPage() {
                   + 섹션 추가
                 </Button>
                 
+                {/* 메모 입력 필드 */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">📝 메모</label>
+                  <Textarea
+                    placeholder="레시피에 대한 메모를 입력하세요 (최대 300자)"
+                    value={editingRecipe?.memo || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.length <= 300) {
+                        setEditingRecipe({...editingRecipe, memo: value});
+                      }
+                    }}
+                    className="min-h-[100px]"
+                  />
+                  <div className="text-xs text-gray-500 text-right">
+                    {editingRecipe?.memo?.length || 0} / 300
+                  </div>
+                </div>
+                
                 {/* 저장/취소 버튼 */}
                 <div className="flex gap-2 pt-3 border-t">
                   <Button 
@@ -584,6 +606,25 @@ export default function RecipesPage() {
                       + 섹션 추가
                     </Button>
                     
+                    {/* 메모 입력 필드 */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">📝 메모</label>
+                      <Textarea
+                        placeholder="레시피에 대한 메모를 입력하세요 (최대 300자)"
+                        value={editingRecipe?.memo || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value.length <= 300) {
+                            setEditingRecipe({...editingRecipe, memo: value});
+                          }
+                        }}
+                        className="min-h-[100px]"
+                      />
+                      <div className="text-xs text-gray-500 text-right">
+                        {editingRecipe?.memo?.length || 0} / 300
+                      </div>
+                    </div>
+                    
                     {/* 저장/취소 버튼 */}
                     <div className="flex gap-2 pt-3 border-t">
                       <Button 
@@ -725,6 +766,21 @@ export default function RecipesPage() {
                         <div className="text-xs text-gray-600 mb-2">
                           총 재료비: ₩{Math.round((recipe as any).costInfo.totalCost).toLocaleString()}
                           <span className="text-gray-400"> ({recipe.yieldCount}개 기준)</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* 메모 표시 영역 */}
+                    {(recipe as any).memo && (
+                      <div className="border-t pt-3 mb-4">
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-start gap-2">
+                            <span className="text-sm">📝</span>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-700 mb-1">메모</p>
+                              <p className="text-sm text-gray-600 whitespace-pre-wrap">{(recipe as any).memo}</p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}

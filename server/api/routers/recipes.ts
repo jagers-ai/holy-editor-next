@@ -71,6 +71,7 @@ export const recipesRouter = router({
             ((Number(recipe.sellingPrice) - totalCost.div(recipe.yieldCount).toNumber()) / Number(recipe.sellingPrice) * 100) : null,
         },
         sellingPrice: recipe.sellingPrice ? (recipe.sellingPrice as any)?.toNumber?.() ?? Number(recipe.sellingPrice) : null,
+        memo: recipe.memo || null, // 메모 필드 추가
       };
     });
   }),
@@ -120,6 +121,7 @@ export const recipesRouter = router({
       ovenTime: z.number().int().positive().optional(),
       fermentationInfo: z.string().optional(),
       sellingPrice: z.number().positive().optional(),
+      memo: z.string().max(300, "메모는 최대 300자까지 입력 가능합니다").optional(),
       ingredients: z.array(z.object({
         ingredientId: z.string(),
         quantity: z.number().positive("수량은 0보다 커야 합니다"),
@@ -127,11 +129,12 @@ export const recipesRouter = router({
       })).min(1, "최소 1개 이상의 재료가 필요합니다"),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { ingredients, sellingPrice, ...recipeData } = input;
+      const { ingredients, sellingPrice, memo, ...recipeData } = input;
       const recipe = await ctx.prisma.recipe.create({
         data: {
           ...recipeData,
           sellingPrice: sellingPrice ? new Decimal(sellingPrice) : null,
+          memo: memo || null,
           ingredients: {
             create: ingredients.map((ing) => ({
               ingredientId: ing.ingredientId,
@@ -178,6 +181,7 @@ export const recipesRouter = router({
       ovenTime: z.number().int().positive().optional(),
       fermentationInfo: z.string().optional(),
       sellingPrice: z.number().positive().optional(),
+      memo: z.string().max(300, "메모는 최대 300자까지 입력 가능합니다").optional(),
       ingredients: z.array(z.object({
         ingredientId: z.string(),
         quantity: z.number().positive("수량은 0보다 커야 합니다"),
@@ -185,7 +189,7 @@ export const recipesRouter = router({
       })).min(1, "최소 1개 이상의 재료가 필요합니다"),
     }))
     .mutation(async ({ ctx, input }) => {
-      const { id, ingredients, sellingPrice, ...data } = input;
+      const { id, ingredients, sellingPrice, memo, ...data } = input;
       
       // 트랜잭션으로 묶어서 처리
       const recipe = await ctx.prisma.$transaction(async (prisma) => {
@@ -200,6 +204,7 @@ export const recipesRouter = router({
           data: {
             ...data,
             sellingPrice: sellingPrice ? new Decimal(sellingPrice) : null,
+            memo: memo || null,
           },
         });
         

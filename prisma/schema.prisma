@@ -46,6 +46,7 @@ model Recipe {
   ovenTime         Int?     // 오븐 시간 (분)
   fermentationInfo String?  // 발효/벤치/휴지 정보
   sellingPrice     Decimal? @db.Decimal(10, 2) // 판매가격
+  memo             String?  @db.Text // 레시피 메모 (최대 300자)
   
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
