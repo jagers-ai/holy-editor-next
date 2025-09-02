@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import Providers from "./providers";
+import { BookOpen } from "lucide-react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "🍞 BREAD - 빵 레시피 원가 계산기",
-  description: "베이커리 사업주를 위한 정확한 원가 계산 서비스",
+  title: "HolyEditor - 성경 구절 에디터",
+  description: "성경 구절을 쉽게 삽입할 수 있는 에디터",
 };
 
 export default function RootLayout({
@@ -30,19 +31,15 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <nav className="border-b">
-            <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-              <div className="flex items-center gap-8">
-                <Link href="/" className="font-bold text-xl">🍞 BREAD</Link>
-                <span className="text-sm text-gray-600">베이커리 원가 계산기</span>
-              </div>
-              <div className="flex gap-6">
-                <Link href="/ingredients" className="hover:underline">재료 관리</Link>
-                <Link href="/recipes" className="hover:underline">레시피 관리</Link>
-              </div>
+          <nav className="border-b fixed top-0 left-0 right-0 bg-background z-50">
+            <div className="max-w-2xl mx-auto px-4 h-14 flex items-center">
+              <Link href="/" className="font-bold text-lg flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                HolyEditor
+              </Link>
             </div>
           </nav>
-          <main className="container mx-auto px-4 py-8">
+          <main className="pt-14">
             {children}
           </main>
         </Providers>

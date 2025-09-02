@@ -1,48 +1,39 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { BookOpen, Plus, FolderOpen } from 'lucide-react';
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-4">🍞 BREAD</h1>
-        <p className="text-xl text-gray-600 mb-2">베이커리 원가 계산 서비스</p>
-        <p className="text-gray-500">재료비부터 생산비까지, 정확한 원가 관리의 시작</p>
+    <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center px-4">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold flex items-center justify-center gap-2">
+            <BookOpen className="h-10 w-10" />
+            HolyEditor
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            성경 구절을 쉽게 삽입할 수 있는 에디터
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <Button asChild className="w-full h-12 text-lg">
+            <Link href="/editor/new">
+              <Plus className="h-5 w-5 mr-2" />
+              새 문서 작성
+            </Link>
+          </Button>
+          
+          <Button asChild variant="outline" className="w-full h-12 text-lg">
+            <Link href="/documents">
+              <FolderOpen className="h-5 w-5 mr-2" />
+              문서 저장소
+            </Link>
+          </Button>
+        </div>
       </div>
-
-      <div className="grid md:grid-cols-2 gap-6 mb-8 max-w-2xl mx-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              📦 재료 관리
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 mb-4">재료별 단가 정보를 관리하고 업데이트하세요.</p>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/ingredients">재료 관리하기</Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              📝💰 레시피 & 원가
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 mb-4">레시피를 만들고 실시간으로 원가를 확인하세요.</p>
-            <Button asChild className="w-full">
-              <Link href="/recipes">레시피 관리하기</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
     </div>
   );
 }
