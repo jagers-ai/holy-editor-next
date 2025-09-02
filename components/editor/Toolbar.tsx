@@ -1,6 +1,7 @@
 'use client';
 
 import { Editor } from '@tiptap/react';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { Button } from '@/components/ui/button';
 import {
   Bold,
@@ -19,9 +20,18 @@ interface ToolbarProps {
 export function Toolbar({ editor }: ToolbarProps) {
   if (!editor) return null;
 
+  // Android 최적화: 키보드 높이에 맞춰 동적 bottom 적용
+  useKeyboardInset(true);
+
   return (
-    <div className="border-t bg-background">
-      <div className="flex items-center gap-1 p-2 overflow-x-auto">
+    <div
+      className="fixed inset-x-0 bottom-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)] md:relative md:inset-auto md:bottom-auto md:z-auto transform-gpu translate-y-[var(--kb-translate,0px)] md:translate-y-0"
+      role="toolbar"
+      aria-label="Editor toolbar"
+      style={{ ['--kb-translate' as any]: 'calc(0px - var(--keyboard-inset, 0px))', transition: 'transform 90ms ease-out' }}
+    >
+      <div className="mx-auto w-full max-w-2xl">
+        <div className="flex items-center gap-1 p-2 overflow-x-auto min-h-[var(--toolbar-h)]">
         <Button
           variant="ghost"
           size="sm"
@@ -89,6 +99,7 @@ export function Toolbar({ editor }: ToolbarProps) {
         
         <div className="ml-auto text-xs text-muted-foreground px-2 whitespace-nowrap">
           /창1:1
+        </div>
         </div>
       </div>
     </div>

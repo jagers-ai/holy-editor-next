@@ -133,9 +133,9 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
   }
 
   return (
-    <div className="flex flex-col h-screen max-w-2xl mx-auto">
+    <div className="flex flex-col h-dvh max-w-2xl mx-auto overflow-hidden">
       {/* 헤더 */}
-      <div className="border-b px-4 py-3 flex items-center justify-between">
+      <div className="border-b px-4 py-3 flex items-center justify-between shrink-0">
         <input
           type="text"
           value={title}
@@ -155,12 +155,14 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       </div>
 
       {/* 에디터 */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-[calc(var(--toolbar-h)+env(safe-area-inset-bottom)+var(--keyboard-inset,0px))] md:pb-0 [scroll-padding-bottom:calc(var(--toolbar-h)+env(safe-area-inset-bottom)+var(--keyboard-inset,0px))] md:[scroll-padding-bottom:0]">
         <EditorContent editor={editor} />
       </div>
 
       {/* 하단 툴바 */}
-      <Toolbar editor={editor} />
+      <div className="shrink-0">
+        <Toolbar editor={editor} />
+      </div>
     </div>
   );
 }
