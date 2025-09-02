@@ -25,7 +25,7 @@ export const BibleVerseExtension = Extension.create({
       // 단일 구절: /창1:1 + 스페이스
       new InputRule({
         find: /\/([가-힣]+)(\d+):(\d+)\s$/,
-        handler: ({ state, range, match }) => {
+        handler: ({ state, range, match, commands }) => {
           const [fullMatch, bookName, chapter, verse] = match;
           
           // 전역 데이터 확인
@@ -55,21 +55,18 @@ export const BibleVerseExtension = Extension.create({
           const reference = `${verseData.bookName} ${chapter}:${verse}`;
           const replacement = `[${reference}] ${verseData.text} `;
           
-          // 슬래시 명령어를 구절로 교체
-          const tr = state.tr.replaceRangeWith(
-            range.from,
-            range.to,
-            state.schema.text(replacement)
+          // 슬래시 명령어를 구절로 교체 - commands 사용
+          commands.insertContentAt(
+            { from: range.from, to: range.to },
+            replacement
           );
-          
-          return tr;
         }
       }),
       
       // 범위 구절: /창1:1-4 + 스페이스
       new InputRule({
         find: /\/([가-힣]+)(\d+):(\d+)-(\d+)\s$/,
-        handler: ({ state, range, match }) => {
+        handler: ({ state, range, match, commands }) => {
           const [fullMatch, bookName, chapter, startVerse, endVerse] = match;
           
           // 전역 데이터 확인
@@ -101,14 +98,11 @@ export const BibleVerseExtension = Extension.create({
           const reference = `${verses[0].bookName} ${chapter}:${startVerse}-${endVerse}`;
           const replacement = `[${reference}] ${verseText} `;
           
-          // 슬래시 명령어를 구절로 교체
-          const tr = state.tr.replaceRangeWith(
-            range.from,
-            range.to,
-            state.schema.text(replacement)
+          // 슬래시 명령어를 구절로 교체 - commands 사용
+          commands.insertContentAt(
+            { from: range.from, to: range.to },
+            replacement
           );
-          
-          return tr;
         }
       })
     ];

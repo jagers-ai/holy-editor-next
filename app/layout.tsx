@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
-import Providers from "./providers";
 import { BookOpen } from "lucide-react";
 
 const geistSans = Geist({
@@ -30,19 +29,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>
-          <nav className="border-b fixed top-0 left-0 right-0 bg-background z-50">
-            <div className="max-w-2xl mx-auto px-4 h-14 flex items-center">
-              <Link href="/" className="font-bold text-lg flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                HolyEditor
-              </Link>
-            </div>
-          </nav>
-          <main className="pt-14">
-            {children}
-          </main>
-        </Providers>
+        <nav className="border-b fixed top-0 left-0 right-0 bg-background z-50">
+          <div className="max-w-2xl mx-auto px-4 h-14 flex items-center">
+            <Link href="/" className="font-bold text-lg flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              HolyEditor
+            </Link>
+          </div>
+        </nav>
+        <main className="pt-14">
+          {children}
+        </main>
       </body>
     </html>
   );
