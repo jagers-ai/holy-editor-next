@@ -8,42 +8,85 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model ingredients {
-  id                 String               @id
-  name               String
-  unit               String
-  pricePerUnit       Decimal              @db.Decimal(10, 2)
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime
-  brand              String?
-  category           String?
-  quantity           Decimal?             @db.Decimal(10, 2)
-  subcategory        String?
-  recipe_ingredients recipe_ingredients[]
+// 사용자 모델 (추후 Supabase Auth와 연동)
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  documents Document[]
+
+  @@map("users")
 }
 
-model recipe_ingredients {
-  id           String      @id
-  recipeId     String
-  ingredientId String
-  quantity     Decimal     @db.Decimal(10, 2)
-  sectionName  String?
-  ingredients  ingredients @relation(fields: [ingredientId], references: [id])
-  recipes      recipes     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+// 문서 모델 - 에디터로 작성한 문서 저장
+model Document {
+  id               String           @id @default(cuid())
+  title            String
+  content          Json             // Tiptap 에디터의 JSON 컨텐츠
+  userId           String?
+  user             User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isPublic         Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  bibleReferences  BibleReference[]
+  tags             DocumentTag[]
+  
+  @@index([userId])
+  @@map("documents")
 }
 
-model recipes {
-  id                 String               @id
-  name               String
-  yieldCount         Int                  @default(1)
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime
-  baker              String?
-  fermentationInfo   String?
-  moldSize           String?
-  ovenTemp           Int?
-  ovenTime           Int?
-  sellingPrice       Decimal?             @db.Decimal(10, 2)
-  memo               String?
-  recipe_ingredients recipe_ingredients[]
+// 성경 구절 참조 모델
+model BibleReference {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  book       String   // 성경 책 이름 (창세기, 출애굽기 등)
+  chapter    Int      // 장
+  verseStart Int      // 시작 절
+  verseEnd   Int?     // 끝 절 (범위 선택 시)
+  text       String?  // 실제 성경 구절 텍스트 (캐시용)
+  version    String   @default("개역개정") // 성경 번역본
+  createdAt  DateTime @default(now())
+  
+  @@index([documentId])
+  @@index([book, chapter])
+  @@map("bible_references")
+}
+
+// 태그 모델 (문서 분류용)
+model Tag {
+  id        String        @id @default(cuid())
+  name      String        @unique
+  createdAt DateTime      @default(now())
+  documents DocumentTag[]
+  
+  @@map("tags")
+}
+
+// 문서-태그 연결 테이블
+model DocumentTag {
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tagId      String
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  
+  @@id([documentId, tagId])
+  @@map("document_tags")
+}
+
+// 템플릿 모델 (설교 템플릿 저장용)
+model Template {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  content     Json     // 템플릿 구조
+  category    String   // 설교, 성경공부, 기도문 등
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("templates")
 }
