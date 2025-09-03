@@ -138,7 +138,7 @@ export const BibleVerseNode = Node.create({
             
             if (verses.length > 0) {
               console.log('[BibleVerse] Verses found:', verses.length)
-              const verseText = verses.map(v => `${v.verse}. ${v.text}`).join(' ')
+              const verseText = verses.map(v => `${v.verse}. ${v.text}`).join('\n')
               attrs.reference = `${verses[0].bookName} ${chapter}:${startVerse}-${endVerse}`
               attrs.verseText = verseText
               textContent = verseText

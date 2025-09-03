@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
+import Highlight from '@tiptap/extension-highlight';
 import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toolbar } from './Toolbar';
@@ -49,6 +50,12 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       }
     }),
     BibleVerseExtension,  // 새로운 성경구절 노드
+    Highlight.configure({
+      multicolor: true,
+      HTMLAttributes: {
+        class: 'highlight',
+      }
+    }),
     Image.extend({
       addKeyboardShortcuts() {
         return {

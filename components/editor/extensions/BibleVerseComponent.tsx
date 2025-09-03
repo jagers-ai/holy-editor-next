@@ -17,6 +17,14 @@ const BibleVerseComponent = React.memo((props: NodeViewRendererProps) => {
     <NodeViewWrapper className="bible-verse-wrapper block">
       <div className="bg-gray-200 rounded-lg px-4 py-3 my-2 max-w-full" 
            style={{ backgroundColor: 'rgb(229, 231, 235)' }}>
+        {/* 참조 표시 - 상단으로 이동 */}
+        {reference && (
+          <div className="text-sm font-bold text-gray-800 mb-2" 
+               style={{ color: 'rgb(31, 41, 55)', fontWeight: 'bold' }}>
+            {reference}
+          </div>
+        )}
+        
         {/* NodeViewContent로 편집 가능 영역 - 이미 content가 있음 */}
         <NodeViewContent 
           className="text-black leading-relaxed block min-h-[1.5rem]"
@@ -25,14 +33,6 @@ const BibleVerseComponent = React.memo((props: NodeViewRendererProps) => {
         >
           {/* 노드 생성 시 이미 content가 설정되어 있음 */}
         </NodeViewContent>
-        
-        {/* 참조 표시 */}
-        {reference && (
-          <div className="text-xs text-gray-600 mt-2 italic" 
-               style={{ color: 'rgb(75, 85, 99)', fontStyle: 'italic' }}>
-            {reference}
-          </div>
-        )}
       </div>
     </NodeViewWrapper>
   )

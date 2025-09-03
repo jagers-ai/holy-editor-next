@@ -11,9 +11,10 @@ import {
   Undo,
   Redo,
   Camera,
-  Save
+  Save,
+  Highlighter
 } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useEditorContext } from '@/contexts/EditorContext';
 
 interface ToolbarProps {
@@ -25,6 +26,18 @@ export function Toolbar({ editor }: ToolbarProps) {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { handleSave, isSaving } = useEditorContext();
+  const [showColorPalette, setShowColorPalette] = useState(false);
+
+  // 색상 옵션
+  const highlightColors = [
+    { name: '빨강', value: '#ff6b6b' },
+    { name: '주황', value: '#ff9f43' },
+    { name: '노랑', value: '#ffd93d' },
+    { name: '초록', value: '#6bcf7f' },
+    { name: '파랑', value: '#74b9ff' },
+    { name: '남색', value: '#5f5fff' },
+    { name: '보라', value: '#a29bfe' }
+  ];
 
   // Android 최적화: 키보드 높이에 맞춰 동적 bottom 적용
   useKeyboardInset(true);
@@ -100,6 +113,48 @@ export function Toolbar({ editor }: ToolbarProps) {
         >
           <Bold className="h-4 w-4" />
         </Button>
+        
+        {/* 형광펜 버튼과 색상 선택 */}
+        <div className="relative">
+          <Button
+            variant={editor.isActive('highlight') ? 'default' : 'ghost'}
+            size="sm"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setShowColorPalette(!showColorPalette)}
+          >
+            <Highlighter className="h-4 w-4" />
+          </Button>
+          {showColorPalette && (
+            <div className="absolute bottom-full left-0 mb-2 p-2 bg-white border rounded-lg shadow-lg z-[9999]">
+              <div className="grid grid-cols-4 gap-1">
+                {highlightColors.map((color) => (
+                  <button
+                    key={color.value}
+                    className="w-8 h-8 rounded hover:scale-110 transition-transform border border-gray-300"
+                    style={{ backgroundColor: color.value }}
+                    title={color.name}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      editor.chain().focus().setHighlight({ color: color.value }).run();
+                      setShowColorPalette(false);
+                    }}
+                  />
+                ))}
+                <button
+                  className="w-8 h-8 rounded hover:scale-110 transition-transform border border-gray-300 bg-white flex items-center justify-center"
+                  title="형광펜 제거"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    editor.chain().focus().unsetHighlight().run();
+                    setShowColorPalette(false);
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         
         <div className="w-px h-6 bg-border mx-1" />
         

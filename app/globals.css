@@ -206,4 +206,17 @@
     outline: 2px solid rgb(107 114 128) !important;  /* gray-500로 변경 */
     outline-offset: 2px;
   }
+
+  /* 형광펜 스타일 */
+  .highlight {
+    padding: 2px 4px;
+    border-radius: 2px;
+  }
+  
+  /* TipTap 형광펜 mark 스타일 */
+  mark[data-color] {
+    background-color: var(--highlight-color);
+    padding: 2px 4px;
+    border-radius: 2px;
+  }
 }
