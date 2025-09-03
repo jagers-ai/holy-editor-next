@@ -11,9 +11,10 @@ declare global {
 
 export const BibleVerseNode = Node.create({
   name: 'bibleVerse',
-  group: 'inline',
-  inline: true,
-  content: 'text*',  // 편집 가능한 텍스트 콘텐츠
+  group: 'block',
+  inline: false,
+  content: 'paragraph+',  // 여러 paragraph 허용 - 엔터키로 새 문단 생성 가능
+  isolating: false,       // 이벤트 전파 허용 - 엔터키 작동
   
   addAttributes() {
     return {
@@ -94,8 +95,9 @@ export const BibleVerseNode = Node.create({
             console.log('[BibleVerse] Bible data not loaded or bookId not found')
           }
           
-          // content를 포함한 노드 생성
-          const node = this.type.create(attrs, state.schema.text(textContent))
+          // paragraph 안에 text를 포함한 노드 생성
+          const paragraph = state.schema.nodes.paragraph.create(null, state.schema.text(textContent))
+          const node = this.type.create(attrs, paragraph)
           
           // commands를 통해 노드 삽입 (Transaction 반환하지 않음)
           commands.deleteRange(range)
@@ -148,8 +150,9 @@ export const BibleVerseNode = Node.create({
             console.log('[BibleVerse] Bible data not loaded or bookId not found')
           }
           
-          // content를 포함한 노드 생성
-          const node = this.type.create(attrs, state.schema.text(textContent))
+          // paragraph 안에 text를 포함한 노드 생성
+          const paragraph = state.schema.nodes.paragraph.create(null, state.schema.text(textContent))
+          const node = this.type.create(attrs, paragraph)
           
           // commands를 통해 노드 삽입 (Transaction 반환하지 않음)
           commands.deleteRange(range)
