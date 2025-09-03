@@ -21,7 +21,7 @@ export default function EditorPage() {
   const documentId = params.id as string;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] bg-background">
       <HolyEditor documentId={documentId === 'new' ? undefined : documentId} />
     </div>
   );
