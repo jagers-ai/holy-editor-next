@@ -8,26 +8,9 @@ const BibleVerseComponent = React.memo((props: NodeViewRendererProps) => {
   
   // ⚠️ 내부 state 최소화 - node.attrs 직접 사용
   // useState 사용 자제, 필요시 매우 제한적으로만
+  // updateAttributes는 성경구절에서 불필요 (정적 데이터)
   
-  // ⚡ updateAttributes 사용 시 디바운싱 고려
-  const handleUpdate = React.useCallback((newAttrs: any) => {
-    // 빈번한 업데이트 방지
-    props.updateAttributes(newAttrs)
-  }, [props])
-  
-  // ⚠️ useEffect 최소화 - 꼭 필요한 경우만
-  // cleanup 함수 필수
-  React.useEffect(() => {
-    // 초기 텍스트 설정 (verseText가 있고 현재 content가 비어있을 경우만)
-    if (verseText && !props.node.textContent) {
-      // 초기 텍스트 설정이 필요한 경우
-      // 실제로는 이미 nodeInputRule에서 처리되므로 보통 필요없음
-    }
-    
-    return () => {
-      // cleanup 필수 - 현재는 특별한 cleanup 필요없음
-    }
-  }, []) // 의존성 최소화
+  // ⚠️ useEffect 불필요 - 성경구절은 정적 데이터이므로 초기화 불필요
   
   return (
     <NodeViewWrapper className="bible-verse-wrapper inline-block">
@@ -50,14 +33,9 @@ const BibleVerseComponent = React.memo((props: NodeViewRendererProps) => {
     </NodeViewWrapper>
   )
 }, 
-// ⚡ memo 비교 함수로 최적화
+// ⚡ memo 비교 함수로 최적화 - 성경구절 attrs는 불변이므로 선택 상태만 체크
 (prevProps, nextProps) => {
-  // attributes가 실제로 변경되었을 때만 re-render
-  return (
-    prevProps.node.attrs.reference === nextProps.node.attrs.reference &&
-    prevProps.node.attrs.verseText === nextProps.node.attrs.verseText &&
-    prevProps.selected === nextProps.selected
-  )
+  return prevProps.selected === nextProps.selected
 })
 
 BibleVerseComponent.displayName = 'BibleVerseComponent'
