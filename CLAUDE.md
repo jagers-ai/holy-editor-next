@@ -1,212 +1,196 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+이 파일은 이 저장소에서 작업할 때 Claude Code (claude.ai/code)에게 지침을 제공합니다.
+
+⚠️ **중요**: Claude Code의 날짜 버그로 인해 날짜가 1월로 표시될 수 있습니다. 
+실제 현재 KST 날짜를 확인하려면 다음 명령어를 실행하세요:
+```bash
+# 한국 시간(KST) 확인
+TZ='Asia/Seoul' date '+%Y년 %m월 %d일 %H:%M:%S KST'
+
+# 또는 Node.js로 확인
+node -e "console.log(new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'}))"
+```
 
 ## 📖 Holy Editor - 성경 구절 삽입 에디터
 
 성경 구절을 쉽게 삽입하고 편집할 수 있는 웹 기반 에디터입니다.
 
-### Core Technologies
-- **Framework**: Next.js 15 with App Router + TypeScript
-- **Editor**: Tiptap 3 (ProseMirror-based rich text editor)
-- **Styling**: Tailwind CSS 4 + Radix UI components
-- **Database**: PostgreSQL via Supabase with Prisma ORM
-- **State Management**: TanStack Query (React Query)
-- **Form Handling**: React Hook Form + Zod validation
-- **API**: tRPC for type-safe APIs
-- **Monitoring**: Sentry + PostHog
-- **Authentication**: Supabase Auth (to be implemented)
+### 핵심 기술 스택
+- **프레임워크**: Next.js 15 with App Router + TypeScript
+- **에디터**: Tiptap 3 (ProseMirror 기반 리치 텍스트 에디터)
+- **스타일링**: Tailwind CSS 4 + Radix UI 컴포넌트
+- **데이터베이스**: Supabase를 통한 PostgreSQL + Prisma ORM
+- **상태 관리**: TanStack Query (React Query)
+- **폼 처리**: React Hook Form + Zod 검증
+- **API**: tRPC를 통한 타입 안전 API
+- **모니터링**: Sentry + PostHog
+- **인증**: Supabase Auth (구현 예정)
 
-## 🏗️ Project Architecture
+## 🏗️ 프로젝트 구조
 
 ```
 holy-editor-next/
-├── app/                        # Next.js App Router pages
-│   ├── editor/[id]/           # Editor page with dynamic routing
-│   ├── documents/             # Documents management page
-│   └── api/                   # API routes
+├── app/                        # Next.js App Router 페이지
+│   ├── editor/[id]/           # 동적 라우팅을 사용한 에디터 페이지
+│   ├── documents/             # 문서 관리 페이지
+│   └── api/                   # API 라우트
 ├── components/
-│   ├── editor/                # Editor-specific components
-│   │   ├── HolyEditor.tsx    # Main editor component
-│   │   ├── Toolbar.tsx       # Editor toolbar
-│   │   └── extensions/       # Custom Tiptap extensions
-│   │       ├── BibleVerseExtension.ts   # Bible verse extension logic
-│   │       ├── BibleVerseNode.ts        # ProseMirror node definition
-│   │       └── BibleVerseComponent.tsx  # React component for rendering
-│   ├── ui/                    # Reusable UI components (Radix-based)
-│   └── layout/                # Layout components
+│   ├── editor/                # 에디터 관련 컴포넌트
+│   │   ├── HolyEditor.tsx    # 메인 에디터 컴포넌트
+│   │   ├── Toolbar.tsx       # 에디터 툴바
+│   │   └── extensions/       # 커스텀 Tiptap 확장
+│   │       ├── BibleVerseExtension.ts   # 성경 구절 확장 로직
+│   │       ├── BibleVerseNode.ts        # ProseMirror 노드 정의
+│   │       └── BibleVerseComponent.tsx  # 렌더링용 React 컴포넌트
+│   ├── ui/                    # 재사용 가능한 UI 컴포넌트 (Radix 기반)
+│   └── layout/                # 레이아웃 컴포넌트
 ├── lib/
-│   ├── bible/                 # Bible-related utilities
-│   │   └── books.ts          # Bible book definitions and utilities
-│   └── utils.ts              # General utilities
+│   ├── bible/                 # 성경 관련 유틸리티
+│   │   └── books.ts          # 성경 책 정의 및 유틸리티
+│   └── utils.ts              # 일반 유틸리티
 └── prisma/
-    └── schema.prisma          # Database schema
+    └── schema.prisma          # 데이터베이스 스키마
 
 ```
 
-## 🚀 Development Commands
+## 🚀 개발 명령어
 
-### Essential Commands
+### 필수 명령어
 ```bash
-# Install dependencies
+# 의존성 설치
 npm install
 
-# Run development server (with Turbopack)
+# 개발 서버 실행 (Turbopack 사용)
 npm run dev
-# Server runs on port 3000 (or 3002 if 3000 is occupied)
-# Accessible via http://0.0.0.0:3000 for network access
+# 서버는 포트 3000에서 실행 (3000이 사용 중이면 3002)
+# 네트워크 접근을 위해 http://0.0.0.0:3000으로 접근 가능
 
-# Build for production
+# 프로덕션 빌드
 npm run build
 
-# Start production server
+# 프로덕션 서버 시작
 npm start
 ```
 
-### Database Commands
+### 데이터베이스 명령어
 ```bash
-# Run database migrations
+# 데이터베이스 마이그레이션 실행
 npm run db:migrate
 
-# Open Prisma Studio (database GUI)
+# Prisma Studio 열기 (데이터베이스 GUI)
 npm run db:studio
 
-# Seed database
+# 데이터베이스 시드
 npm run db:seed
 
-# Generate Prisma Client (after schema changes)
+# Prisma Client 생성 (스키마 변경 후)
 npx prisma generate
 ```
 
-### Database Migration Workflow (Supabase)
-When changing the Prisma schema:
+### 데이터베이스 마이그레이션 워크플로우 (Supabase)
+Prisma 스키마 변경 시:
 ```bash
-# 1. Generate and apply migration (uses Supabase direct connection)
+# 1. 마이그레이션 생성 및 적용 (Supabase 직접 연결 사용)
 npm run db:migrate
-# Or manually:
+# 또는 수동으로:
 npx prisma migrate dev --name migration-name
 
-# 2. Regenerate Prisma Client (REQUIRED!)
+# 2. Prisma Client 재생성 (필수!)
 npx prisma generate
 
-# 3. Clear Next.js cache
+# 3. Next.js 캐시 정리
 rm -rf .next
 
-# 4. Restart development server
+# 4. 개발 서버 재시작
 npm run dev
 ```
 
-**Quick recovery script for migration issues:**
+**마이그레이션 문제 발생 시 빠른 복구:**
 ```bash
 npx prisma generate && rm -rf .next && npm run dev
 ```
 
-## 💡 Key Implementation Details
+## 💡 주요 구현 세부사항
 
-### Custom Bible Verse Extension
-The editor includes a custom Tiptap extension for Bible verse insertion:
+### 커스텀 성경 구절 확장
+에디터에는 성경 구절 삽입을 위한 커스텀 Tiptap 확장이 포함되어 있습니다:
 
-1. **BibleVerseExtension.ts**: Core extension logic, handles user input and commands
-2. **BibleVerseNode.ts**: ProseMirror node specification, defines the data structure
-3. **BibleVerseComponent.tsx**: React component that renders the verse in the editor
-4. **Toolbar.tsx**: Contains the UI for inserting Bible verses
+1. **BibleVerseExtension.ts**: 핵심 확장 로직, 사용자 입력과 명령 처리
+2. **BibleVerseNode.ts**: ProseMirror 노드 사양, 데이터 구조 정의
+3. **BibleVerseComponent.tsx**: 에디터에서 구절을 렌더링하는 React 컴포넌트
+4. **Toolbar.tsx**: 성경 구절 삽입을 위한 UI 포함
 
-The extension allows users to:
-- Insert Bible verses via a modal interface
-- Select book, chapter, and verse ranges
-- Display verses inline with proper formatting
-- Edit or delete inserted verses
+확장 기능으로 가능한 작업:
+- 모달 인터페이스를 통한 성경 구절 삽입
+- 책, 장, 절 범위 선택
+- 적절한 형식으로 구절을 인라인 표시
+- 삽입된 구절 편집 또는 삭제
 
-### Editor State Management
-- Uses Tiptap's built-in state management
-- Document content stored as JSON in the database
-- Auto-save functionality can be implemented using the editor's `onUpdate` event
+### 에디터 상태 관리
+- Tiptap의 내장 상태 관리 사용
+- 문서 내용은 데이터베이스에 JSON으로 저장
+- 에디터의 `onUpdate` 이벤트를 사용하여 자동 저장 기능 구현 가능
 
-### Database Schema Requirements
-⚠️ **Critical**: The current Prisma schema is misconfigured for a recipe management system (ingredients, recipes tables). 
+### 데이터베이스 스키마
+✅ **완료**: Holy Editor 전용 스키마가 성공적으로 적용되었습니다!
 
-**Required schema for Holy Editor:**
-```prisma
-model Document {
-  id        String   @id @default(cuid())
-  title     String
-  content   Json     // Tiptap JSON content
-  userId    String?  // For future user authentication
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+**현재 데이터베이스 테이블:**
+- `users` - 사용자 관리 (Supabase Auth 연동 예정)
+- `documents` - 문서 저장 (Tiptap JSON 형식)
+- `bible_references` - 성경 구절 참조
+- `tags` - 태그 시스템
+- `document_tags` - 문서-태그 연결
+- `templates` - 설교 템플릿
 
-model BibleReference {
-  id         String   @id @default(cuid())
-  book       String
-  chapter    Int
-  verseStart Int
-  verseEnd   Int?
-  text       String
-  documentId String
-  createdAt  DateTime @default(now())
-}
-```
+⚠️ **중요**: 현재 문서는 **localStorage에만 저장**되고 있습니다. 
+데이터베이스 연동 코드는 아직 구현되지 않았습니다.
 
-To fix this issue:
-1. Backup current database if needed
-2. Update `prisma/schema.prisma` with proper models
-3. Run `npm run db:migrate` to apply changes
-4. Update API routes and tRPC routers accordingly
+## 🔧 환경 변수
 
-## 🔧 Environment Variables
-
-Create a `.env.local` file with:
+`.env.local` 파일 생성:
 ```env
-# Supabase Database URLs
+# Supabase 데이터베이스 URL
 DATABASE_URL="postgresql://[USER]:[PASSWORD]@[HOST]:6543/postgres?pgbouncer=true&connection_limit=1"
 DIRECT_URL="postgresql://[USER]:[PASSWORD]@[HOST]:5432/postgres"
 
-# Supabase Configuration (for auth and storage - when implemented)
+# Supabase 설정 (인증 및 스토리지용 - 구현 예정)
 NEXT_PUBLIC_SUPABASE_URL="your_supabase_project_url"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="your_supabase_anon_key"
 
-# Monitoring (Optional)
+# 모니터링 (선택사항)
 NEXT_PUBLIC_SENTRY_DSN="your_sentry_dsn"
 NEXT_PUBLIC_POSTHOG_KEY="your_posthog_key"
 NEXT_PUBLIC_POSTHOG_HOST="https://app.posthog.com"
 ```
 
-⚠️ **Important**: 
-- Use the pooler connection (port 6543) for DATABASE_URL
-- Use the direct connection (port 5432) for DIRECT_URL (needed for migrations)
+⚠️ **중요**: 
+- DATABASE_URL에는 풀러 연결(포트 6543) 사용
+- DIRECT_URL에는 직접 연결(포트 5432) 사용 (마이그레이션에 필요)
 
-## 🎯 Feature Roadmap
+## 🎯 기능 로드맵
 
-Current features:
-- Rich text editing with Tiptap
-- Bible verse insertion with book/chapter/verse selection
-- Document creation and editing
+현재 구현된 기능:
+- Tiptap을 사용한 리치 텍스트 편집
+- 책/장/절 선택을 통한 성경 구절 삽입
+- 문서 생성 및 편집
 
-Potential enhancements:
-- Document persistence and management
-- User authentication
-- Collaborative editing
-- Export to various formats (PDF, Word, etc.)
-- Bible verse search and cross-references
-- Sermon templates and outlines
-- Note-taking and annotations
+향후 개선 사항:
+- 문서 영속성 및 관리
+- 사용자 인증
+- 협업 편집
+- 다양한 형식으로 내보내기 (PDF, Word 등)
+- 성경 구절 검색 및 상호 참조
+- 설교 템플릿 및 개요
+- 노트 작성 및 주석
 
-## 🐛 Common Issues
+## 🐛 일반적인 문제 해결
 
-1. **Port conflicts**: If port 3000 is in use, the app automatically uses 3002
-2. **Prisma Client errors**: Always run `npx prisma generate` after schema changes
-3. **Next.js cache issues**: Delete `.next` folder when encountering strange build errors
-4. **Database connection**: Ensure both DATABASE_URL and DIRECT_URL are properly set
-5. **Turbopack**: This project uses Turbopack for faster builds. If you encounter issues, remove `--turbopack` flag from package.json scripts
-
-## 🚧 Next Steps for Development
-
-1. **Fix Database Schema**: Update Prisma schema from recipe system to document/editor system
-2. **Implement Document Storage**: Create API routes for saving/loading documents
-3. **Add User Authentication**: Integrate Supabase Auth for user management
-4. **Enhance Bible Verse Features**: Add verse search, cross-references, and multiple translations
-5. **Export Functionality**: Add PDF, Word document export capabilities
+1. **포트 충돌**: 포트 3000이 사용 중이면 앱이 자동으로 3002를 사용
+2. **Prisma Client 오류**: 스키마 변경 후 항상 `npx prisma generate` 실행
+3. **Next.js 캐시 문제**: 이상한 빌드 오류 발생 시 `.next` 폴더 삭제
+4. **데이터베이스 연결**: DATABASE_URL과 DIRECT_URL이 올바르게 설정되었는지 확인
+5. **Turbopack**: 이 프로젝트는 빠른 빌드를 위해 Turbopack을 사용. 문제 발생 시 package.json 스크립트에서 `--turbopack` 플래그 제거
 
 ---
-*Last updated: 2025-01-28*
+*최종 업데이트: 2025-09-03*
