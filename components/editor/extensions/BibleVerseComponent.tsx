@@ -4,28 +4,32 @@ import type { NodeViewRendererProps } from '@tiptap/react'
 
 // ⚡ React.memo로 불필요한 re-render 방지
 const BibleVerseComponent = React.memo((props: NodeViewRendererProps) => {
-  const { reference, verseText } = props.node.attrs
+  const { reference } = props.node.attrs
   
   // ⚠️ 내부 state 최소화 - node.attrs 직접 사용
   // useState 사용 자제, 필요시 매우 제한적으로만
   // updateAttributes는 성경구절에서 불필요 (정적 데이터)
   
-  // ⚠️ useEffect 불필요 - 성경구절은 정적 데이터이므로 초기화 불필요
+  // 📌 content는 이제 InputRule에서 생성 시 이미 설정됨
+  // useEffect 불필요 - 노드 생성 시 content가 이미 포함되어 있음
   
   return (
     <NodeViewWrapper className="bible-verse-wrapper inline-block">
-      <div className="bg-slate-700 rounded-lg px-4 py-3 my-2 inline-block">
-        {/* NodeViewContent로 편집 가능 영역 */}
+      <div className="bg-gray-200 rounded-lg px-4 py-3 my-2 inline-block" 
+           style={{ backgroundColor: 'rgb(229, 231, 235)' }}>
+        {/* NodeViewContent로 편집 가능 영역 - 이미 content가 있음 */}
         <NodeViewContent 
-          className="text-white italic leading-relaxed block"
+          className="text-black leading-relaxed block"
           as="div"
+          style={{ color: 'black', fontStyle: 'normal' }}
         >
-          {/* 초기 텍스트는 node content로 자동 처리됨 */}
+          {/* 노드 생성 시 이미 content가 설정되어 있음 */}
         </NodeViewContent>
         
         {/* 참조 표시 */}
         {reference && (
-          <div className="text-xs text-gray-400 mt-2 not-italic">
+          <div className="text-xs text-gray-600 mt-2 italic" 
+               style={{ color: 'rgb(75, 85, 99)', fontStyle: 'italic' }}>
             {reference}
           </div>
         )}

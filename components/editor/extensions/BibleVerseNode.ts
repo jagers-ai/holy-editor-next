@@ -1,6 +1,5 @@
-import { Node } from '@tiptap/core'
+import { Node, InputRule } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
-import { nodeInputRule } from '@tiptap/core'
 import BibleVerseComponent from './BibleVerseComponent'
 import { resolveBookId } from '@/lib/bible/books'
 
@@ -53,65 +52,108 @@ export const BibleVerseNode = Node.create({
   addInputRules() {
     return [
       // 패턴 1: 단일구절 /창1:1 또는 /창세기1:1
-      nodeInputRule({
+      new InputRule({
         find: /\/([가-힣]+)(\d+):(\d+)\s$/,
-        type: this.type,
-        getAttributes: (match) => {
+        handler: ({ state, range, match }) => {
           const [_, bookName, chapter, verse] = match
+          console.log('[BibleVerse] Input detected:', { bookName, chapter, verse })
+          
           const bookId = resolveBookId(bookName)
+          console.log('[BibleVerse] Book resolved:', bookId)
           
-          if (!bookId || !window.bibleData) return null
-          
-          const verseData = window.bibleData.find(v => 
-            v.bookId === bookId && 
-            v.chapter === parseInt(chapter) &&
-            v.verse === parseInt(verse)
-          )
-          
-          if (!verseData) return null
-          
-          return {
-            reference: `${verseData.bookName} ${chapter}:${verse}`,
-            bookId,
+          // 기본 속성
+          const attrs = {
+            reference: `${bookName} ${chapter}:${verse}`,
+            bookId: bookId || 'UNKNOWN',
             chapter: parseInt(chapter),
             startVerse: parseInt(verse),
             endVerse: null,
-            verseText: verseData.text
+            verseText: null
           }
+          
+          let textContent = '(성경 구절을 불러올 수 없습니다)'
+          
+          // 성경 데이터 찾기 시도
+          if (bookId && window.bibleData) {
+            const verseData = window.bibleData.find(v => 
+              v.bookId === bookId && 
+              v.chapter === parseInt(chapter) &&
+              v.verse === parseInt(verse)
+            )
+            
+            if (verseData) {
+              console.log('[BibleVerse] Verse found:', verseData.text)
+              attrs.reference = `${verseData.bookName} ${chapter}:${verse}`
+              attrs.verseText = verseData.text
+              textContent = verseData.text
+            } else {
+              console.log('[BibleVerse] Verse not found in data')
+              textContent = '(성경 구절을 불러오는 중...)'
+            }
+          } else {
+            console.log('[BibleVerse] Bible data not loaded or bookId not found')
+          }
+          
+          // content를 포함한 노드 생성
+          const node = this.type.create(attrs, state.schema.text(textContent))
+          
+          // 트랜잭션 생성 및 실행
+          const tr = state.tr.replaceRangeWith(range.from, range.to, node)
+          return tr
         }
       }),
       
       // 패턴 2: 범위구절 /창1:1-4 또는 /창세기1:1-4
-      nodeInputRule({
+      new InputRule({
         find: /\/([가-힣]+)(\d+):(\d+)-(\d+)\s$/,
-        type: this.type,
-        getAttributes: (match) => {
+        handler: ({ state, range, match }) => {
           const [_, bookName, chapter, startVerse, endVerse] = match
+          console.log('[BibleVerse] Range input detected:', { bookName, chapter, startVerse, endVerse })
+          
           const bookId = resolveBookId(bookName)
+          console.log('[BibleVerse] Book resolved:', bookId)
           
-          if (!bookId || !window.bibleData) return null
-          
-          const verses = window.bibleData.filter(v => 
-            v.bookId === bookId && 
-            v.chapter === parseInt(chapter) &&
-            v.verse >= parseInt(startVerse) &&
-            v.verse <= parseInt(endVerse)
-          )
-          
-          if (verses.length === 0) return null
-          
-          const verseText = verses.map(v => `${v.verse}. ${v.text}`).join(' ')
-          const reference = `${verses[0].bookName} ${chapter}:${startVerse}-${endVerse}`
-          
-          // 노드 생성을 위한 속성 반환
-          return {
-            reference,
-            bookId,
+          // 기본 속성
+          const attrs = {
+            reference: `${bookName} ${chapter}:${startVerse}-${endVerse}`,
+            bookId: bookId || 'UNKNOWN',
             chapter: parseInt(chapter),
             startVerse: parseInt(startVerse),
             endVerse: parseInt(endVerse),
-            verseText
+            verseText: null
           }
+          
+          let textContent = '(성경 구절을 불러올 수 없습니다)'
+          
+          // 성경 데이터 찾기 시도
+          if (bookId && window.bibleData) {
+            const verses = window.bibleData.filter(v => 
+              v.bookId === bookId && 
+              v.chapter === parseInt(chapter) &&
+              v.verse >= parseInt(startVerse) &&
+              v.verse <= parseInt(endVerse)
+            )
+            
+            if (verses.length > 0) {
+              console.log('[BibleVerse] Verses found:', verses.length)
+              const verseText = verses.map(v => `${v.verse}. ${v.text}`).join(' ')
+              attrs.reference = `${verses[0].bookName} ${chapter}:${startVerse}-${endVerse}`
+              attrs.verseText = verseText
+              textContent = verseText
+            } else {
+              console.log('[BibleVerse] Verses not found in data')
+              textContent = '(성경 구절을 불러오는 중...)'
+            }
+          } else {
+            console.log('[BibleVerse] Bible data not loaded or bookId not found')
+          }
+          
+          // content를 포함한 노드 생성
+          const node = this.type.create(attrs, state.schema.text(textContent))
+          
+          // 트랜잭션 생성 및 실행
+          const tr = state.tr.replaceRangeWith(range.from, range.to, node)
+          return tr
         }
       })
     ]
