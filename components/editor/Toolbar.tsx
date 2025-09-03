@@ -5,13 +5,14 @@ import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { Button } from '@/components/ui/button';
 import {
   Bold,
-  Italic,
   Heading1,
   List,
   Quote,
   Undo,
-  Redo
+  Redo,
+  Camera
 } from 'lucide-react';
+import { useRef } from 'react';
 
 interface ToolbarProps {
   editor: Editor;
@@ -19,9 +20,28 @@ interface ToolbarProps {
 
 export function Toolbar({ editor }: ToolbarProps) {
   if (!editor) return null;
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Android 최적화: 키보드 높이에 맞춰 동적 bottom 적용
   useKeyboardInset(true);
+  
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result as string;
+      editor.chain().focus().setImage({ src: url }).run();
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input for reupload
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   return (
     <div
@@ -54,20 +74,28 @@ export function Toolbar({ editor }: ToolbarProps) {
         <div className="w-px h-6 bg-border mx-1" />
         
         <Button
+          variant="ghost"
+          size="sm"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Camera className="h-4 w-4" />
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleImageUpload}
+        />
+        <Button
           variant={editor.isActive('bold') ? 'default' : 'ghost'}
           size="sm"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().toggleBold().run()}
         >
           <Bold className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={editor.isActive('italic') ? 'default' : 'ghost'}
-          size="sm"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-        >
-          <Italic className="h-4 w-4" />
         </Button>
         
         <div className="w-px h-6 bg-border mx-1" />

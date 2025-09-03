@@ -2,6 +2,7 @@
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toolbar } from './Toolbar';
@@ -40,7 +41,14 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
           newGroupDelay: 500
         }
       }),
-      BibleVerseExtension
+      BibleVerseExtension,
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'max-w-full h-auto rounded-lg',
+        },
+      })
     ],
     content: '',
     immediatelyRender: false, // SSR 하이드레이션 문제 해결
