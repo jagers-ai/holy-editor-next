@@ -155,4 +155,39 @@
     pointer-events: none;
     height: 0;
   }
+  
+  /* 성경구절 스타일 */
+  .bible-verse-wrapper > div {
+    background-color: rgb(51 65 85);  /* bg-slate-700 */
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin: 0.5rem 0;
+    display: inline-block;
+    transition: background-color 0.2s ease;
+  }
+
+  .bible-verse-wrapper > div:hover {
+    background-color: rgb(71 85 105);  /* bg-slate-600 */
+  }
+
+  .bible-verse-wrapper [data-node-view-content] {
+    color: white;
+    font-style: italic;
+    line-height: 1.625;
+    min-height: 1.5rem;
+    outline: none;
+  }
+
+  .bible-verse-wrapper .text-xs {
+    font-size: 0.75rem;
+    color: rgb(156 163 175);
+    margin-top: 0.5rem;
+    font-style: normal;
+  }
+
+  /* 선택됨 상태 */
+  .bible-verse-wrapper.ProseMirror-selectednode > div {
+    outline: 2px solid rgb(99 102 241);  /* indigo-500 */
+    outline-offset: 2px;
+  }
 }

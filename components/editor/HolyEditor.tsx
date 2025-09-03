@@ -4,7 +4,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toolbar } from './Toolbar';
 import { BibleVerseExtension } from './extensions/BibleVerseExtension';
@@ -37,57 +37,65 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     }
   }, []);
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3]
-        },
-        undoRedo: {
-          depth: 100,
-          newGroupDelay: 500
-        }
-      }),
-      BibleVerseExtension,
-      Image.extend({
-        addKeyboardShortcuts() {
-          return {
-            'Backspace': ({ editor }) => {
-              const { selection } = editor.state;
-              const pos = selection.$anchor.pos;
-              const node = editor.state.doc.nodeAt(pos - 1);
-              
-              // 이미지 바로 뒤에서 백스페이스 누르면 이미지 삭제
-              if (node && node.type.name === 'image') {
-                editor.chain()
-                  .focus()
-                  .setNodeSelection(pos - 1)
-                  .deleteSelection()
-                  .run();
-                return true;
-              }
-              return false;
+  // ⚡ extensions 메모이제이션으로 재생성 방지
+  const extensions = useMemo(() => [
+    StarterKit.configure({
+      heading: {
+        levels: [1, 2, 3]
+      },
+      undoRedo: {
+        depth: 100,
+        newGroupDelay: 500
+      }
+    }),
+    BibleVerseExtension,  // 새로운 성경구절 노드
+    Image.extend({
+      addKeyboardShortcuts() {
+        return {
+          'Backspace': ({ editor }) => {
+            const { selection } = editor.state;
+            const pos = selection.$anchor.pos;
+            const node = editor.state.doc.nodeAt(pos - 1);
+            
+            // 이미지 바로 뒤에서 백스페이스 누르면 이미지 삭제
+            if (node && node.type.name === 'image') {
+              editor.chain()
+                .focus()
+                .setNodeSelection(pos - 1)
+                .deleteSelection()
+                .run();
+              return true;
             }
+            return false;
           }
         }
-      }).configure({
-        inline: false,
-        allowBase64: true,
-        HTMLAttributes: {
-          class: 'max-w-full h-auto rounded-lg',
-        }
-      }),
-      Placeholder.configure({
-        placeholder: '설교 내용을 입력해주세요',
-        emptyEditorClass: 'is-editor-empty',
-      })
-    ],
-    content: '',
-    immediatelyRender: false, // SSR 하이드레이션 문제 해결
-    onUpdate: ({ editor }) => {
-      // Context에 에디터 콘텐츠 업데이트
+      }
+    }).configure({
+      inline: false,
+      allowBase64: true,
+      HTMLAttributes: {
+        class: 'max-w-full h-auto rounded-lg',
+      }
+    }),
+    Placeholder.configure({
+      placeholder: '설교 내용을 입력해주세요',
+      emptyEditorClass: 'is-editor-empty',
+    })
+  ], []);
+
+  // ⚡ onUpdate 최적화 - 디바운싱 고려
+  const handleUpdate = useMemo(() => 
+    ({ editor }: any) => {
       setEditorContent(editor.getJSON());
     },
+    [setEditorContent]
+  );
+
+  const editor = useEditor({
+    extensions,
+    content: '',
+    immediatelyRender: false, // SSR 하이드레이션 문제 해결
+    onUpdate: handleUpdate,
     editorProps: {
       attributes: {
         class: 'prose max-w-none focus:outline-none min-h-[400px] px-4 py-6'
