@@ -131,7 +131,14 @@
   
   /* Editor base text size */
   .prose {
-    font-size: 12px !important;
+    font-size: 15px !important;
+    line-height: 1.5 !important;  /* 줄간격 최적화 */
+  }
+  
+  /* Editor paragraph spacing */
+  .prose p {
+    margin-top: 0.75em !important;
+    margin-bottom: 0.75em !important;
   }
   
   /* Editor image styles */

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Trash2, Plus, ArrowLeft, User, Clock, BookOpen } from 'lucide-react';
+import { FileText, Trash2, Plus, User, Clock, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Document {
@@ -97,21 +97,12 @@ export default function DocumentsPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold">문서 저장소</h1>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => router.push('/')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              홈으로
-            </Button>
-            <Button
-              onClick={() => router.push('/editor/new')}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              새 문서
-            </Button>
-          </div>
+          <Button
+            onClick={() => router.push('/editor/new')}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            새 문서
+          </Button>
         </div>
         <p className="text-muted-foreground">
           저장된 문서 {documents.length}개

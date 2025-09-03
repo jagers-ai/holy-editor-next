@@ -10,9 +10,11 @@ import {
   Quote,
   Undo,
   Redo,
-  Camera
+  Camera,
+  Save
 } from 'lucide-react';
 import { useRef } from 'react';
+import { useEditorContext } from '@/contexts/EditorContext';
 
 interface ToolbarProps {
   editor: Editor;
@@ -22,6 +24,7 @@ export function Toolbar({ editor }: ToolbarProps) {
   if (!editor) return null;
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { handleSave, isSaving } = useEditorContext();
 
   // Android 최적화: 키보드 높이에 맞춰 동적 bottom 적용
   useKeyboardInset(true);
@@ -122,8 +125,25 @@ export function Toolbar({ editor }: ToolbarProps) {
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
         >
-          <Quote className="h-4 w-4" />
+          <Quote className="h-5 w-5" />
         </Button>
+        
+        <div className="ml-auto">
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm"
+          >
+            {isSaving ? (
+              <span className="text-xs">저장 중...</span>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                <span>저장</span>
+              </>
+            )}
+          </button>
+        </div>
         </div>
       </div>
     </div>

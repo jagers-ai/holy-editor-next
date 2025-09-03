@@ -31,7 +31,7 @@ export default function RootLayout({
       >
         <EditorProvider>
           <Navigation />
-          <main className="pt-14">
+          <main>
             {children}
           </main>
         </EditorProvider>
