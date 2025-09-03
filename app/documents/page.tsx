@@ -18,10 +18,10 @@ interface Document {
   id: string;
   title?: string;
   sermonInfo?: {
-    title: string;
-    pastor: string;
-    verse: string;
-    serviceType: string;
+    title?: string;
+    pastor?: string;
+    verse?: string;
+    serviceType?: string;
   };
   content: any;
   createdAt: string;
@@ -85,7 +85,12 @@ export default function DocumentsPage() {
     backupLocalStorage(); // 안전을 위한 백업
     
     try {
-      await importDocuments.mutateAsync(documents);
+      // title이 undefined인 경우 기본값 제공
+      const documentsWithTitle = documents.map(doc => ({
+        ...doc,
+        title: doc.title || '제목 없음'
+      }));
+      await importDocuments.mutateAsync(documentsWithTitle);
     } catch (error) {
       console.error('마이그레이션 실패:', error);
     } finally {
@@ -212,7 +217,7 @@ export default function DocumentsPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {documents.map((doc) => {
             const isLocal = localDocs.some(ld => ld.id === doc.id);
-            const title = doc.sermonInfo?.title || doc.title || '제목 없음';
+            const title = ('sermonInfo' in doc && doc.sermonInfo?.title) || doc.title || '제목 없음';
             
             return (
               <Card
@@ -233,7 +238,7 @@ export default function DocumentsPage() {
                       <CardTitle className="text-lg mb-2">
                         {title}
                       </CardTitle>
-                      {doc.sermonInfo && (
+                      {'sermonInfo' in doc && doc.sermonInfo && (
                         <div className="space-y-1 text-sm text-muted-foreground">
                           <div className="flex flex-wrap gap-3">
                             {doc.sermonInfo.pastor && (
