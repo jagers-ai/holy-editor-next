@@ -124,10 +124,6 @@ export function Toolbar({ editor }: ToolbarProps) {
         >
           <Quote className="h-4 w-4" />
         </Button>
-        
-        <div className="ml-auto text-xs text-muted-foreground px-2 whitespace-nowrap">
-          /창1:1
-        </div>
         </div>
       </div>
     </div>

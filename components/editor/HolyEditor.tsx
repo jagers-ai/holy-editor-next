@@ -90,7 +90,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[400px] px-4 py-6'
+        class: 'prose max-w-none focus:outline-none min-h-[400px] px-4 py-6'
       }
     }
   });
@@ -145,14 +145,15 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
 
   return (
     <div className="flex flex-col h-dvh max-w-2xl mx-auto overflow-hidden">
-      {/* 설교정보 섹션 */}
-      <SermonInfoSection 
-        info={sermonInfo}
-        onChange={setSermonInfo}
-      />
-      
-      {/* 설교 본문 에디터 */}
+      {/* 스크롤 가능한 영역 */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-[calc(var(--toolbar-h)+env(safe-area-inset-bottom)+var(--keyboard-inset,0px))] md:pb-0 [scroll-padding-bottom:calc(var(--toolbar-h)+env(safe-area-inset-bottom)+var(--keyboard-inset,0px))] md:[scroll-padding-bottom:0]">
+        {/* 설교정보 섹션 */}
+        <SermonInfoSection 
+          info={sermonInfo}
+          onChange={setSermonInfo}
+        />
+        
+        {/* 설교 본문 에디터 */}
         <EditorContent editor={editor} className="px-4 py-4" />
       </div>
 

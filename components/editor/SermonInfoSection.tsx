@@ -78,11 +78,6 @@ export function SermonInfoSection({ info, onChange }: SermonInfoSectionProps) {
           className="w-full text-sm px-3 py-2 border rounded-md bg-background"
         />
       </div>
-      
-      {/* 섹션 구분선 */}
-      <div className="px-4 py-2 bg-muted/50 border-t">
-        <span className="text-xs text-muted-foreground font-medium">설교 본문</span>
-      </div>
     </div>
   );
 }

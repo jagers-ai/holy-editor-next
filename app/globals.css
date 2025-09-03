@@ -129,6 +129,11 @@
     line-height: 1.4 !important;
   }
   
+  /* Editor base text size */
+  .prose {
+    font-size: 12px !important;
+  }
+  
   /* Editor image styles */
   .prose img {
     @apply max-w-full h-auto rounded-lg my-4;
