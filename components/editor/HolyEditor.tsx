@@ -47,12 +47,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
         }
       }),
       BibleVerseExtension,
-      Image.configure({
-        inline: false,
-        allowBase64: true,
-        HTMLAttributes: {
-          class: 'max-w-full h-auto rounded-lg',
-        },
+      Image.extend({
         addKeyboardShortcuts() {
           return {
             'Backspace': ({ editor }) => {
@@ -72,6 +67,12 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
               return false;
             }
           }
+        }
+      }).configure({
+        inline: false,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'max-w-full h-auto rounded-lg',
         }
       })
     ],
