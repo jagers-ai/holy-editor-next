@@ -54,7 +54,7 @@ export const BibleVerseNode = Node.create({
       // 패턴 1: 단일구절 /창1:1 또는 /창세기1:1
       new InputRule({
         find: /\/([가-힣]+)(\d+):(\d+)\s$/,
-        handler: ({ state, range, match }) => {
+        handler: ({ state, range, match, commands }) => {
           const [_, bookName, chapter, verse] = match
           console.log('[BibleVerse] Input detected:', { bookName, chapter, verse })
           
@@ -67,8 +67,8 @@ export const BibleVerseNode = Node.create({
             bookId: bookId || 'UNKNOWN',
             chapter: parseInt(chapter),
             startVerse: parseInt(verse),
-            endVerse: null,
-            verseText: null
+            endVerse: null as number | null,
+            verseText: null as string | null
           }
           
           let textContent = '(성경 구절을 불러올 수 없습니다)'
@@ -97,16 +97,16 @@ export const BibleVerseNode = Node.create({
           // content를 포함한 노드 생성
           const node = this.type.create(attrs, state.schema.text(textContent))
           
-          // 트랜잭션 생성 및 실행
-          const tr = state.tr.replaceRangeWith(range.from, range.to, node)
-          return tr
+          // commands를 통해 노드 삽입 (Transaction 반환하지 않음)
+          commands.deleteRange(range)
+          commands.insertContent(node.toJSON())
         }
       }),
       
       // 패턴 2: 범위구절 /창1:1-4 또는 /창세기1:1-4
       new InputRule({
         find: /\/([가-힣]+)(\d+):(\d+)-(\d+)\s$/,
-        handler: ({ state, range, match }) => {
+        handler: ({ state, range, match, commands }) => {
           const [_, bookName, chapter, startVerse, endVerse] = match
           console.log('[BibleVerse] Range input detected:', { bookName, chapter, startVerse, endVerse })
           
@@ -120,7 +120,7 @@ export const BibleVerseNode = Node.create({
             chapter: parseInt(chapter),
             startVerse: parseInt(startVerse),
             endVerse: parseInt(endVerse),
-            verseText: null
+            verseText: null as string | null
           }
           
           let textContent = '(성경 구절을 불러올 수 없습니다)'
@@ -151,9 +151,9 @@ export const BibleVerseNode = Node.create({
           // content를 포함한 노드 생성
           const node = this.type.create(attrs, state.schema.text(textContent))
           
-          // 트랜잭션 생성 및 실행
-          const tr = state.tr.replaceRangeWith(range.from, range.to, node)
-          return tr
+          // commands를 통해 노드 삽입 (Transaction 반환하지 않음)
+          commands.deleteRange(range)
+          commands.insertContent(node.toJSON())
         }
       })
     ]
