@@ -125,7 +125,7 @@ export function Toolbar({ editor }: ToolbarProps) {
             <Highlighter className="h-4 w-4" />
           </Button>
           {showColorPalette && (
-            <div className="absolute bottom-full left-0 mb-2 p-2 bg-white border rounded-lg shadow-lg z-[9999]">
+            <div className="fixed bottom-20 left-1/2 -translate-x-1/2 mb-2 p-2 bg-white border rounded-lg shadow-lg z-[9999]">
               <div className="grid grid-cols-4 gap-1">
                 {highlightColors.map((color) => (
                   <button
