@@ -3,10 +3,11 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { SermonInfo } from '@/components/editor/SermonInfoSection';
 
 interface EditorContextType {
-  title: string;
-  setTitle: (title: string) => void;
+  sermonInfo: SermonInfo;
+  setSermonInfo: (info: SermonInfo) => void;
   isSaving: boolean;
   handleSave: () => void;
   documentId?: string;
@@ -18,7 +19,12 @@ interface EditorContextType {
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
 export function EditorProvider({ children }: { children: ReactNode }) {
-  const [title, setTitle] = useState('새 문서');
+  const [sermonInfo, setSermonInfo] = useState<SermonInfo>({
+    title: '',
+    pastor: '',
+    verse: '',
+    serviceType: '주일설교'
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [documentId, setDocumentId] = useState<string | undefined>(undefined);
   const [editorContent, setEditorContent] = useState<any>(null);
@@ -35,7 +41,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       
       const newDoc = {
         id: docId,
-        title: title || '제목 없음',
+        sermonInfo: {
+          title: sermonInfo.title || '제목 없음',
+          pastor: sermonInfo.pastor,
+          verse: sermonInfo.verse,
+          serviceType: sermonInfo.serviceType
+        },
         content: editorContent,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -68,13 +79,13 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       setIsSaving(false);
       toast.error('저장 중 오류가 발생했습니다');
     }
-  }, [editorContent, documentId, title, router]);
+  }, [editorContent, documentId, sermonInfo, router]);
 
   return (
     <EditorContext.Provider
       value={{
-        title,
-        setTitle,
+        sermonInfo,
+        setSermonInfo,
         isSaving,
         handleSave,
         documentId,

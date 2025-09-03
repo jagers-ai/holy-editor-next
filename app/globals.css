@@ -133,4 +133,14 @@
   .prose img {
     @apply max-w-full h-auto rounded-lg my-4;
   }
+  
+  /* Editor placeholder */
+  .is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: var(--muted-foreground);
+    opacity: 0.5;
+    pointer-events: none;
+    height: 0;
+  }
 }

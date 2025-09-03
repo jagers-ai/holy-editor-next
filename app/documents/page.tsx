@@ -5,12 +5,18 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Trash2, Plus, ArrowLeft } from 'lucide-react';
+import { FileText, Trash2, Plus, ArrowLeft, User, Clock, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Document {
   id: string;
-  title: string;
+  title?: string; // 이전 버전 호환
+  sermonInfo?: {
+    title: string;
+    pastor: string;
+    verse: string;
+    serviceType: string;
+  };
   content: any;
   createdAt: string;
   updatedAt: string;
@@ -135,9 +141,35 @@ export default function DocumentsPage() {
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg line-clamp-1">
-                    {doc.title}
-                  </CardTitle>
+                  <div className="flex-1">
+                    <CardTitle className="text-lg mb-2">
+                      {doc.sermonInfo?.title || doc.title || '제목 없음'}
+                    </CardTitle>
+                    {doc.sermonInfo && (
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap gap-3">
+                          {doc.sermonInfo.pastor && (
+                            <div className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              <span>{doc.sermonInfo.pastor}</span>
+                            </div>
+                          )}
+                          {doc.sermonInfo.serviceType && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{doc.sermonInfo.serviceType}</span>
+                            </div>
+                          )}
+                        </div>
+                        {doc.sermonInfo.verse && (
+                          <div className="flex items-center gap-1">
+                            <BookOpen className="h-3 w-3" />
+                            <span className="text-xs">{doc.sermonInfo.verse}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"

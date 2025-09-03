@@ -3,10 +3,12 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
+import Placeholder from '@tiptap/extension-placeholder';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toolbar } from './Toolbar';
 import { BibleVerseExtension } from './extensions/BibleVerseExtension';
+import { SermonInfoSection } from './SermonInfoSection';
 import { toast } from 'sonner';
 import { useEditorContext } from '@/contexts/EditorContext';
 
@@ -15,7 +17,7 @@ interface HolyEditorProps {
 }
 
 export default function HolyEditor({ documentId }: HolyEditorProps) {
-  const { title, setTitle, setDocumentId, setEditorContent } = useEditorContext();
+  const { sermonInfo, setSermonInfo, setDocumentId, setEditorContent } = useEditorContext();
   const router = useRouter();
   
   // Context에 documentId 설정
@@ -74,6 +76,10 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
         HTMLAttributes: {
           class: 'max-w-full h-auto rounded-lg',
         }
+      }),
+      Placeholder.configure({
+        placeholder: '설교 내용을 입력해주세요',
+        emptyEditorClass: 'is-editor-empty',
       })
     ],
     content: '',
@@ -99,7 +105,13 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       const doc = docs.find((d: any) => d.id === documentId);
       
       if (doc) {
-        setTitle(doc.title);
+        // 설교정보 복원
+        if (doc.sermonInfo) {
+          setSermonInfo(doc.sermonInfo);
+        } else if (doc.title) {
+          // 이전 버전 호환성
+          setSermonInfo(prev => ({ ...prev, title: doc.title }));
+        }
         // editor가 준비된 후 content 설정
         if (doc.content) {
           editor.commands.setContent(doc.content);
@@ -128,18 +140,15 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
 
   return (
     <div className="flex flex-col h-dvh max-w-2xl mx-auto overflow-hidden">
-      {/* 에디터 */}
+      {/* 설교정보 섹션 */}
+      <SermonInfoSection 
+        info={sermonInfo}
+        onChange={setSermonInfo}
+      />
+      
+      {/* 설교 본문 에디터 */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-[calc(var(--toolbar-h)+env(safe-area-inset-bottom)+var(--keyboard-inset,0px))] md:pb-0 [scroll-padding-bottom:calc(var(--toolbar-h)+env(safe-area-inset-bottom)+var(--keyboard-inset,0px))] md:[scroll-padding-bottom:0]">
-        <div className="px-4 pt-4 pb-2">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full text-2xl font-bold border-none outline-none bg-transparent"
-            placeholder="설교 제목을 입력하세요"
-          />
-        </div>
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} className="px-4 py-4" />
       </div>
 
       {/* 하단 툴바 */}
