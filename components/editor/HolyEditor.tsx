@@ -110,7 +110,12 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
           setSermonInfo(doc.sermonInfo);
         } else if (doc.title) {
           // 이전 버전 호환성
-          setSermonInfo(prev => ({ ...prev, title: doc.title }));
+          setSermonInfo({
+            title: doc.title,
+            pastor: '',
+            verse: '',
+            serviceType: '주일설교'
+          });
         }
         // editor가 준비된 후 content 설정
         if (doc.content) {
