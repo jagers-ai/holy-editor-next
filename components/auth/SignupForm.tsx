@@ -60,7 +60,7 @@ export function SignupForm() {
             id: authData.user.id,
             email: authData.user.email!,
             name: name,
-          });
+          } as any);
 
         if (profileError) {
           console.error('Profile creation error:', profileError);

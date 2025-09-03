@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { GlobalErrorHandler } from '@/lib/errors/global-handler';
-import { logger } from '@/lib/logger';
 
 /**
  * 에러 핸들링 시스템 초기화 컴포넌트
@@ -13,8 +12,10 @@ export function ErrorInitializer() {
     // 글로벌 에러 핸들러 초기화
     GlobalErrorHandler.initialize();
     
-    // 초기화 로그
-    logger.info('Error handling system initialized');
+    // 초기화 로그 (브라우저 콘솔에만)
+    if (typeof window !== 'undefined') {
+      console.log('[INFO]: Error handling system initialized');
+    }
     
     // 클린업 함수 (현재는 필요 없지만 향후 확장 가능)
     return () => {

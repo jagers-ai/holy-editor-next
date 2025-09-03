@@ -1,9 +1,7 @@
 /**
- * Winston 로깅 시스템
- * 환경별 로그 레벨 및 출력 형식 설정
+ * 심플한 로깅 시스템
+ * Winston 없이 console.log만 사용 (빌드 호환성)
  */
-
-import winston from 'winston';
 
 // 브라우저 환경 체크
 const isBrowser = typeof window !== 'undefined';
@@ -21,30 +19,9 @@ const getLogLevel = (): string => {
 };
 
 /**
- * 커스텀 로그 포맷
+ * 심플 로거 클래스 (console 기반)
  */
-const customFormat = winston.format.combine(
-  winston.format.timestamp({
-    format: 'YYYY-MM-DD HH:mm:ss'
-  }),
-  winston.format.errors({ stack: true }),
-  winston.format.splat(),
-  winston.format.printf(({ level, message, timestamp, ...metadata }) => {
-    let msg = `${timestamp} [${level.toUpperCase()}]: ${message}`;
-    
-    // 메타데이터가 있으면 추가
-    if (Object.keys(metadata).length > 0) {
-      msg += ` ${JSON.stringify(metadata)}`;
-    }
-    
-    return msg;
-  })
-);
-
-/**
- * 브라우저용 간단한 로거
- */
-class BrowserLogger {
+class SimpleLogger {
   private level: string;
   
   constructor() {
@@ -60,83 +37,37 @@ class BrowserLogger {
   
   error(message: string, meta?: any) {
     if (this.shouldLog('error')) {
-      console.error(`[ERROR]: ${message}`, meta);
+      const timestamp = new Date().toISOString();
+      console.error(`[${timestamp}] [ERROR]: ${message}`, meta || '');
     }
   }
   
   warn(message: string, meta?: any) {
     if (this.shouldLog('warn')) {
-      console.warn(`[WARN]: ${message}`, meta);
+      const timestamp = new Date().toISOString();
+      console.warn(`[${timestamp}] [WARN]: ${message}`, meta || '');
     }
   }
   
   info(message: string, meta?: any) {
     if (this.shouldLog('info')) {
-      console.info(`[INFO]: ${message}`, meta);
+      const timestamp = new Date().toISOString();
+      console.info(`[${timestamp}] [INFO]: ${message}`, meta || '');
     }
   }
   
   debug(message: string, meta?: any) {
     if (this.shouldLog('debug')) {
-      console.debug(`[DEBUG]: ${message}`, meta);
+      const timestamp = new Date().toISOString();
+      console.debug(`[${timestamp}] [DEBUG]: ${message}`, meta || '');
     }
   }
 }
 
 /**
- * 서버용 Winston 로거 생성
+ * 기본 export는 심플 로거 사용
  */
-const createServerLogger = () => {
-  const transports: winston.transport[] = [];
-  
-  // 개발 환경: 콘솔 출력
-  if (process.env.NODE_ENV !== 'production') {
-    transports.push(
-      new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.colorize(),
-          winston.format.simple()
-        )
-      })
-    );
-  } else {
-    // 프로덕션: 콘솔 출력 (파일 로깅은 Vercel에서 자동 처리)
-    transports.push(
-      new winston.transports.Console({
-        format: customFormat
-      })
-    );
-  }
-  
-  return winston.createLogger({
-    level: getLogLevel(),
-    format: customFormat,
-    transports,
-    // 처리되지 않은 예외 처리
-    exceptionHandlers: [
-      new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.colorize(),
-          winston.format.simple()
-        )
-      })
-    ],
-    // 처리되지 않은 Promise rejection 처리
-    rejectionHandlers: [
-      new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.colorize(),
-          winston.format.simple()
-        )
-      })
-    ]
-  });
-};
-
-/**
- * 환경에 따른 로거 export
- */
-export const logger = isBrowser ? new BrowserLogger() : createServerLogger();
+export const logger = new SimpleLogger();
 
 /**
  * 로거 헬퍼 함수들

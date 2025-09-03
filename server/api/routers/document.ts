@@ -59,7 +59,7 @@ export const documentRouter = createTRPCRouter({
         },
       });
 
-      let nextCursor: typeof input.cursor | undefined = undefined;
+      let nextCursor: string | undefined = undefined;
       if (documents.length > limit) {
         const nextItem = documents.pop();
         nextCursor = nextItem!.id;

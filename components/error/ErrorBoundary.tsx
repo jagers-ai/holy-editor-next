@@ -201,11 +201,10 @@ export function ErrorBoundary({
   
   return (
     <ReactErrorBoundary
-      FallbackComponent={Fallback}
+      FallbackComponent={Fallback as any}
       onError={handleError}
       onReset={handleReset}
       resetKeys={resetKeys}
-      resetOnPropsChange={resetOnPropsChange}
     >
       {children}
     </ReactErrorBoundary>

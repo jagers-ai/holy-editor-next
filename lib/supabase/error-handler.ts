@@ -5,7 +5,7 @@
 
 import { AuthError, PostgrestError } from '@supabase/supabase-js';
 import { GlobalErrorHandler } from '@/lib/errors/global-handler';
-import type { AppError, ErrorCategory, ErrorSeverity } from '@/lib/errors/types';
+import { AppError, ErrorCategory, ErrorSeverity } from '@/lib/errors/types';
 import { getUserMessage } from '@/lib/errors/types';
 import { logger } from '@/lib/logger';
 import { ToastManager } from '@/lib/toast';

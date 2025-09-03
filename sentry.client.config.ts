@@ -95,36 +95,6 @@ Sentry.init({
     return breadcrumb;
   },
   
-  // 통합 설정
-  integrations: [
-    // 세션 재생
-    new Sentry.Replay({
-      // 텍스트 콘텐츠 마스킹 (개인정보 보호)
-      maskAllText: true,
-      // 미디어 차단 (용량 절감)
-      blockAllMedia: true,
-      // 네트워크 요청 녹화
-      networkDetailAllowUrls: [
-        /https?:\/\/(www\.)?holy-editor.*\.vercel\.app/,
-        /https?:\/\/localhost:\d+/,
-      ],
-    }),
-    // 브라우저 추적
-    new Sentry.BrowserTracing({
-      // 라우팅 추적
-      routingInstrumentation: Sentry.nextRouterInstrumentation,
-      // 추적할 오리진
-      tracePropagationTargets: [
-        'localhost',
-        /^https:\/\/holy-editor.*\.vercel\.app/,
-        /^https:\/\/.*\.supabase\.co/,
-      ],
-    }),
-  ],
-  
-  // 전송 옵션
-  transportOptions: {
-    // 추가 시도 횟수
-    maxRetries: 3,
-  },
+  // 통합 설정 - Next.js 15에서는 자동으로 설정됨
+  // Replay와 BrowserTracing은 이제 자동으로 포함됨
 });

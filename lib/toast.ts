@@ -209,7 +209,7 @@ export class ToastManager {
     content: React.ReactNode,
     options?: ToastOptions & { style?: React.CSSProperties }
   ): string {
-    return toast.custom(content, {
+    return toast.custom(content as any, {
       duration: options?.duration || 4000,
       position: options?.position || 'top-right',
       className: options?.className,

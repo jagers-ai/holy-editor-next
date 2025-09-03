@@ -5,7 +5,6 @@
 
 import * as Sentry from '@sentry/nextjs';
 import { posthog } from '@/lib/posthog';
-import { logger, logError } from '@/lib/logger';
 import type { AppError, ErrorCategory, ErrorSeverity, ErrorReport } from './types';
 import { getErrorSeverity, getUserMessage } from './types';
 
@@ -52,7 +51,9 @@ export class GlobalErrorHandler {
     }
     
     this.isInitialized = true;
-    logger.info('Global error handler initialized');
+    if (typeof window !== 'undefined') {
+      console.log('[INFO]: Global error handler initialized');
+    }
   }
 
   /**
@@ -78,7 +79,11 @@ export class GlobalErrorHandler {
     this.addToQueue(errorReport);
 
     // 로깅
-    logError(error, source);
+    if (typeof window !== 'undefined') {
+      console.error(`[ERROR][${source}]:`, error);
+    } else {
+      console.error(`[ERROR][${source}]:`, error);
+    }
 
     // Sentry로 전송
     this.sendToSentry(error, source, userId, context);
@@ -172,7 +177,7 @@ export class GlobalErrorHandler {
     }
     
     // 배치로 에러 전송 (Sentry는 자동으로 배치 처리)
-    logger.info(`Flushing ${this.errorQueue.length} errors from queue`);
+    console.log(`[INFO]: Flushing ${this.errorQueue.length} errors from queue`);
     
     // 큐 비우기
     this.errorQueue = [];
@@ -281,7 +286,7 @@ export class GlobalErrorHandler {
           ? delay * Math.pow(2, attempt - 1)
           : delay * attempt;
           
-        logger.warn(`Retry attempt ${attempt}/${maxAttempts} after ${waitTime}ms`);
+        console.warn(`Retry attempt ${attempt}/${maxAttempts} after ${waitTime}ms`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }

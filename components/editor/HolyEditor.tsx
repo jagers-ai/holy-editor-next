@@ -28,9 +28,6 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     { 
       enabled: !!documentId && documentId !== 'new',
       retry: 1, // 한 번만 재시도
-      onError: (error) => {
-        console.log('DB에서 문서를 찾을 수 없음, localStorage 확인 중...');
-      }
     }
   );
   
@@ -131,18 +128,20 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     // DB에서 문서 로드 성공
     if (document) {
       // 설교정보 복원
-      const sermonData = document.content?.sermonInfo || {};
+      const contentObj = typeof document.content === 'object' && document.content !== null 
+        ? document.content as any 
+        : {};
+      const sermonData = contentObj.sermonInfo || {};
       setSermonInfo({
         title: document.title || sermonData.title || '',
         pastor: sermonData.pastor || '',
         verse: sermonData.verse || '',
-        serviceType: sermonData.serviceType || '주일설교',
-        date: sermonData.date
+        serviceType: sermonData.serviceType || '주일설교'
       });
       
       // editor content 설정
-      if (document.content) {
-        editor.commands.setContent(document.content);
+      if (document.content && typeof document.content === 'object') {
+        editor.commands.setContent(document.content as any);
       }
       console.log('문서를 데이터베이스에서 불러왔습니다');
       return;
@@ -157,14 +156,19 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
         if (localDoc) {
           // 설교정보 복원
           if (localDoc.sermonInfo) {
-            setSermonInfo(localDoc.sermonInfo);
+            setSermonInfo({
+              title: localDoc.sermonInfo.title || '',
+              pastor: localDoc.sermonInfo.pastor || '',
+              verse: localDoc.sermonInfo.verse || '',
+              serviceType: (localDoc.sermonInfo.serviceType || '주일설교') as any
+            });
           } else if (localDoc.title) {
             // 이전 버전 호환성
             setSermonInfo({
               title: localDoc.title,
               pastor: '',
               verse: '',
-              serviceType: '주일설교'
+              serviceType: '주일설교' as any
             });
           }
           // editor content 설정
@@ -201,7 +205,10 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
 
   return (
     <div className="editor-container mx-auto max-w-4xl pb-[calc(var(--toolbar-h)+env(safe-area-inset-bottom))] md:pb-0">
-      <SermonInfoSection />
+      <SermonInfoSection 
+        info={sermonInfo} 
+        onChange={setSermonInfo} 
+      />
       
       <div className="editor-wrapper bg-background border rounded-lg shadow-sm">
         <Toolbar editor={editor} />
