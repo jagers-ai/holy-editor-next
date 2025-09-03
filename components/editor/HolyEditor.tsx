@@ -3,20 +3,25 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toolbar } from './Toolbar';
 import { BibleVerseExtension } from './extensions/BibleVerseExtension';
 import { toast } from 'sonner';
+import { useEditorContext } from '@/contexts/EditorContext';
 
 interface HolyEditorProps {
   documentId?: string;
 }
 
 export default function HolyEditor({ documentId }: HolyEditorProps) {
-  const [title, setTitle] = useState('새 문서');
-  const [isSaving, setIsSaving] = useState(false);
+  const { title, setTitle, setDocumentId, setEditorContent } = useEditorContext();
   const router = useRouter();
+  
+  // Context에 documentId 설정
+  useEffect(() => {
+    setDocumentId(documentId);
+  }, [documentId, setDocumentId]);
 
   // 성경 데이터 로드
   useEffect(() => {
@@ -43,18 +48,38 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       }),
       BibleVerseExtension,
       Image.configure({
-        inline: true,
+        inline: false,
         allowBase64: true,
         HTMLAttributes: {
           class: 'max-w-full h-auto rounded-lg',
         },
+        addKeyboardShortcuts() {
+          return {
+            'Backspace': ({ editor }) => {
+              const { selection } = editor.state;
+              const pos = selection.$anchor.pos;
+              const node = editor.state.doc.nodeAt(pos - 1);
+              
+              // 이미지 바로 뒤에서 백스페이스 누르면 이미지 삭제
+              if (node && node.type.name === 'image') {
+                editor.chain()
+                  .focus()
+                  .setNodeSelection(pos - 1)
+                  .deleteSelection()
+                  .run();
+                return true;
+              }
+              return false;
+            }
+          }
+        }
       })
     ],
     content: '',
     immediatelyRender: false, // SSR 하이드레이션 문제 해결
     onUpdate: ({ editor }) => {
-      // 자동 저장 (debounce 필요)
-      // TODO: debounce 구현
+      // Context에 에디터 콘텐츠 업데이트
+      setEditorContent(editor.getJSON());
     },
     editorProps: {
       attributes: {
@@ -89,52 +114,12 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     }
   }, [editor, documentId, router]);
 
-  // 저장 함수
-  const handleSave = useCallback(() => {
-    if (!editor) return;
-    
-    setIsSaving(true);
-    
-    try {
-      const docs = JSON.parse(localStorage.getItem('holy-documents') || '[]');
-      const docId = documentId === 'new' || !documentId ? Date.now().toString() : documentId;
-      
-      const newDoc = {
-        id: docId,
-        title: title || '제목 없음',
-        content: editor.getJSON(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      // 기존 문서 업데이트 vs 새 문서 추가
-      const existingIndex = docs.findIndex((d: any) => d.id === docId);
-      
-      if (existingIndex >= 0) {
-        // 기존 문서 업데이트 (createdAt 보존)
-        newDoc.createdAt = docs[existingIndex].createdAt;
-        docs[existingIndex] = newDoc;
-      } else {
-        // 새 문서 추가
-        docs.push(newDoc);
-      }
-      
-      localStorage.setItem('holy-documents', JSON.stringify(docs));
-      
-      setIsSaving(false);
-      toast.success('문서가 저장되었습니다');
-      
-      // 새 문서인 경우 URL 업데이트
-      if (documentId === 'new' || !documentId) {
-        router.replace(`/editor/${docId}`);
-      }
-      
-    } catch (error) {
-      console.error('저장 실패:', error);
-      setIsSaving(false);
-      toast.error('저장 중 오류가 발생했습니다');
+  // 초기 에디터 콘텐츠 설정
+  useEffect(() => {
+    if (editor) {
+      setEditorContent(editor.getJSON());
     }
-  }, [editor, documentId, title, router]);
+  }, [editor, setEditorContent]);
 
   if (!editor) {
     return null;
@@ -142,28 +127,17 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
 
   return (
     <div className="flex flex-col h-dvh max-w-2xl mx-auto overflow-hidden">
-      {/* 헤더 */}
-      <div className="border-b px-4 py-3 flex items-center justify-between shrink-0">
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="text-lg font-semibold bg-transparent border-none outline-none flex-1"
-          placeholder="문서 제목"
-        />
-        <div className="flex items-center gap-2">
-          {isSaving && <span className="text-xs text-muted-foreground">저장 중...</span>}
-          <button
-            onClick={handleSave}
-            className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm"
-          >
-            저장
-          </button>
-        </div>
-      </div>
-
       {/* 에디터 */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-[calc(var(--toolbar-h)+env(safe-area-inset-bottom)+var(--keyboard-inset,0px))] md:pb-0 [scroll-padding-bottom:calc(var(--toolbar-h)+env(safe-area-inset-bottom)+var(--keyboard-inset,0px))] md:[scroll-padding-bottom:0]">
+        <div className="px-4 pt-4 pb-2">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full text-2xl font-bold border-none outline-none bg-transparent"
+            placeholder="설교 제목을 입력하세요"
+          />
+        </div>
         <EditorContent editor={editor} />
       </div>
 
