@@ -67,7 +67,7 @@ export function Toolbar({ editor }: ToolbarProps) {
       style={{ ['--kb-translate' as any]: 'calc(0px - var(--keyboard-inset, 0px))', transition: 'transform 90ms ease-out' }}
     >
       <div className="mx-auto w-full max-w-2xl">
-        <div className="flex items-center gap-1 p-2 overflow-x-auto min-h-[var(--toolbar-h)]">
+        <div className="flex items-center gap-0.5 p-2 overflow-x-auto min-h-[var(--toolbar-h)]">
         <Button
           variant="ghost"
           size="sm"
@@ -87,7 +87,7 @@ export function Toolbar({ editor }: ToolbarProps) {
           <Redo className="h-4 w-4" />
         </Button>
         
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="w-px h-6 bg-border mx-0.5" />
         
         <Button
           variant="ghost"
@@ -156,7 +156,7 @@ export function Toolbar({ editor }: ToolbarProps) {
           )}
         </div>
         
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="w-px h-6 bg-border mx-0.5" />
         
         <Button
           variant={editor.isActive('heading', { level: 1 }) ? 'default' : 'ghost'}
