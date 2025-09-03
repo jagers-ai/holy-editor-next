@@ -132,15 +132,13 @@ export function Toolbar({ editor }: ToolbarProps) {
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 text-sm"
+            className="p-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            aria-label="저장"
           >
             {isSaving ? (
-              <span className="text-xs">저장 중...</span>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
-              <>
-                <Save className="h-4 w-4" />
-                <span>저장</span>
-              </>
+              <Save className="h-4 w-4" />
             )}
           </button>
         </div>

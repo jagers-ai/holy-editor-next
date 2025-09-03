@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Trash2, Plus, User, Clock, BookOpen } from 'lucide-react';
-import { toast } from 'sonner';
+// Toast functionality removed - to be replaced with shadcn/ui
 
 interface Document {
   id: string;
@@ -40,7 +40,8 @@ export default function DocumentsPage() {
       setDocuments(sortedDocs);
     } catch (error) {
       console.error('문서 로드 실패:', error);
-      toast.error('문서를 불러올 수 없습니다');
+      // TODO: Add toast notification
+      // toast.error('문서를 불러올 수 없습니다');
     }
   };
 
@@ -53,10 +54,12 @@ export default function DocumentsPage() {
         const filtered = docs.filter((doc: Document) => doc.id !== id);
         localStorage.setItem('holy-documents', JSON.stringify(filtered));
         loadDocuments();
-        toast.success('문서가 삭제되었습니다');
+        // TODO: Add toast notification
+        // toast.success('문서가 삭제되었습니다');
       } catch (error) {
         console.error('문서 삭제 실패:', error);
-        toast.error('문서 삭제에 실패했습니다');
+        // TODO: Add toast notification
+        // toast.error('문서 삭제에 실패했습니다');
       }
     }
   };

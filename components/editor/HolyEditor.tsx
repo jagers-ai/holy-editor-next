@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { Toolbar } from './Toolbar';
 import { BibleVerseExtension } from './extensions/BibleVerseExtension';
 import { SermonInfoSection } from './SermonInfoSection';
-import { toast } from 'sonner';
+// Toast functionality removed - to be replaced with shadcn/ui
 import { useEditorContext } from '@/contexts/EditorContext';
 
 interface HolyEditorProps {
@@ -121,14 +121,17 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
         if (doc.content) {
           editor.commands.setContent(doc.content);
         }
-        toast.success('문서를 불러왔습니다');
+        // TODO: Add toast notification
+        // toast.success('문서를 불러왔습니다');
       } else {
-        toast.error('문서를 찾을 수 없습니다');
+        // TODO: Add toast notification
+        // toast.error('문서를 찾을 수 없습니다');
         router.push('/documents');
       }
     } catch (error) {
       console.error('문서 로드 실패:', error);
-      toast.error('문서 로드 중 오류가 발생했습니다');
+      // TODO: Add toast notification
+      // toast.error('문서 로드 중 오류가 발생했습니다');
     }
   }, [editor, documentId, router]);
 

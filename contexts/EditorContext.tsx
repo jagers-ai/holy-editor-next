@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+// Toast functionality removed - to be replaced with shadcn/ui
 import { SermonInfo } from '@/components/editor/SermonInfoSection';
 
 interface EditorContextType {
@@ -67,7 +67,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('holy-documents', JSON.stringify(docs));
       
       setIsSaving(false);
-      toast.success('문서가 저장되었습니다');
+      // TODO: Add toast notification
+      // toast.success('문서가 저장되었습니다');
       
       // 저장 후 저장소 페이지로 이동
       setTimeout(() => {
@@ -77,7 +78,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('저장 실패:', error);
       setIsSaving(false);
-      toast.error('저장 중 오류가 발생했습니다');
+      // TODO: Add toast notification
+      // toast.error('저장 중 오류가 발생했습니다');
     }
   }, [editorContent, documentId, sermonInfo, router]);
 
