@@ -32,10 +32,6 @@ const BibleVerseComponent = React.memo((props: NodeViewRendererProps) => {
       </div>
     </NodeViewWrapper>
   )
-}, 
-// ⚡ memo 비교 함수로 최적화 - 성경구절 attrs는 불변이므로 선택 상태만 체크
-(prevProps, nextProps) => {
-  return prevProps.selected === nextProps.selected
 })
 
 BibleVerseComponent.displayName = 'BibleVerseComponent'
