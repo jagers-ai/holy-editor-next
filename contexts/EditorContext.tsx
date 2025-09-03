@@ -1,9 +1,9 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-// Toast functionality removed - to be replaced with shadcn/ui
 import { SermonInfo } from '@/components/editor/SermonInfoSection';
+import { api } from '@/utils/api';
 
 interface EditorContextType {
   sermonInfo: SermonInfo;
@@ -29,8 +29,79 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [documentId, setDocumentId] = useState<string | undefined>(undefined);
   const [editorContent, setEditorContent] = useState<any>(null);
   const router = useRouter();
+  
+  // tRPC mutations
+  const createDocument = api.document.create.useMutation({
+    onSuccess: (data) => {
+      console.log('문서 생성 성공:', data.id);
+      // 문서 생성 후 문서 목록으로 이동
+      setTimeout(() => {
+        router.push('/documents');
+      }, 500);
+    },
+    onError: (error) => {
+      console.error('문서 생성 실패:', error);
+      // TODO: 에러 토스트 표시
+    },
+  });
+  
+  const updateDocument = api.document.update.useMutation({
+    onSuccess: (data) => {
+      console.log('문서 업데이트 성공:', data.id);
+      // 문서 업데이트 후 문서 목록으로 이동
+      setTimeout(() => {
+        router.push('/documents');
+      }, 500);
+    },
+    onError: (error) => {
+      console.error('문서 업데이트 실패:', error);
+      // TODO: 에러 토스트 표시
+    },
+  });
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
+    if (!editorContent) return;
+    
+    setIsSaving(true);
+    
+    try {
+      const documentData = {
+        title: sermonInfo.title || '제목 없음',
+        content: editorContent,
+        sermonInfo: {
+          title: sermonInfo.title,
+          pastor: sermonInfo.pastor,
+          verse: sermonInfo.verse,
+          serviceType: sermonInfo.serviceType,
+          date: sermonInfo.date,
+        },
+        isPublic: false,
+      };
+      
+      if (documentId && documentId !== 'new') {
+        // 기존 문서 업데이트
+        await updateDocument.mutateAsync({
+          id: documentId,
+          data: documentData,
+        });
+      } else {
+        // 새 문서 생성
+        await createDocument.mutateAsync(documentData);
+      }
+      
+      // TODO: 성공 토스트 표시
+      console.log('문서가 저장되었습니다');
+      
+    } catch (error) {
+      console.error('저장 실패:', error);
+      // TODO: 에러 토스트 표시
+    } finally {
+      setIsSaving(false);
+    }
+  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, router]);
+
+  // localStorage fallback (마이그레이션 기간 동안 임시)
+  const handleSaveLocalStorage = useCallback(() => {
     if (!editorContent) return;
     
     setIsSaving(true);
@@ -67,8 +138,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('holy-documents', JSON.stringify(docs));
       
       setIsSaving(false);
-      // TODO: Add toast notification
-      // toast.success('문서가 저장되었습니다');
+      console.log('문서가 로컬에 저장되었습니다');
       
       // 저장 후 저장소 페이지로 이동
       setTimeout(() => {
@@ -76,10 +146,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       }, 500);
       
     } catch (error) {
-      console.error('저장 실패:', error);
+      console.error('로컬 저장 실패:', error);
       setIsSaving(false);
-      // TODO: Add toast notification
-      // toast.error('저장 중 오류가 발생했습니다');
     }
   }, [editorContent, documentId, sermonInfo, router]);
 
@@ -88,7 +156,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       value={{
         sermonInfo,
         setSermonInfo,
-        isSaving,
+        isSaving: isSaving || createDocument.isPending || updateDocument.isPending,
         handleSave,
         documentId,
         setDocumentId,

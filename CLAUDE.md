@@ -34,11 +34,12 @@ holy-editor-next/
 ├── app/                        # Next.js App Router 페이지
 │   ├── editor/[id]/           # 동적 라우팅을 사용한 에디터 페이지
 │   ├── documents/             # 문서 관리 페이지
-│   └── api/                   # API 라우트
+│   └── api/                   # API 라우트 (현재 비어있음)
 ├── components/
 │   ├── editor/                # 에디터 관련 컴포넌트
 │   │   ├── HolyEditor.tsx    # 메인 에디터 컴포넌트
 │   │   ├── Toolbar.tsx       # 에디터 툴바
+│   │   ├── SermonInfoSection.tsx  # 설교 정보 입력 섹션
 │   │   └── extensions/       # 커스텀 Tiptap 확장
 │   │       ├── BibleVerseExtension.ts   # 성경 구절 확장 로직
 │   │       ├── BibleVerseNode.ts        # ProseMirror 노드 정의
@@ -48,8 +49,10 @@ holy-editor-next/
 ├── lib/
 │   ├── bible/                 # 성경 관련 유틸리티
 │   │   └── books.ts          # 성경 책 정의 및 유틸리티
+│   ├── posthog.ts            # PostHog 분석 도구 설정
 │   └── utils.ts              # 일반 유틸리티
 └── prisma/
+    ├── migrations/            # 데이터베이스 마이그레이션 파일들
     └── schema.prisma          # 데이터베이스 스키마
 
 ```
@@ -120,6 +123,7 @@ npx prisma generate && rm -rf .next && npm run dev
 2. **BibleVerseNode.ts**: ProseMirror 노드 사양, 데이터 구조 정의
 3. **BibleVerseComponent.tsx**: 에디터에서 구절을 렌더링하는 React 컴포넌트
 4. **Toolbar.tsx**: 성경 구절 삽입을 위한 UI 포함
+5. **SermonInfoSection.tsx**: 설교 정보 (제목, 날짜, 설교자 등) 입력 섹션
 
 확장 기능으로 가능한 작업:
 - 모달 인터페이스를 통한 성경 구절 삽입

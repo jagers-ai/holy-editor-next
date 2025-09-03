@@ -1,8 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Navigation } from "@/components/layout/Navigation";
 import { EditorProvider } from "@/contexts/EditorContext";
+import { TRPCReactProvider } from "@/app/providers";
+import { PlatformFlags } from "@/components/system/PlatformFlags";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,6 +21,13 @@ export const metadata: Metadata = {
   description: "성경 구절을 쉽게 삽입할 수 있는 에디터",
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,12 +38,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <EditorProvider>
-          <Navigation />
-          <main>
-            {children}
-          </main>
-        </EditorProvider>
+        <PlatformFlags />
+        <TRPCReactProvider>
+          <EditorProvider>
+            <Navigation />
+            <main>
+              {children}
+            </main>
+          </EditorProvider>
+        </TRPCReactProvider>
       </body>
     </html>
   );

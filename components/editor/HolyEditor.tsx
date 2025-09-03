@@ -10,8 +10,9 @@ import { useRouter } from 'next/navigation';
 import { Toolbar } from './Toolbar';
 import { BibleVerseExtension } from './extensions/BibleVerseExtension';
 import { SermonInfoSection } from './SermonInfoSection';
-// Toast functionality removed - to be replaced with shadcn/ui
 import { useEditorContext } from '@/contexts/EditorContext';
+import { api } from '@/utils/api';
+import { getLocalStorageDocuments } from '@/utils/migration';
 
 interface HolyEditorProps {
   documentId?: string;
@@ -20,6 +21,18 @@ interface HolyEditorProps {
 export default function HolyEditor({ documentId }: HolyEditorProps) {
   const { sermonInfo, setSermonInfo, setDocumentId, setEditorContent } = useEditorContext();
   const router = useRouter();
+  
+  // tRPC query for loading document
+  const { data: document, isLoading } = api.document.getById.useQuery(
+    { id: documentId! },
+    { 
+      enabled: !!documentId && documentId !== 'new',
+      retry: 1, // 한 번만 재시도
+      onError: (error) => {
+        console.log('DB에서 문서를 찾을 수 없음, localStorage 확인 중...');
+      }
+    }
+  );
   
   // Context에 documentId 설정
   useEffect(() => {
@@ -110,74 +123,92 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     }
   });
 
-  // 문서 불러오기
+  // 문서 불러오기 (DB 우선, localStorage 폴백)
   useEffect(() => {
     if (!editor) return;
     if (!documentId || documentId === 'new') return;
     
-    try {
-      const docs = JSON.parse(localStorage.getItem('holy-documents') || '[]');
-      const doc = docs.find((d: any) => d.id === documentId);
+    // DB에서 문서 로드 성공
+    if (document) {
+      // 설교정보 복원
+      const sermonData = document.content?.sermonInfo || {};
+      setSermonInfo({
+        title: document.title || sermonData.title || '',
+        pastor: sermonData.pastor || '',
+        verse: sermonData.verse || '',
+        serviceType: sermonData.serviceType || '주일설교',
+        date: sermonData.date
+      });
       
-      if (doc) {
-        // 설교정보 복원
-        if (doc.sermonInfo) {
-          setSermonInfo(doc.sermonInfo);
-        } else if (doc.title) {
-          // 이전 버전 호환성
-          setSermonInfo({
-            title: doc.title,
-            pastor: '',
-            verse: '',
-            serviceType: '주일설교'
-          });
+      // editor content 설정
+      if (document.content) {
+        editor.commands.setContent(document.content);
+      }
+      console.log('문서를 데이터베이스에서 불러왔습니다');
+      return;
+    }
+    
+    // DB에서 못 찾고, 로딩도 끝났으면 localStorage 확인
+    if (!isLoading && !document) {
+      try {
+        const localDocs = getLocalStorageDocuments();
+        const localDoc = localDocs.find(d => d.id === documentId);
+        
+        if (localDoc) {
+          // 설교정보 복원
+          if (localDoc.sermonInfo) {
+            setSermonInfo(localDoc.sermonInfo);
+          } else if (localDoc.title) {
+            // 이전 버전 호환성
+            setSermonInfo({
+              title: localDoc.title,
+              pastor: '',
+              verse: '',
+              serviceType: '주일설교'
+            });
+          }
+          // editor content 설정
+          if (localDoc.content) {
+            editor.commands.setContent(localDoc.content);
+          }
+          console.log('문서를 localStorage에서 불러왔습니다');
+        } else {
+          console.error('문서를 찾을 수 없습니다');
+          router.push('/documents');
         }
-        // editor가 준비된 후 content 설정
-        if (doc.content) {
-          editor.commands.setContent(doc.content);
-        }
-        // TODO: Add toast notification
-        // toast.success('문서를 불러왔습니다');
-      } else {
-        // TODO: Add toast notification
-        // toast.error('문서를 찾을 수 없습니다');
+      } catch (error) {
+        console.error('localStorage 문서 로드 실패:', error);
         router.push('/documents');
       }
-    } catch (error) {
-      console.error('문서 로드 실패:', error);
-      // TODO: Add toast notification
-      // toast.error('문서 로드 중 오류가 발생했습니다');
     }
-  }, [editor, documentId, router]);
-
-  // 초기 에디터 콘텐츠 설정
-  useEffect(() => {
-    if (editor) {
-      setEditorContent(editor.getJSON());
-    }
-  }, [editor, setEditorContent]);
+  }, [editor, documentId, document, isLoading, setSermonInfo, router]);
 
   if (!editor) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">에디터 초기화 중...</div>
+      </div>
+    );
+  }
+
+  if (isLoading && documentId && documentId !== 'new') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">문서를 불러오는 중...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col h-dvh max-w-2xl mx-auto overflow-hidden">
-      {/* 스크롤 가능한 영역 */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-[calc(var(--toolbar-h)+env(safe-area-inset-bottom)+var(--keyboard-inset,0px))] md:pb-0 [scroll-padding-bottom:calc(var(--toolbar-h)+env(safe-area-inset-bottom)+var(--keyboard-inset,0px))] md:[scroll-padding-bottom:0]">
-        {/* 설교정보 섹션 */}
-        <SermonInfoSection 
-          info={sermonInfo}
-          onChange={setSermonInfo}
-        />
-        
-        {/* 설교 본문 에디터 */}
-        <EditorContent editor={editor} className="px-4 py-4" />
-      </div>
-
-      {/* 하단 툴바 */}
-      <div className="shrink-0">
+    <div className="editor-container mx-auto max-w-4xl">
+      <SermonInfoSection />
+      
+      <div className="editor-wrapper bg-background border rounded-lg shadow-sm">
         <Toolbar editor={editor} />
+        <EditorContent 
+          editor={editor} 
+          className="editor-content"
+        />
       </div>
     </div>
   );
