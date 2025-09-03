@@ -88,22 +88,22 @@ export const BIBLE_BOOKS: BibleBook[] = [...OLD_TESTAMENT, ...NEW_TESTAMENT];
 export function resolveBookId(input: string): string | null {
   const normalized = input.trim();
   
+  // 1단계: 정확한 전체 이름 매칭
   for (const book of BIBLE_BOOKS) {
-    // 정확한 이름 매칭
     if (book.name === normalized) {
       return book.id;
     }
-    
-    // 별칭 매칭
+  }
+  
+  // 2단계: 정확한 약어 매칭
+  for (const book of BIBLE_BOOKS) {
     if (book.aliases.includes(normalized)) {
       return book.id;
     }
-    
-    // 부분 매칭 (시작 부분)
-    if (book.aliases.some(alias => alias.startsWith(normalized))) {
-      return book.id;
-    }
   }
+  
+  // 3단계: 부분 매칭은 제거 (혼란을 방지하기 위해)
+  // 사용자는 정확한 약어나 전체 이름을 입력해야 함
   
   return null;
 }

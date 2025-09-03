@@ -22,7 +22,7 @@ export const BibleVerseExtension = Extension.create({
 
   addInputRules() {
     return [
-      // 단일 구절: /창1:1 + 스페이스
+      // 단일 구절 (띄어쓰기 없음): /창1:1 또는 /창세기1:1 + 스페이스
       new InputRule({
         find: /\/([가-힣]+)(\d+):(\d+)\s$/,
         handler: ({ state, range, match, commands }) => {
@@ -63,7 +63,7 @@ export const BibleVerseExtension = Extension.create({
         }
       }),
       
-      // 범위 구절: /창1:1-4 + 스페이스
+      // 범위 구절 (띄어쓰기 없음): /창1:1-4 또는 /창세기1:1-4 + 스페이스
       new InputRule({
         find: /\/([가-힣]+)(\d+):(\d+)-(\d+)\s$/,
         handler: ({ state, range, match, commands }) => {
