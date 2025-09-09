@@ -52,7 +52,9 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
     try {
       const { data } = await supabase.auth.getUser(token);
       authUser = data.user ?? null;
-    } catch {}
+    } catch {
+      // 토큰이 유효하지 않은 경우 무시하고 계속 진행
+    }
   }
   if (!authUser) {
     const { data } = await supabase.auth.getUser();

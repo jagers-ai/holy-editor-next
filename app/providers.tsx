@@ -54,7 +54,9 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
               const { data } = await supabase.auth.getSession();
               const token = data.session?.access_token;
               if (token) headers.set('authorization', `Bearer ${token}`);
-            } catch {}
+            } catch {
+              // 인증 토큰이 없어도 계속 진행 (비인증 요청 허용)
+            }
             return headers;
           },
         }),
