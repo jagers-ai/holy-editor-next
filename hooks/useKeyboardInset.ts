@@ -23,6 +23,7 @@ export function useKeyboardInset(enabled: boolean = true) {
   const baseInnerHRef = useRef<number>(0);
   const baseVVBottomRef = useRef<number>(0);
   const isOpenRef = useRef<boolean>(false);
+  const focusKickTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -100,7 +101,16 @@ export function useKeyboardInset(enabled: boolean = true) {
 
     // 초기 적용 + 포커스 시 보정
     updateImmediate();
-    document.addEventListener('focusin', schedule, true);
+    const onFocusIn = () => {
+      schedule();
+      if (focusKickTimerRef.current) window.clearTimeout(focusKickTimerRef.current);
+      // 키보드 애니메이션 초반/중반 타이밍에 재평가하여 즉시 부착
+      focusKickTimerRef.current = window.setTimeout(() => {
+        updateImmediate();
+        window.setTimeout(updateImmediate, 160);
+      }, 60) as unknown as number;
+    };
+    document.addEventListener('focusin', onFocusIn, true);
     document.addEventListener('focusout', schedule, true);
 
     if ('visualViewport' in window && window.visualViewport) {
@@ -117,7 +127,8 @@ export function useKeyboardInset(enabled: boolean = true) {
 
     return () => {
       if (rafId.current != null) cancelAnimationFrame(rafId.current);
-      document.removeEventListener('focusin', schedule, true);
+      if (focusKickTimerRef.current) window.clearTimeout(focusKickTimerRef.current);
+      document.removeEventListener('focusin', onFocusIn, true);
       document.removeEventListener('focusout', schedule, true);
       if ('visualViewport' in window && window.visualViewport) {
         window.visualViewport.removeEventListener('resize', schedule);
