@@ -126,6 +126,19 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     
     // DB에서 문서 로드 성공
     if (document) {
+      // 과거 인코딩 오류로 저장된 serviceType 정규화 맵
+      const normalizeServiceType = (raw: any): string | undefined => {
+        const map: Record<string, string> = {
+          '���ϼ���': '주일설교',
+          '�����⵵': '수요예배',
+          '�ݿ�⵵': '금요예배',
+          '����⵵': '새벽예배',
+          '����ȸ': '청년예배', // 청년회 → 청년예배로 정규화
+          '��Ÿ': '기타',
+        };
+        if (typeof raw !== 'string') return raw;
+        return map[raw] ?? raw;
+      };
       // 설교정보 복원
       const contentObj = typeof document.content === 'object' && document.content !== null 
         ? document.content as any 
@@ -135,7 +148,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
         title: document.title || sermonData.title || '',
         pastor: sermonData.pastor || '',
         verse: sermonData.verse || '',
-        serviceType: sermonData.serviceType || '주일설교'
+        serviceType: normalizeServiceType(sermonData.serviceType) || '주일설교'
       });
       
       // editor content 설정

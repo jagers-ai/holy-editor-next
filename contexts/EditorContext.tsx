@@ -23,7 +23,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     title: '',
     pastor: '',
     verse: '',
-    serviceType: '주일설교' as any
+    serviceType: '주일설교'
   });
   const [isSaving, setIsSaving] = useState(false);
   const [documentId, setDocumentId] = useState<string | undefined>(undefined);

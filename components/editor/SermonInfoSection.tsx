@@ -6,7 +6,7 @@ export interface SermonInfo {
   title: string;
   pastor: string;
   verse: string;
-  serviceType: '���ϼ���' | '�����⵵' | '�ݿ�⵵' | '����⵵' | '����ȸ' | '��Ÿ';
+  serviceType: '주일설교' | '수요예배' | '금요예배' | '새벽예배' | '청년예배' | '기타';
 }
 
 interface SermonInfoSectionProps {
@@ -41,7 +41,7 @@ export function SermonInfoSection({ info, onChange }: SermonInfoSectionProps) {
             adjustTitleHeight();
           }}
           className="w-full text-2xl font-bold border-none outline-none bg-transparent resize-none overflow-hidden"
-          placeholder="���� ������ �Է��ϼ���"
+          placeholder="설교 제목을 입력하세요"
           rows={1}
         />
         
@@ -49,7 +49,7 @@ export function SermonInfoSection({ info, onChange }: SermonInfoSectionProps) {
         <div className="flex gap-2">
           <input
             type="text"
-            placeholder="��� ����"
+            placeholder="설교자"
             value={info.pastor}
             onChange={(e) => onChange({ ...info, pastor: e.target.value })}
             className="flex-1 text-base px-3 py-2 border rounded-md bg-background"
@@ -60,19 +60,19 @@ export function SermonInfoSection({ info, onChange }: SermonInfoSectionProps) {
             onChange={(e) => onChange({ ...info, serviceType: e.target.value as SermonInfo['serviceType'] })}
             className="text-base px-3 py-2 border rounded-md bg-background"
           >
-            <option value="���ϼ���">���ϼ���</option>
-            <option value="�����⵵">�����⵵</option>
-            <option value="�ݿ�⵵">�ݿ�⵵</option>
-            <option value="����⵵">����⵵</option>
-            <option value="����ȸ">����ȸ</option>
-            <option value="��Ÿ">��Ÿ</option>
+            <option value="주일설교">주일설교</option>
+            <option value="수요예배">수요예배</option>
+            <option value="금요예배">금요예배</option>
+            <option value="새벽예배">새벽예배</option>
+            <option value="청년예배">청년예배</option>
+            <option value="기타">기타</option>
           </select>
         </div>
         
         {/* 본문 구절 */}
         <input
           type="text"
-          placeholder="���� ���� (��: ���º��� 5:1-12)"
+          placeholder="본문 구절 (예: 창 5:1-12)"
           value={info.verse}
           onChange={(e) => onChange({ ...info, verse: e.target.value })}
           className="w-full text-base px-3 py-2 border rounded-md bg-background"
@@ -81,4 +81,3 @@ export function SermonInfoSection({ info, onChange }: SermonInfoSectionProps) {
     </div>
   );
 }
-
