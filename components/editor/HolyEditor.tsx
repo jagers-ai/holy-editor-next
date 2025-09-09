@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Toolbar } from './Toolbar';
 import { BibleVerseExtension } from './extensions/BibleVerseExtension';
 import { SermonInfoSection } from './SermonInfoSection';
+import type { SermonInfo } from './SermonInfoSection';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { api } from '@/utils/api';
 
@@ -126,18 +127,22 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     
     // DB에서 문서 로드 성공
     if (document) {
-      // 과거 인코딩 오류로 저장된 serviceType 정규화 맵
-      const normalizeServiceType = (raw: any): string | undefined => {
-        const map: Record<string, string> = {
+      // 과거 인코딩 오류로 저장된 serviceType 정규화
+      type ServiceType = SermonInfo['serviceType'];
+      const allowed: ServiceType[] = ['주일설교','수요예배','금요예배','새벽예배','청년예배','기타'];
+      const normalizeServiceType = (raw: any): ServiceType | undefined => {
+        if (typeof raw !== 'string') return undefined;
+        const map: Record<string, ServiceType> = {
           '���ϼ���': '주일설교',
           '�����⵵': '수요예배',
           '�ݿ�⵵': '금요예배',
           '����⵵': '새벽예배',
-          '����ȸ': '청년예배', // 청년회 → 청년예배로 정규화
+          '����ȸ': '청년예배',
           '��Ÿ': '기타',
         };
-        if (typeof raw !== 'string') return raw;
-        return map[raw] ?? raw;
+        if (map[raw]) return map[raw];
+        if ((allowed as readonly string[]).includes(raw)) return raw as ServiceType;
+        return '기타';
       };
       // 설교정보 복원
       const contentObj = typeof document.content === 'object' && document.content !== null 
