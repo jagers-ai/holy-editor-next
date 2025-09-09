@@ -10,12 +10,15 @@ import { isIOS } from '@/utils/isIOS';
  */
 export function useKeyboardInset(enabled: boolean = true) {
   const rafId = useRef<number | null>(null);
+  const lastInsetRef = useRef<number>(0);
 
   useEffect(() => {
     if (!enabled) return;
 
     const setInset = (px: number) => {
-      document.documentElement.style.setProperty('--keyboard-inset', `${Math.max(0, Math.round(px))}px`);
+      const value = Math.max(0, Math.round(px));
+      lastInsetRef.current = value;
+      document.documentElement.style.setProperty('--keyboard-inset', `${value}px`);
     };
 
     const computeInset = () => {
@@ -35,7 +38,12 @@ export function useKeyboardInset(enabled: boolean = true) {
       if (rafId.current != null) return;
       rafId.current = requestAnimationFrame(() => {
         rafId.current = null;
-        setInset(computeInset());
+        const next = computeInset();
+        const prev = lastInsetRef.current;
+        // 미세 히스테리시스: ±2~3px 변화는 무시 (단, 0으로 복귀는 항상 허용)
+        const tolerance = isIOS() ? 3 : 2;
+        if (Math.abs(next - prev) < tolerance && !(next === 0 && prev !== 0)) return;
+        setInset(next);
       });
     };
 
@@ -64,6 +72,7 @@ export function useKeyboardInset(enabled: boolean = true) {
       }
       window.removeEventListener('resize', schedule);
       window.removeEventListener('scroll', schedule as any);
+      lastInsetRef.current = 0;
       document.documentElement.style.setProperty('--keyboard-inset', '0px');
     };
   }, [enabled]);
