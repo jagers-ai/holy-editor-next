@@ -28,3 +28,19 @@ export async function GET(request: Request) {
   // OAuth 에러가 발생한 경우 로그인 페이지로 리다이렉트
   return NextResponse.redirect(`${origin}/login?error=auth_failed`);
 }
+
+// Sync SSR cookies on auth state changes from the client
+export async function POST(request: Request) {
+  const { event, session } = await request.json();
+  const supabase = await createClient();
+
+  if (event === 'SIGNED_OUT') {
+    await supabase.auth.signOut();
+  } else if (session?.access_token && session?.refresh_token) {
+    await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    });
+  }
+  return NextResponse.json({ ok: true });
+}
