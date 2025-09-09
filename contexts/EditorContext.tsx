@@ -99,57 +99,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }
   }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, router]);
 
-  // localStorage fallback (마이그레이션 기간 동안 임시)
-  const handleSaveLocalStorage = useCallback(() => {
-    if (!editorContent) return;
-    
-    setIsSaving(true);
-    
-    try {
-      const docs = JSON.parse(localStorage.getItem('holy-documents') || '[]');
-      const docId = documentId === 'new' || !documentId ? Date.now().toString() : documentId;
-      
-      const newDoc = {
-        id: docId,
-        sermonInfo: {
-          title: sermonInfo.title || '제목 없음',
-          pastor: sermonInfo.pastor,
-          verse: sermonInfo.verse,
-          serviceType: sermonInfo.serviceType
-        },
-        content: editorContent,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      // 기존 문서 업데이트 vs 새 문서 추가
-      const existingIndex = docs.findIndex((d: any) => d.id === docId);
-      
-      if (existingIndex >= 0) {
-        // 기존 문서 업데이트 (createdAt 보존)
-        newDoc.createdAt = docs[existingIndex].createdAt;
-        docs[existingIndex] = newDoc;
-      } else {
-        // 새 문서 추가
-        docs.push(newDoc);
-      }
-      
-      localStorage.setItem('holy-documents', JSON.stringify(docs));
-      
-      setIsSaving(false);
-      console.log('문서가 로컬에 저장되었습니다');
-      
-      // 저장 후 저장소 페이지로 이동
-      setTimeout(() => {
-        router.push('/documents');
-      }, 500);
-      
-    } catch (error) {
-      console.error('로컬 저장 실패:', error);
-      setIsSaving(false);
-    }
-  }, [editorContent, documentId, sermonInfo, router]);
-
   return (
     <EditorContext.Provider
       value={{

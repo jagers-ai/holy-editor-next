@@ -1,18 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Trash2, Plus, User, Clock, BookOpen } from 'lucide-react';
 import { api } from '@/utils/api';
-import { 
-  getLocalStorageDocuments, 
-  isMigrationComplete, 
-  setMigrationComplete,
-  backupLocalStorage 
-} from '@/utils/migration';
 
 interface Document {
   id: string;
@@ -30,8 +24,6 @@ interface Document {
 
 export default function DocumentsPage() {
   const router = useRouter();
-  const [isMigrating, setIsMigrating] = useState(false);
-  const [localDocs, setLocalDocs] = useState<Document[]>([]);
   
   // tRPC queries and mutations
   const { data: dbDocuments, isLoading, refetch } = api.document.list.useQuery();
@@ -46,82 +38,15 @@ export default function DocumentsPage() {
       // TODO: 토스트 알림
     },
   });
-  const importDocuments = api.document.importFromLocalStorage.useMutation({
-    onSuccess: (result) => {
-      console.log(`마이그레이션 완료: ${result.imported}개 추가, ${result.skipped}개 스킵, ${result.failed}개 실패`);
-      setMigrationComplete();
-      setLocalDocs([]);
-      refetch();
-      // TODO: 토스트 알림
-    },
-    onError: (error) => {
-      console.error('마이그레이션 실패:', error);
-      // TODO: 토스트 알림
-    },
-  });
 
-  // localStorage 데이터 확인 및 마이그레이션
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    // 이미 마이그레이션이 완료되었는지 확인
-    if (!isMigrationComplete()) {
-      const localDocuments = getLocalStorageDocuments();
-      setLocalDocs(localDocuments);
-      
-      // localStorage에 문서가 있고, DB 연결이 되어 있으면 자동 마이그레이션
-      if (localDocuments.length > 0 && !isLoading && !isMigrating) {
-        console.log(`localStorage에서 ${localDocuments.length}개 문서 발견. 마이그레이션을 시작합니다.`);
-        handleMigration(localDocuments);
-      }
-    }
-  }, [isLoading]);
-
-  // 마이그레이션 처리
-  const handleMigration = async (documents: Document[]) => {
-    if (isMigrating) return;
-    
-    setIsMigrating(true);
-    backupLocalStorage(); // 안전을 위한 백업
-    
-    try {
-      // title이 undefined인 경우 기본값 제공
-      const documentsWithTitle = documents.map(doc => ({
-        ...doc,
-        title: doc.title || '제목 없음'
-      }));
-      await importDocuments.mutateAsync(documentsWithTitle);
-    } catch (error) {
-      console.error('마이그레이션 실패:', error);
-    } finally {
-      setIsMigrating(false);
-    }
-  };
-
-  // 문서 목록 (DB 우선, localStorage 폴백)
-  const documents = dbDocuments?.documents || localDocs;
+  // 문서 목록
+  const documents = dbDocuments?.documents || [];
   
   const handleDeleteDocument = async (id: string, event: React.MouseEvent) => {
     event.stopPropagation(); // 카드 클릭 이벤트 방지
     
     if (confirm('정말로 이 문서를 삭제하시겠습니까?')) {
-      const isLocal = localDocs.some(doc => doc.id === id);
-      
-      if (isLocal) {
-        // localStorage에서 삭제
-        try {
-          const docs = getLocalStorageDocuments();
-          const filtered = docs.filter(doc => doc.id !== id);
-          localStorage.setItem('holy-documents', JSON.stringify(filtered));
-          setLocalDocs(filtered);
-          console.log('로컬 문서가 삭제되었습니다');
-        } catch (error) {
-          console.error('로컬 문서 삭제 실패:', error);
-        }
-      } else {
-        // 데이터베이스에서 삭제
-        await deleteDocument.mutateAsync({ id });
-      }
+      await deleteDocument.mutateAsync({ id });
     }
   };
 
@@ -173,28 +98,7 @@ export default function DocumentsPage() {
         </p>
       </div>
 
-      {isMigrating && (
-        <Card className="mb-4 border-blue-200 bg-blue-50">
-          <CardContent className="pt-6">
-            <p className="text-blue-800">
-              localStorage 문서를 데이터베이스로 마이그레이션 중...
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {localDocs.length > 0 && !isMigrating && (
-        <Card className="mb-4 border-yellow-200 bg-yellow-50">
-          <CardContent className="pt-6">
-            <p className="text-yellow-800">
-              {localDocs.length}개의 로컬 문서가 발견되었습니다. 
-              데이터베이스로 자동 마이그레이션됩니다.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {isLoading && !localDocs.length ? (
+      {isLoading ? (
         <Card className="text-center py-12">
           <CardContent>
             <p className="text-muted-foreground">문서를 불러오는 중...</p>
@@ -216,7 +120,6 @@ export default function DocumentsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {documents.map((doc) => {
-            const isLocal = localDocs.some(ld => ld.id === doc.id);
             const title = ('sermonInfo' in doc && doc.sermonInfo?.title) || doc.title || '제목 없음';
             
             return (
@@ -225,13 +128,6 @@ export default function DocumentsPage() {
                 className="cursor-pointer hover:shadow-lg transition-shadow relative"
                 onClick={() => router.push(`/editor/${doc.id}`)}
               >
-                {isLocal && (
-                  <div className="absolute top-2 right-2 z-10">
-                    <span className="inline-block px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">
-                      로컬
-                    </span>
-                  </div>
-                )}
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">

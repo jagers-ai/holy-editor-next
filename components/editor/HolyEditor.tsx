@@ -12,7 +12,6 @@ import { BibleVerseExtension } from './extensions/BibleVerseExtension';
 import { SermonInfoSection } from './SermonInfoSection';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { api } from '@/utils/api';
-import { getLocalStorageDocuments } from '@/utils/migration';
 
 interface HolyEditorProps {
   documentId?: string;
@@ -147,43 +146,10 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       return;
     }
     
-    // DB에서 못 찾고, 로딩도 끝났으면 localStorage 확인
+    // DB에서 못 찾고, 로딩도 끝났으면 문서가 없는 것
     if (!isLoading && !document) {
-      try {
-        const localDocs = getLocalStorageDocuments();
-        const localDoc = localDocs.find(d => d.id === documentId);
-        
-        if (localDoc) {
-          // 설교정보 복원
-          if (localDoc.sermonInfo) {
-            setSermonInfo({
-              title: localDoc.sermonInfo.title || '',
-              pastor: localDoc.sermonInfo.pastor || '',
-              verse: localDoc.sermonInfo.verse || '',
-              serviceType: (localDoc.sermonInfo.serviceType || '주일설교') as any
-            });
-          } else if (localDoc.title) {
-            // 이전 버전 호환성
-            setSermonInfo({
-              title: localDoc.title,
-              pastor: '',
-              verse: '',
-              serviceType: '주일설교' as any
-            });
-          }
-          // editor content 설정
-          if (localDoc.content) {
-            editor.commands.setContent(localDoc.content);
-          }
-          console.log('문서를 localStorage에서 불러왔습니다');
-        } else {
-          console.error('문서를 찾을 수 없습니다');
-          router.push('/documents');
-        }
-      } catch (error) {
-        console.error('localStorage 문서 로드 실패:', error);
-        router.push('/documents');
-      }
+      console.error('문서를 찾을 수 없습니다');
+      router.push('/documents');
     }
   }, [editor, documentId, document, isLoading, setSermonInfo, router]);
 

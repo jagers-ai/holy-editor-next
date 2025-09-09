@@ -17,8 +17,8 @@ const documentInputSchema = z.object({
 });
 
 export const documentRouter = createTRPCRouter({
-  // 문서 생성 (인증 필요 없음 - 나중에 protectedProcedure로 변경)
-  create: publicProcedure
+  // 문서 생성 (인증 필요)
+  create: protectedProcedure
     .input(documentInputSchema)
     .mutation(async ({ ctx, input }) => {
       const document = await ctx.prisma.document.create({
@@ -26,16 +26,15 @@ export const documentRouter = createTRPCRouter({
           title: input.title,
           content: input.content,
           isPublic: input.isPublic,
-          // userId는 인증 구현 후 추가
-          // userId: ctx.user?.id,
+          userId: ctx.user.id, // 인증된 사용자의 ID
         },
       });
 
       return document;
     }),
 
-  // 문서 목록 조회 (현재는 모든 문서, 나중에 사용자별 필터링)
-  list: publicProcedure
+  // 문서 목록 조회 (사용자별 필터링)
+  list: protectedProcedure
     .input(z.object({
       limit: z.number().min(1).max(100).default(50),
       cursor: z.string().optional(),
@@ -44,6 +43,9 @@ export const documentRouter = createTRPCRouter({
       const limit = input?.limit ?? 50;
       
       const documents = await ctx.prisma.document.findMany({
+        where: {
+          userId: ctx.user.id, // 현재 사용자의 문서만 조회
+        },
         take: limit + 1,
         cursor: input?.cursor ? { id: input.cursor } : undefined,
         orderBy: {
@@ -71,13 +73,14 @@ export const documentRouter = createTRPCRouter({
       };
     }),
 
-  // 특정 문서 조회
-  getById: publicProcedure
+  // 특정 문서 조회 (자신의 문서만)
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const document = await ctx.prisma.document.findUnique({
+      const document = await ctx.prisma.document.findFirst({
         where: {
           id: input.id,
+          userId: ctx.user.id, // 자신의 문서만 조회
         },
         include: {
           bibleReferences: true,
@@ -99,8 +102,8 @@ export const documentRouter = createTRPCRouter({
       return document;
     }),
 
-  // 문서 업데이트
-  update: publicProcedure
+  // 문서 업데이트 (소유권 검증 포함)
+  update: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -108,17 +111,17 @@ export const documentRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // 나중에 소유권 검사 추가
-      // const document = await ctx.prisma.document.findUnique({
-      //   where: { id: input.id },
-      // });
+      // 소유권 검사
+      const document = await ctx.prisma.document.findUnique({
+        where: { id: input.id },
+      });
       
-      // if (document?.userId !== ctx.user?.id) {
-      //   throw new TRPCError({
-      //     code: 'FORBIDDEN',
-      //     message: '이 문서를 수정할 권한이 없습니다.',
-      //   });
-      // }
+      if (!document || document.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: '이 문서를 수정할 권한이 없습니다.',
+        });
+      }
 
       const updated = await ctx.prisma.document.update({
         where: {
@@ -133,11 +136,22 @@ export const documentRouter = createTRPCRouter({
       return updated;
     }),
 
-  // 문서 삭제
-  delete: publicProcedure
+  // 문서 삭제 (소유권 검증 포함)
+  delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      // 나중에 소유권 검사 추가
+      // 소유권 검사
+      const document = await ctx.prisma.document.findUnique({
+        where: { id: input.id },
+      });
+      
+      if (!document || document.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: '이 문서를 삭제할 권한이 없습니다.',
+        });
+      }
+      
       await ctx.prisma.document.delete({
         where: {
           id: input.id,
@@ -145,71 +159,5 @@ export const documentRouter = createTRPCRouter({
       });
 
       return { success: true };
-    }),
-
-  // localStorage 데이터 임포트 (마이그레이션용)
-  importFromLocalStorage: publicProcedure
-    .input(
-      z.array(
-        z.object({
-          id: z.string(),
-          title: z.string(),
-          content: z.any(),
-          sermonInfo: z.object({
-            title: z.string().optional(),
-            pastor: z.string().optional(),
-            verse: z.string().optional(),
-            serviceType: z.string().optional(),
-          }).optional(),
-          createdAt: z.string(),
-          updatedAt: z.string(),
-        })
-      )
-    )
-    .mutation(async ({ ctx, input }) => {
-      const results = await Promise.allSettled(
-        input.map(async (doc) => {
-          // 이미 존재하는지 확인
-          const existing = await ctx.prisma.document.findFirst({
-            where: {
-              title: doc.title,
-              createdAt: {
-                gte: new Date(new Date(doc.createdAt).getTime() - 1000),
-                lte: new Date(new Date(doc.createdAt).getTime() + 1000),
-              },
-            },
-          });
-
-          if (existing) {
-            return { skipped: true, id: existing.id };
-          }
-
-          const created = await ctx.prisma.document.create({
-            data: {
-              title: doc.title || '제목 없음',
-              content: doc.content,
-              createdAt: new Date(doc.createdAt),
-              updatedAt: new Date(doc.updatedAt),
-            },
-          });
-
-          return { created: true, id: created.id };
-        })
-      );
-
-      const imported = results.filter(
-        (r) => r.status === 'fulfilled' && r.value.created
-      ).length;
-      const skipped = results.filter(
-        (r) => r.status === 'fulfilled' && r.value.skipped
-      ).length;
-      const failed = results.filter((r) => r.status === 'rejected').length;
-
-      return {
-        imported,
-        skipped,
-        failed,
-        total: input.length,
-      };
     }),
 });

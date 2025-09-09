@@ -1,10 +1,12 @@
-'use client';
-
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Plus, FolderOpen } from 'lucide-react';
+import { BookOpen, Plus, FolderOpen, LogIn, UserPlus } from 'lucide-react';
+import { createClient } from '@/lib/supabase/server';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
@@ -19,19 +21,43 @@ export default function HomePage() {
         </div>
 
         <div className="space-y-3">
-          <Button asChild className="w-full h-12 text-lg">
-            <Link href="/editor/new">
-              <Plus className="h-5 w-5 mr-2" />
-              새 문서 작성
-            </Link>
-          </Button>
-          
-          <Button asChild variant="outline" className="w-full h-12 text-lg">
-            <Link href="/documents">
-              <FolderOpen className="h-5 w-5 mr-2" />
-              문서 저장소
-            </Link>
-          </Button>
+          {user ? (
+            <>
+              <Button asChild className="w-full h-12 text-lg">
+                <Link href="/editor/new">
+                  <Plus className="h-5 w-5 mr-2" />
+                  새 문서 작성
+                </Link>
+              </Button>
+              
+              <Button asChild variant="outline" className="w-full h-12 text-lg">
+                <Link href="/documents">
+                  <FolderOpen className="h-5 w-5 mr-2" />
+                  내 문서
+                </Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button asChild className="w-full h-12 text-lg">
+                <Link href="/signup">
+                  <UserPlus className="h-5 w-5 mr-2" />
+                  회원가입
+                </Link>
+              </Button>
+              
+              <Button asChild variant="outline" className="w-full h-12 text-lg">
+                <Link href="/login">
+                  <LogIn className="h-5 w-5 mr-2" />
+                  로그인
+                </Link>
+              </Button>
+
+              <div className="text-center text-sm text-muted-foreground mt-4">
+                로그인하여 문서를 안전하게 저장하고 관리하세요
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

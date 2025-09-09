@@ -15,6 +15,8 @@ import { type User } from '@prisma/client';
 import { GlobalErrorHandler } from '@/lib/errors/global-handler';
 import { logger, logApiRequest } from '@/lib/logger';
 import { ErrorCategory, ErrorSeverity } from '@/lib/errors/types';
+import { createClient } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
 
 /**
  * 1. CONTEXT
@@ -41,8 +43,33 @@ export const createInnerTRPCContext = (opts: CreateContextOptions) => {
  * @link https://trpc.io/docs/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  // 나중에 여기서 Supabase Auth를 통해 사용자 정보를 가져올 예정
-  const user = null; // TODO: Get user from Supabase Auth
+  // Supabase Auth에서 사용자 정보 가져오기
+  const supabase = await createClient();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  
+  let user: User | null = null;
+  
+  // Supabase Auth 사용자가 있으면 데이터베이스에서 사용자 정보 조회
+  if (authUser) {
+    try {
+      user = await prisma.user.findUnique({
+        where: { id: authUser.id }
+      });
+      
+      // 사용자가 DB에 없으면 생성 (첫 로그인 시)
+      if (!user && authUser.email) {
+        user = await prisma.user.create({
+          data: {
+            id: authUser.id,
+            email: authUser.email,
+            name: authUser.user_metadata?.name || null
+          }
+        });
+      }
+    } catch (error) {
+      logger.error('Failed to fetch or create user:', error);
+    }
+  }
   
   return createInnerTRPCContext({
     user,

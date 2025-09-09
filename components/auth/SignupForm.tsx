@@ -53,18 +53,8 @@ export function SignupForm() {
       if (authError) {
         setError(authError.message);
       } else if (authData.user) {
-        // 2. 사용자 프로필 생성 (DB에 추가 정보 저장)
-        const { error: profileError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            email: authData.user.email!,
-            name: name,
-          } as any);
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-        }
+        // 프로필 생성은 서버 사이드에서 자동 처리됨
+        // (첫 API 호출 시 tRPC context에서 생성)
 
         setSuccess(true);
         // 이메일 인증이 필요한 경우

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-이 파일은 이 저장소에서 작업할 때 Claude Code (claude.ai/code)에게 지침을 제공합니다.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ⚠️ **중요**: Claude Code의 날짜 버그로 인해 날짜가 1월로 표시될 수 있습니다. 
 실제 현재 KST 날짜를 확인하려면 다음 명령어를 실행하세요:
@@ -23,18 +23,24 @@ node -e "console.log(new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul',
 - **데이터베이스**: Supabase를 통한 PostgreSQL + Prisma ORM
 - **상태 관리**: TanStack Query (React Query)
 - **폼 처리**: React Hook Form + Zod 검증
-- **API**: tRPC를 통한 타입 안전 API
+- **API**: tRPC를 통한 타입 안전 API (구현 완료)
+- **로깅**: Winston + Daily Rotate File
+- **에러 처리**: React Error Boundary + React Hot Toast
+- **파일 처리**: xlsx (엑셀 import/export)
 - **모니터링**: Sentry + PostHog
-- **인증**: Supabase Auth (구현 예정)
+- **인증**: Supabase Auth (페이지 구현 완료, 연동 진행 중)
 
 ## 🏗️ 프로젝트 구조
 
 ```
 holy-editor-next/
 ├── app/                        # Next.js App Router 페이지
-│   ├── editor/[id]/           # 동적 라우팅을 사용한 에디터 페이지
+│   ├── (auth)/                # 인증 관련 페이지 그룹
+│   │   ├── login/            # 로그인 페이지
+│   │   └── signup/           # 회원가입 페이지
+│   ├── editor/[id]/          # 동적 라우팅을 사용한 에디터 페이지
 │   ├── documents/             # 문서 관리 페이지
-│   └── api/                   # API 라우트 (현재 비어있음)
+│   └── api/trpc/[trpc]/      # tRPC API 엔드포인트
 ├── components/
 │   ├── editor/                # 에디터 관련 컴포넌트
 │   │   ├── HolyEditor.tsx    # 메인 에디터 컴포넌트
@@ -45,12 +51,28 @@ holy-editor-next/
 │   │       ├── BibleVerseNode.ts        # ProseMirror 노드 정의
 │   │       └── BibleVerseComponent.tsx  # 렌더링용 React 컴포넌트
 │   ├── ui/                    # 재사용 가능한 UI 컴포넌트 (Radix 기반)
-│   └── layout/                # 레이아웃 컴포넌트
+│   ├── layout/                # 레이아웃 컴포넌트
+│   ├── auth/                  # 인증 관련 컴포넌트
+│   ├── error/                 # 에러 처리 컴포넌트
+│   └── system/                # 시스템 컴포넌트
+├── server/
+│   └── api/                   # 서버 사이드 API
+│       ├── trpc.ts           # tRPC 설정
+│       ├── root.ts           # API 라우터 루트
+│       └── routers/          # API 라우터들
+│           ├── auth.ts       # 인증 API
+│           └── document.ts   # 문서 API
 ├── lib/
 │   ├── bible/                 # 성경 관련 유틸리티
 │   │   └── books.ts          # 성경 책 정의 및 유틸리티
+│   ├── supabase/             # Supabase 클라이언트 설정
+│   ├── errors/               # 에러 처리 유틸리티
 │   ├── posthog.ts            # PostHog 분석 도구 설정
 │   └── utils.ts              # 일반 유틸리티
+├── hooks/                     # 커스텀 React 훅
+├── contexts/                  # React Context providers
+├── types/                     # TypeScript 타입 정의
+├── utils/                     # 유틸리티 함수
 └── prisma/
     ├── migrations/            # 데이터베이스 마이그레이션 파일들
     └── schema.prisma          # 데이터베이스 스키마
@@ -136,6 +158,14 @@ npx prisma generate && rm -rf .next && npm run dev
 - 문서 내용은 데이터베이스에 JSON으로 저장
 - 에디터의 `onUpdate` 이벤트를 사용하여 자동 저장 기능 구현 가능
 
+### tRPC API 구조
+- **타입 안전 API**: 프론트엔드와 백엔드 간 완전한 타입 공유
+- **라우터 구성**:
+  - `auth.router`: 인증 관련 프로시저 (로그인, 회원가입, 로그아웃)
+  - `document.router`: 문서 CRUD 작업
+- **미들웨어**: 인증 체크, 에러 핸들링
+- **SuperJSON**: Date, Map, Set 등 복잡한 타입 자동 직렬화
+
 ### 데이터베이스 스키마
 ✅ **완료**: Holy Editor 전용 스키마가 성공적으로 적용되었습니다!
 
@@ -175,18 +205,25 @@ NEXT_PUBLIC_POSTHOG_HOST="https://app.posthog.com"
 ## 🎯 기능 로드맵
 
 현재 구현된 기능:
-- Tiptap을 사용한 리치 텍스트 편집
-- 책/장/절 선택을 통한 성경 구절 삽입
-- 문서 생성 및 편집
+- ✅ Tiptap을 사용한 리치 텍스트 편집
+- ✅ 책/장/절 선택을 통한 성경 구절 삽입
+- ✅ 문서 생성 및 편집
+- ✅ tRPC API 엔드포인트 구축
+- ✅ 인증 페이지 (로그인/회원가입) UI 구현
+- ✅ Winston 로깅 시스템
+- ✅ React Error Boundary 에러 처리
+
+진행 중:
+- 🔄 Supabase Auth 연동
+- 🔄 문서 데이터베이스 저장 구현
 
 향후 개선 사항:
-- 문서 영속성 및 관리
-- 사용자 인증
 - 협업 편집
-- 다양한 형식으로 내보내기 (PDF, Word 등)
+- 다양한 형식으로 내보내기 (PDF, Word, Excel)
 - 성경 구절 검색 및 상호 참조
 - 설교 템플릿 및 개요
 - 노트 작성 및 주석
+- 실시간 동기화
 
 ## 🐛 일반적인 문제 해결
 
@@ -196,5 +233,36 @@ NEXT_PUBLIC_POSTHOG_HOST="https://app.posthog.com"
 4. **데이터베이스 연결**: DATABASE_URL과 DIRECT_URL이 올바르게 설정되었는지 확인
 5. **Turbopack**: 이 프로젝트는 빠른 빌드를 위해 Turbopack을 사용. 문제 발생 시 package.json 스크립트에서 `--turbopack` 플래그 제거
 
+## 📡 API 사용 예시
+
+### tRPC 클라이언트 사용
+```typescript
+// 문서 생성
+const createDocument = api.document.create.useMutation();
+await createDocument.mutateAsync({
+  title: "새 설교문",
+  content: tiptapJSON,
+});
+
+// 문서 목록 조회
+const { data: documents } = api.document.list.useQuery();
+
+// 인증
+const login = api.auth.login.useMutation();
+await login.mutateAsync({
+  email: "user@example.com",
+  password: "password",
+});
+```
+
+### 로깅 사용
+```typescript
+import winston from 'winston';
+
+// 로그 레벨: error, warn, info, debug
+logger.info('문서 저장 성공', { documentId });
+logger.error('API 오류', { error });
+```
+
 ---
-*최종 업데이트: 2025-09-03*
+*최종 업데이트: 2025-09-07*
