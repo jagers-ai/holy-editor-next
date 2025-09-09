@@ -5,6 +5,7 @@ import { httpBatchLink, loggerLink } from '@trpc/client';
 import { useState } from 'react';
 import superjson from 'superjson';
 import { api } from '@/utils/api';
+import { createClient as createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 const createQueryClient = () => new QueryClient();
 
@@ -45,9 +46,15 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
               ...options,
               credentials: 'include',
             }),
-          headers() {
+          async headers() {
             const headers = new Headers();
             headers.set('x-trpc-source', 'nextjs-react');
+            try {
+              const supabase = createSupabaseBrowserClient();
+              const { data } = await supabase.auth.getSession();
+              const token = data.session?.access_token;
+              if (token) headers.set('authorization', `Bearer ${token}`);
+            } catch {}
             return headers;
           },
         }),

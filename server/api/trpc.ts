@@ -43,9 +43,21 @@ export const createInnerTRPCContext = (opts: CreateContextOptions) => {
  * @link https://trpc.io/docs/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  // Supabase Auth에서 사용자 정보 가져오기
+  // Supabase Auth에서 사용자 정보 가져오기 (Authorization 헤더 우선, 없으면 쿠키)
   const supabase = createClientFromHeaders(opts.headers);
-  const { data: { user: authUser } } = await supabase.auth.getUser();
+  let authUser: any = null;
+  const authHeader = opts.headers.get('authorization');
+  if (authHeader?.toLowerCase().startsWith('bearer ')) {
+    const token = authHeader.slice(7);
+    try {
+      const { data } = await supabase.auth.getUser(token);
+      authUser = data.user ?? null;
+    } catch {}
+  }
+  if (!authUser) {
+    const { data } = await supabase.auth.getUser();
+    authUser = data.user ?? null;
+  }
   
   let user: User | null = null;
   
