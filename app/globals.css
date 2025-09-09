@@ -48,6 +48,7 @@
   --radius: 0.625rem;
   --toolbar-h: 56px;
   --keyboard-inset: 0px;
+  --android-keyboard-inset: 0px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -125,6 +126,33 @@ html { -webkit-text-size-adjust: 100%; }
     @apply bg-background text-foreground;
   }
   .is-ios body { overscroll-behavior-y: contain; }
+  
+  /* Android 플랫폼별 스타일 */
+  .is-android body { 
+    overscroll-behavior-y: none; 
+  }
+  
+  /* Android Chrome 전용 툴바 스타일 */
+  .is-android-chrome .toolbar-android {
+    will-change: bottom;
+    /* Android에서는 bottom을 직접 조정 */
+  }
+  
+  /* iOS 전용 툴바 스타일 */
+  .is-ios .toolbar-ios {
+    will-change: transform;
+    /* iOS에서는 transform 사용 */
+  }
+  
+  /* 모바일 툴바 공통 스타일 */
+  @media (max-width: 768px) {
+    .toolbar-android,
+    .toolbar-ios {
+      /* 모바일에서 공통 적용 */
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+  }
   
   /* Editor h1 style override */
   .prose h1 {

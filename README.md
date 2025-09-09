@@ -5,6 +5,8 @@
 [![Deploy Status](https://img.shields.io/badge/deploy-vercel-black)](https://holy-editor-next.vercel.app)
 [![Last Update](https://img.shields.io/badge/last%20update-2025.01.09-blue)](https://github.com/jagers-ai/holy-editor-next)
 
+> Note: Reasoning Summary(생각/사고 요약)는 한국어로 강제됩니다. 자세한 정책은 [instruction.md](./instruction.md)와 [AGENTS.md](./AGENTS.md)를 확인하세요.
+
 ## 📖 소개
 
 Holy Editor는 설교문이나 성경 공부 자료를 작성할 때 성경 구절을 쉽게 삽입하고 관리할 수 있는 웹 기반 에디터입니다.

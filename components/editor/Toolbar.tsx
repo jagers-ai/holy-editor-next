@@ -14,8 +14,10 @@ import {
   Save,
   Highlighter
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useEditorContext } from '@/contexts/EditorContext';
+import { isAndroid, applyAndroidClasses } from '@/utils/isAndroid';
+import { applyPlatformClasses } from '@/utils/isIOS';
 
 interface ToolbarProps {
   editor: Editor;
@@ -39,7 +41,13 @@ export function Toolbar({ editor }: ToolbarProps) {
     { name: '보라', value: '#a29bfe' }
   ];
 
-  // Android 최적화: 키보드 높이에 맞춰 동적 bottom 적용
+  // 플랫폼별 클래스 적용
+  useEffect(() => {
+    applyPlatformClasses();
+    applyAndroidClasses();
+  }, []);
+
+  // 키보드 높이에 맞춰 동적 bottom 적용 (iOS & Android 지원)
   useKeyboardInset(true);
   
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,10 +69,20 @@ export function Toolbar({ editor }: ToolbarProps) {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)] md:relative md:inset-auto md:bottom-auto md:z-auto transform-gpu translate-y-[var(--kb-translate,0px)] md:translate-y-0"
+      className={`
+        fixed inset-x-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)]
+        md:relative md:inset-auto md:bottom-auto md:z-auto
+        ${isAndroid() 
+          ? 'toolbar-android bottom-[var(--keyboard-inset,0px)]' 
+          : 'toolbar-ios bottom-0 transform-gpu translate-y-[var(--kb-translate,0px)] md:translate-y-0'
+        }
+      `}
       role="toolbar"
       aria-label="Editor toolbar"
-      style={{ ['--kb-translate' as any]: 'calc(0px - var(--keyboard-inset, 0px))', transition: 'transform 90ms ease-out', touchAction: 'manipulation' as any }}
+      style={isAndroid() 
+        ? { transition: 'bottom 120ms ease-out', touchAction: 'manipulation' as any } 
+        : { ['--kb-translate' as any]: 'calc(0px - var(--keyboard-inset, 0px))', transition: 'transform 90ms ease-out', touchAction: 'manipulation' as any }
+      }
     >
       <div className="mx-auto w-full max-w-2xl">
         <div className="flex items-center gap-0.5 p-2 overflow-x-auto min-h-[var(--toolbar-h)]">
