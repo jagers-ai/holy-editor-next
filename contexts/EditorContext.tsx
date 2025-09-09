@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useCallback, ReactNode, useEffect 
 import { useRouter } from 'next/navigation';
 import { SermonInfo } from '@/components/editor/SermonInfoSection';
 import { api } from '@/utils/api';
+import toast from 'react-hot-toast';
 
 interface EditorContextType {
   sermonInfo: SermonInfo;
@@ -29,46 +30,61 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [documentId, setDocumentId] = useState<string | undefined>(undefined);
   const [editorContent, setEditorContent] = useState<any>(null);
   const router = useRouter();
+  const utils = api.useUtils();
   
   // tRPC mutations
   const createDocument = api.document.create.useMutation({
     onSuccess: (data) => {
       console.log('문서 생성 성공:', data.id);
-      // 문서 생성 후 문서 목록으로 이동
-      setTimeout(() => {
+      toast.success('문서를 저장했습니다');
+      // 목록 최신화 후 즉시 이동
+      utils.document.list.invalidate().finally(() => {
         router.push('/documents');
-      }, 500);
+        router.refresh();
+      });
     },
     onError: (error) => {
       console.error('문서 생성 실패:', error);
-      // TODO: 에러 토스트 표시
+      const code = (error as any)?.data?.code;
+      if (code === 'UNAUTHORIZED') {
+        toast.error('로그인이 필요합니다');
+        router.push('/login?returnTo=' + encodeURIComponent('/editor/new'));
+      } else {
+        toast.error('저장 중 오류가 발생했습니다');
+      }
     },
   });
   
   const updateDocument = api.document.update.useMutation({
     onSuccess: (data) => {
       console.log('문서 업데이트 성공:', data.id);
-      // 문서 업데이트 후 문서 목록으로 이동
-      setTimeout(() => {
+      toast.success('문서를 저장했습니다');
+      utils.document.list.invalidate().finally(() => {
         router.push('/documents');
-      }, 500);
+        router.refresh();
+      });
     },
     onError: (error) => {
       console.error('문서 업데이트 실패:', error);
-      // TODO: 에러 토스트 표시
+      const code = (error as any)?.data?.code;
+      if (code === 'UNAUTHORIZED') {
+        toast.error('로그인이 필요합니다');
+        router.push('/login?returnTo=' + encodeURIComponent(`/editor/${documentId ?? 'new'}`));
+      } else {
+        toast.error('저장 중 오류가 발생했습니다');
+      }
     },
   });
 
   const handleSave = useCallback(async () => {
-    if (!editorContent) return;
-
     setIsSaving(true);
 
     try {
       // content JSON 안에 sermonInfo를 병합 저장하여
       // 목록/상세에서 바로 읽을 수 있게 함
+      const emptyDoc = { type: 'doc', content: [] as any[] };
       const contentWithMeta = {
-        ...editorContent,
+        ...(editorContent || emptyDoc),
         sermonInfo: {
           title: sermonInfo.title,
           pastor: sermonInfo.pastor,
@@ -92,10 +108,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       console.log('문서가 저장되었습니다');
     } catch (error) {
       console.error('저장 실패:', error);
+      toast.error('저장 실패: 잠시 후 다시 시도해주세요');
     } finally {
       setIsSaving(false);
     }
-  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument]);
+  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, utils, router]);
 
   return (
     <EditorContext.Provider
