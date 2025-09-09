@@ -24,11 +24,35 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ editor }: ToolbarProps) {
-  if (!editor) return null;
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { handleSave, isSaving } = useEditorContext();
   const [showColorPalette, setShowColorPalette] = useState(false);
+  const [isEnterPressed, setIsEnterPressed] = useState(false);
+
+  // 플랫폼별 클래스 적용
+  useEffect(() => {
+    applyPlatformClasses();
+    applyAndroidClasses();
+  }, []);
+
+  // 엔터키 상태 모니터링 (안드로이드만)
+  useEffect(() => {
+    if (!isAndroid()) return;
+    
+    const checkEnterState = () => {
+      setIsEnterPressed(!!window.isEnterKeyPressed);
+    };
+    
+    // 100ms마다 체크
+    const interval = setInterval(checkEnterState, 100);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // 키보드 높이에 맞춰 동적 bottom 적용 (iOS & Android 지원)
+  useKeyboardInset(true);
+  
+  if (!editor) return null;
 
   // 색상 옵션
   const highlightColors = [
@@ -40,15 +64,6 @@ export function Toolbar({ editor }: ToolbarProps) {
     { name: '남색', value: '#5f5fff' },
     { name: '보라', value: '#a29bfe' }
   ];
-
-  // 플랫폼별 클래스 적용
-  useEffect(() => {
-    applyPlatformClasses();
-    applyAndroidClasses();
-  }, []);
-
-  // 키보드 높이에 맞춰 동적 bottom 적용 (iOS & Android 지원)
-  useKeyboardInset(true);
   
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -80,8 +95,15 @@ export function Toolbar({ editor }: ToolbarProps) {
       role="toolbar"
       aria-label="Editor toolbar"
       style={isAndroid() 
-        ? { transition: 'bottom 120ms ease-out', touchAction: 'manipulation' as any } 
-        : { ['--kb-translate' as any]: 'calc(0px - var(--keyboard-inset, 0px))', transition: 'transform 90ms ease-out', touchAction: 'manipulation' as any }
+        ? { 
+            transition: isEnterPressed ? 'none' : 'bottom 120ms ease-out', 
+            touchAction: 'manipulation' as any 
+          } 
+        : { 
+            ['--kb-translate' as any]: 'calc(0px - var(--keyboard-inset, 0px))', 
+            transition: 'transform 90ms ease-out', 
+            touchAction: 'manipulation' as any 
+          }
       }
     >
       <div className="mx-auto w-full max-w-2xl">

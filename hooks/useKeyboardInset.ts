@@ -4,16 +4,27 @@ import { useEffect, useRef } from 'react';
 import { isIOS } from '@/utils/isIOS';
 import { isAndroid, isAndroidChrome, getAndroidViewportHeight } from '@/utils/isAndroid';
 
+// 전역 엔터키 상태 관리
+declare global {
+  interface Window {
+    isEnterKeyPressed?: boolean;
+    lastKeyboardInset?: number;
+  }
+}
+
 /**
  * 키보드 높이를 CSS 변수(--keyboard-inset)에 반영하는 훅
  * - iOS: VisualViewport 기반, offsetTop 고려
  * - Android: window.innerHeight 변화 감지
  * - rAF 스로틀링으로 성능 최적화
+ * - 엔터키 입력 시 높이 고정으로 툴바 안정성 확보
  */
 export function useKeyboardInset(enabled: boolean = true) {
   const rafId = useRef<number | null>(null);
   const initialHeight = useRef<number>(0);
   const lastHeight = useRef<number>(0);
+  const debounceTimer = useRef<number | null>(null);
+  const lastInsetValue = useRef<number>(0);
 
   useEffect(() => {
     if (!enabled) return;
@@ -25,7 +36,16 @@ export function useKeyboardInset(enabled: boolean = true) {
     }
 
     const setInset = (px: number) => {
-      document.documentElement.style.setProperty('--keyboard-inset', `${Math.max(0, Math.round(px))}px`);
+      // 엔터키가 눌린 상태면 마지막 값 유지
+      if (window.isEnterKeyPressed && window.lastKeyboardInset !== undefined) {
+        document.documentElement.style.setProperty('--keyboard-inset', `${window.lastKeyboardInset}px`);
+        return;
+      }
+      
+      const value = Math.max(0, Math.round(px));
+      document.documentElement.style.setProperty('--keyboard-inset', `${value}px`);
+      window.lastKeyboardInset = value;
+      lastInsetValue.current = value;
     };
 
     const computeInset = () => {
@@ -88,8 +108,19 @@ export function useKeyboardInset(enabled: boolean = true) {
     // Android에서 resize 이벤트가 더 중요
     const handleResize = () => {
       if (isAndroid()) {
-        // Android에서는 즉시 업데이트
-        updateImmediate();
+        // 엔터키 입력 중이면 디바운싱 적용
+        if (window.isEnterKeyPressed) {
+          if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+          }
+          debounceTimer.current = window.setTimeout(() => {
+            updateImmediate();
+            debounceTimer.current = null;
+          }, 300);
+        } else {
+          // Android에서는 즉시 업데이트
+          updateImmediate();
+        }
       } else {
         schedule();
       }
@@ -121,6 +152,7 @@ export function useKeyboardInset(enabled: boolean = true) {
 
     return () => {
       if (rafId.current != null) cancelAnimationFrame(rafId.current);
+      if (debounceTimer.current != null) clearTimeout(debounceTimer.current);
       document.removeEventListener('focusin', schedule, true);
       document.removeEventListener('focusout', schedule, true);
       if ('visualViewport' in window && window.visualViewport) {
@@ -133,6 +165,7 @@ export function useKeyboardInset(enabled: boolean = true) {
         window.removeEventListener('orientationchange', updateImmediate);
       }
       document.documentElement.style.setProperty('--keyboard-inset', '0px');
+      window.lastKeyboardInset = 0;
     };
   }, [enabled]);
 }

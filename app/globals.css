@@ -154,6 +154,16 @@ html { -webkit-text-size-adjust: 100%; }
     }
   }
   
+  /* 엔터키 입력 시 트랜지션 비활성화 */
+  .is-android .toolbar-android.no-transition {
+    transition: none !important;
+  }
+  
+  /* 포커스된 에디터 블록 스타일 (Focus 확장) */
+  .is-focused {
+    outline: none;
+  }
+  
   /* Editor h1 style override */
   .prose h1 {
     font-size: 20px !important;
