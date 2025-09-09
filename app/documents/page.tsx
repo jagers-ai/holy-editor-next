@@ -14,7 +14,18 @@ export default function DocumentsPage() {
   const router = useRouter();
   
   // tRPC queries and mutations
-  const { data: dbDocuments, isLoading, refetch } = api.document.list.useQuery();
+  const { data: dbDocuments, isLoading, isError, error, refetch, status } = api.document.list.useQuery(
+    undefined,
+    {
+      // 인증 오류는 재시도하지 않고 즉시 안내
+      retry: (count, err) => {
+        const code = (err as any)?.data?.code;
+        if (code === 'UNAUTHORIZED') return false;
+        return count < 1; // 한 번만 재시도
+      },
+      staleTime: 30_000,
+    }
+  );
   const deleteDocument = api.document.delete.useMutation({
     onSuccess: () => {
       refetch();
@@ -90,6 +101,15 @@ export default function DocumentsPage() {
         <Card className="text-center py-12">
           <CardContent>
             <p className="text-muted-foreground">문서를 불러오는 중...</p>
+          </CardContent>
+        </Card>
+      ) : isError ? (
+        <Card className="text-center py-12">
+          <CardContent className="space-y-3">
+            <p className="text-destructive">
+              {(error as any)?.data?.code === 'UNAUTHORIZED' ? '로그인이 필요합니다.' : '문서 목록을 불러오지 못했습니다.'}
+            </p>
+            <Button variant="outline" onClick={() => refetch()}>다시 시도</Button>
           </CardContent>
         </Card>
       ) : documents.length === 0 ? (

@@ -39,6 +39,12 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
         httpBatchLink({
           transformer: superjson,
           url: `${getBaseUrl()}/api/trpc`,
+          // 모바일 브라우저/서드파티 쿠키 이슈 대비 쿠키 항상 포함
+          fetch: (url, options) =>
+            fetch(url, {
+              ...options,
+              credentials: 'include',
+            }),
           headers() {
             const headers = new Headers();
             headers.set('x-trpc-source', 'nextjs-react');
