@@ -61,11 +61,11 @@ export function Toolbar({ editor }: ToolbarProps) {
 
   return (
     <div
-      className="fixed inset-x-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)] md:relative md:inset-auto md:bottom-auto md:z-auto"
+      className="fixed inset-x-0 bottom-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)] md:relative md:inset-auto md:bottom-auto md:z-auto transform-gpu will-change-transform"
       role="toolbar"
       aria-label="Editor toolbar"
-      // iOS Safari에서 하강 스크롤 시에도 정확히 따라오도록 transform 대신 bottom을 직접 구동
-      style={{ bottom: 'var(--keyboard-inset, 0px)', touchAction: 'manipulation' as any }}
+      // GPU 가속 transform으로 미세 떨림 감소. 전환(transition) 제거로 지연 최소화
+      style={{ transform: 'translate3d(0, calc(-1 * var(--keyboard-inset, 0px)), 0)', touchAction: 'manipulation' as any }}
     >
       <div className="mx-auto w-full max-w-2xl">
         <div className="flex items-center gap-0.5 p-2 overflow-x-auto min-h-[var(--toolbar-h)]">
