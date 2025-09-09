@@ -8,19 +8,7 @@ import { Button } from '@/components/ui/button';
 import { FileText, Trash2, Plus, User, Clock, BookOpen } from 'lucide-react';
 import { api } from '@/utils/api';
 
-interface Document {
-  id: string;
-  title?: string;
-  sermonInfo?: {
-    title?: string;
-    pastor?: string;
-    verse?: string;
-    serviceType?: string;
-  };
-  content: any;
-  createdAt: string;
-  updatedAt: string;
-}
+// Document 타입은 API 응답에서 자동으로 추론됨
 
 export default function DocumentsPage() {
   const router = useRouter();
@@ -120,7 +108,10 @@ export default function DocumentsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {documents.map((doc) => {
-            const title = ('sermonInfo' in doc && doc.sermonInfo?.title) || doc.title || '제목 없음';
+            // content 안의 sermonInfo 확인
+            const contentObj = typeof doc.content === 'object' && doc.content !== null ? doc.content as any : {};
+            const sermonInfo = contentObj.sermonInfo;
+            const title = sermonInfo?.title || doc.title || '제목 없음';
             
             return (
               <Card
@@ -134,26 +125,26 @@ export default function DocumentsPage() {
                       <CardTitle className="text-lg mb-2">
                         {title}
                       </CardTitle>
-                      {'sermonInfo' in doc && doc.sermonInfo && (
+                      {sermonInfo && (
                         <div className="space-y-1 text-sm text-muted-foreground">
                           <div className="flex flex-wrap gap-3">
-                            {doc.sermonInfo.pastor && (
+                            {sermonInfo.pastor && (
                               <div className="flex items-center gap-1">
                                 <User className="h-3 w-3" />
-                                <span>{doc.sermonInfo.pastor}</span>
+                                <span>{sermonInfo.pastor}</span>
                               </div>
                             )}
-                            {doc.sermonInfo.serviceType && (
+                            {sermonInfo.serviceType && (
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                <span>{doc.sermonInfo.serviceType}</span>
+                                <span>{sermonInfo.serviceType}</span>
                               </div>
                             )}
                           </div>
-                          {doc.sermonInfo.verse && (
+                          {sermonInfo.verse && (
                             <div className="flex items-center gap-1">
                               <BookOpen className="h-3 w-3" />
-                              <span className="text-xs">{doc.sermonInfo.verse}</span>
+                              <span className="text-xs">{sermonInfo.verse}</span>
                             </div>
                           )}
                         </div>
