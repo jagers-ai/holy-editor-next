@@ -20,6 +20,9 @@ function getVK(): VK | undefined {
 export function useKeyboardInset(enabled: boolean = true) {
   const rafId = useRef<number | null>(null);
   const lastInsetRef = useRef<number>(0);
+  const baseInnerHRef = useRef<number>(0);
+  const baseVVBottomRef = useRef<number>(0);
+  const isOpenRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!enabled) return;
@@ -38,21 +41,42 @@ export function useKeyboardInset(enabled: boolean = true) {
       if (!vv) return 0;
       const vk = getVK();
 
-      // 두 가지 추정치 산출
+      // 기준 대비 감소량 기반 계산(overlay/resize 모두 커버)
       const topOffset = vv.offsetTop || 0;
+      const vvBottom = vv.height + topOffset;
 
-      // 1) visualViewport 기반: overlays=true면 실제 가림 영역, overlays=false면 0 근처
-      const vvInset = Math.max(0, Math.round(window.innerHeight - (vv.height + topOffset)));
+      if (baseInnerHRef.current === 0) baseInnerHRef.current = window.innerHeight;
+      if (baseVVBottomRef.current === 0) baseVVBottomRef.current = vvBottom;
+
+      // 키보드가 닫힌 상태로 보이면 기준 높이를 최신화하여 주소창 애니메이션을 흡수
+      const deltaInnerNow = Math.max(0, baseInnerHRef.current - window.innerHeight);
+      const deltaVVNow = Math.max(0, baseVVBottomRef.current - vvBottom);
+      const OPEN_THRESHOLD = 24; // px
+      const openHeuristic = Math.max(deltaInnerNow, deltaVVNow);
+      if (!isOpenRef.current && openHeuristic < OPEN_THRESHOLD) {
+        baseInnerHRef.current = Math.max(baseInnerHRef.current, window.innerHeight);
+        baseVVBottomRef.current = Math.max(baseVVBottomRef.current, vvBottom);
+      }
+
+      // visualViewport / innerHeight 기준의 최대 감소량을 사용해 과소추정을 방지
+      const vvInset = Math.max(
+        0,
+        Math.round(
+          Math.max(baseVVBottomRef.current - vvBottom, baseInnerHRef.current - window.innerHeight)
+        )
+      );
 
       // 가상 키보드 API 기반 추정: 실제 키보드 높이만 반영(오버레이 제외)
       const vkHeight = vk?.boundingRect ? Math.max(0, Math.round(vk.boundingRect.height)) : 0;
       const VK_OVERHEAD_CLAMP = 12; // iOS에서 약간 과소 보고될 때를 위한 상한 여유
       const vkInset = vkHeight > 0 ? Math.max(0, vkHeight - VK_OVERHEAD_CLAMP) : 0;
 
-      // 둘 다 있다면 더 작은 값을 채택하여 과대 보정(갭 발생) 방지
-      // 하나만 있으면 그 값을 사용
-      const picked = vkInset > 0 ? Math.min(vvInset, vkInset) : vvInset;
-      return Math.max(0, Math.round(picked));
+      // VK 값이 있으면 상한으로 사용(과대 보정 방지), 없으면 vvInset 사용
+      const SAFE_MAX = 720; // px
+      const candidate = vkInset > 0 ? Math.min(vvInset, vkInset) : vvInset;
+      const picked = Math.max(0, Math.min(candidate, SAFE_MAX));
+      isOpenRef.current = picked >= OPEN_THRESHOLD;
+      return picked;
     };
 
     const schedule = () => {
@@ -70,6 +94,10 @@ export function useKeyboardInset(enabled: boolean = true) {
 
     const updateImmediate = () => setInset(computeInset());
 
+    // 기준치 초기화
+    baseInnerHRef.current = window.innerHeight;
+    baseVVBottomRef.current = (window.visualViewport?.height || 0) + (window.visualViewport?.offsetTop || 0);
+
     // 초기 적용 + 포커스 시 보정
     updateImmediate();
     document.addEventListener('focusin', schedule, true);
@@ -85,6 +113,7 @@ export function useKeyboardInset(enabled: boolean = true) {
     // 일반 스크롤에서도 재계산하여 하강 시 추적 지연 감소
     window.addEventListener('resize', schedule);
     window.addEventListener('scroll', schedule, { passive: true } as any);
+    window.addEventListener('orientationchange', schedule as any);
 
     return () => {
       if (rafId.current != null) cancelAnimationFrame(rafId.current);
@@ -99,6 +128,7 @@ export function useKeyboardInset(enabled: boolean = true) {
       }
       window.removeEventListener('resize', schedule);
       window.removeEventListener('scroll', schedule as any);
+      window.removeEventListener('orientationchange', schedule as any);
       lastInsetRef.current = 0;
       document.documentElement.style.setProperty('--keyboard-inset', '0px');
     };
