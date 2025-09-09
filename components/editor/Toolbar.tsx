@@ -1,7 +1,6 @@
 'use client';
 
 import { Editor } from '@tiptap/react';
-import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { Button } from '@/components/ui/button';
 import {
   Bold,
@@ -16,8 +15,9 @@ import {
 } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { useEditorContext } from '@/contexts/EditorContext';
-import { isAndroid, applyAndroidClasses } from '@/utils/isAndroid';
-import { applyPlatformClasses } from '@/utils/isIOS';
+import { isAndroid } from '@/utils/isAndroid';
+import { isIOS, applyPlatformClasses } from '@/utils/isIOS';
+import { KeyboardStickyView } from './KeyboardStickyView';
 
 interface ToolbarProps {
   editor: Editor;
@@ -27,30 +27,14 @@ export function Toolbar({ editor }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { handleSave, isSaving } = useEditorContext();
   const [showColorPalette, setShowColorPalette] = useState(false);
-  const [isEnterPressed, setIsEnterPressed] = useState(false);
 
   // 플랫폼별 클래스 적용
   useEffect(() => {
     applyPlatformClasses();
-    applyAndroidClasses();
+    if (isAndroid()) {
+      document.documentElement.classList.add('is-android');
+    }
   }, []);
-
-  // 엔터키 상태 모니터링 (안드로이드만)
-  useEffect(() => {
-    if (!isAndroid()) return;
-    
-    const checkEnterState = () => {
-      setIsEnterPressed(!!window.isEnterKeyPressed);
-    };
-    
-    // 100ms마다 체크
-    const interval = setInterval(checkEnterState, 100);
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  // 키보드 높이에 맞춰 동적 bottom 적용 (iOS & Android 지원)
-  useKeyboardInset(true);
   
   if (!editor) return null;
 
@@ -82,29 +66,15 @@ export function Toolbar({ editor }: ToolbarProps) {
     }
   };
 
-  return (
+  // 모바일에서는 KeyboardStickyView 사용
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const shouldUseSticky = isMobile && (isAndroid() || isIOS());
+
+  const toolbarContent = (
     <div
-      className={`
-        fixed inset-x-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)]
-        md:relative md:inset-auto md:bottom-auto md:z-auto
-        ${isAndroid() 
-          ? 'toolbar-android bottom-[var(--keyboard-inset,0px)]' 
-          : 'toolbar-ios bottom-0 transform-gpu translate-y-[var(--kb-translate,0px)] md:translate-y-0'
-        }
-      `}
+      className="border-t bg-background pb-[env(safe-area-inset-bottom)]"
       role="toolbar"
       aria-label="Editor toolbar"
-      style={isAndroid() 
-        ? { 
-            transition: isEnterPressed ? 'none' : 'bottom 120ms ease-out', 
-            touchAction: 'manipulation' as any 
-          } 
-        : { 
-            ['--kb-translate' as any]: 'calc(0px - var(--keyboard-inset, 0px))', 
-            transition: 'transform 90ms ease-out', 
-            touchAction: 'manipulation' as any 
-          }
-      }
     >
       <div className="mx-auto w-full max-w-2xl">
         <div className="flex items-center gap-0.5 p-2 overflow-x-auto min-h-[var(--toolbar-h)]">
@@ -239,6 +209,26 @@ export function Toolbar({ editor }: ToolbarProps) {
         </div>
         </div>
       </div>
+    </div>
+  );
+
+  // 모바일에서는 KeyboardStickyView로 래핑
+  if (shouldUseSticky) {
+    return (
+      <KeyboardStickyView 
+        offset={{ closed: 0, opened: 10 }}
+        enabled={true}
+        className="toolbar-sticky"
+      >
+        {toolbarContent}
+      </KeyboardStickyView>
+    );
+  }
+
+  // 데스크톱에서는 기본 렌더링
+  return (
+    <div className="sticky bottom-0 z-50 md:relative">
+      {toolbarContent}
     </div>
   );
 }

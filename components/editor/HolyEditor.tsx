@@ -14,7 +14,6 @@ import { SermonInfoSection } from './SermonInfoSection';
 import type { SermonInfo } from './SermonInfoSection';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { api } from '@/utils/api';
-import { isAndroid } from '@/utils/isAndroid';
 
 interface HolyEditorProps {
   documentId?: string;
@@ -122,17 +121,6 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     editorProps: {
       attributes: {
         class: 'prose max-w-none focus:outline-none min-h-[400px] px-4 py-6'
-      },
-      handleKeyDown(view, event) {
-        // 엔터키 입력 시 안드로이드에서 특별 처리
-        if (event.key === 'Enter' && isAndroid()) {
-          window.isEnterKeyPressed = true;
-          // 300ms 후 플래그 해제
-          setTimeout(() => {
-            window.isEnterKeyPressed = false;
-          }, 300);
-        }
-        return false; // 기본 동작 계속
       }
     }
   });

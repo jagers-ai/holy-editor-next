@@ -132,31 +132,40 @@ html { -webkit-text-size-adjust: 100%; }
     overscroll-behavior-y: none; 
   }
   
-  /* Android Chrome 전용 툴바 스타일 */
-  .is-android-chrome .toolbar-android {
-    will-change: bottom;
-    /* Android에서는 bottom을 직접 조정 */
+  /* KeyboardStickyView 스타일 */
+  .keyboard-sticky-view {
+    /* 하드웨어 가속 */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    
+    /* 터치 최적화 */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   
-  /* iOS 전용 툴바 스타일 */
-  .is-ios .toolbar-ios {
-    will-change: transform;
-    /* iOS에서는 transform 사용 */
+  /* 툴바 스타일 */
+  .toolbar-sticky {
+    background: white;
+    border-top: 1px solid #e5e5e5;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
   }
   
   /* 모바일 툴바 공통 스타일 */
   @media (max-width: 768px) {
-    .toolbar-android,
-    .toolbar-ios {
+    .toolbar-sticky {
       /* 모바일에서 공통 적용 */
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
   }
   
-  /* 엔터키 입력 시 트랜지션 비활성화 */
-  .is-android .toolbar-android.no-transition {
-    transition: none !important;
+  /* Android 전용 viewport 보정 */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .toolbar-sticky {
+      padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    }
   }
   
   /* 포커스된 에디터 블록 스타일 (Focus 확장) */
