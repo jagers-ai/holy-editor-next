@@ -3,6 +3,15 @@
 import { useEffect, useRef } from 'react';
 import { isIOS } from '@/utils/isIOS';
 
+type VK = {
+  overlaysContent?: boolean;
+  boundingRect?: DOMRect;
+};
+
+function getVK(): VK | undefined {
+  return (typeof navigator !== 'undefined' ? (navigator as any).virtualKeyboard : undefined) as VK | undefined;
+}
+
 /**
  * 키보드 높이를 CSS 변수(--keyboard-inset)에 반영하는 훅
  * - VisualViewport 기반, rAF 스로틀, focusin/out 보정
@@ -23,15 +32,26 @@ export function useKeyboardInset(enabled: boolean = true) {
 
     const computeInset = () => {
       if (typeof window === 'undefined') return 0;
-      const vv = (window as any).visualViewport as VisualViewport | undefined;
+      const vv = window.visualViewport;
       if (!vv) return 0;
+      const vk = getVK();
 
-      // iOS Safari에서 address bar 숨김/표시로 window.innerHeight가 요동함.
-      // layout viewport(documentElement.clientHeight) 기준 계산으로 하강 스크롤 시 지연을 방지.
+      // 두 가지 추정치 산출
+      const topOffset = vv.offsetTop || 0;
       const layoutH = document.documentElement.clientHeight;
-      const topOffset = vv.offsetTop || 0; // Android는 0, iOS는 상단 오프셋 존재
-      const inset = layoutH - (vv.height + (isIOS() ? topOffset : 0));
-      return inset > 0 ? Math.round(inset) : 0;
+
+      // 시각 뷰포트 기반 추정: 오버레이(도메인 라벨 등)를 포함할 가능성 있음
+      const vvInset = Math.max(0, layoutH - (vv.height + (isIOS() ? topOffset : 0)));
+
+      // 가상 키보드 API 기반 추정: 실제 키보드 높이만 반영(오버레이 제외)
+      const vkHeight = vk?.boundingRect ? Math.max(0, Math.round(vk.boundingRect.height)) : 0;
+      const VK_OVERHEAD_CLAMP = 12; // iOS에서 약간 과소 보고될 때를 위한 상한 여유
+      const vkInset = vkHeight > 0 ? Math.max(0, vkHeight - VK_OVERHEAD_CLAMP) : 0;
+
+      // 둘 다 있다면 더 작은 값을 채택하여 과대 보정(갭 발생) 방지
+      // 하나만 있으면 그 값을 사용
+      const picked = vkInset > 0 ? Math.min(vvInset, vkInset) : vvInset;
+      return Math.max(0, Math.round(picked));
     };
 
     const schedule = () => {
