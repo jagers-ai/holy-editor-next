@@ -2,6 +2,9 @@
 
 <img width="1200" alt="Holy Editor Banner" src="https://via.placeholder.com/1200x300/4A5568/FFFFFF?text=Holy+Editor+-+Bible+Verse+Editor">
 
+[![Deploy Status](https://img.shields.io/badge/deploy-vercel-black)](https://holy-editor-next.vercel.app)
+[![Last Update](https://img.shields.io/badge/last%20update-2025.01.09-blue)](https://github.com/jagers-ai/holy-editor-next)
+
 ## 📖 소개
 
 Holy Editor는 설교문이나 성경 공부 자료를 작성할 때 성경 구절을 쉽게 삽입하고 관리할 수 있는 웹 기반 에디터입니다.
