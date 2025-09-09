@@ -129,7 +129,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     if (document) {
       // 과거 인코딩 오류로 저장된 serviceType 정규화
       type ServiceType = SermonInfo['serviceType'];
-      const allowed: ServiceType[] = ['주일설교','수요예배','금요예배','새벽예배','청년예배','기타'];
+      const allowed: ServiceType[] = ['주일설교','수요예배','금요예배','새벽예배','청년예배','큐티','기타'];
       const normalizeServiceType = (raw: any): ServiceType | undefined => {
         if (typeof raw !== 'string') return undefined;
         const map: Record<string, ServiceType> = {

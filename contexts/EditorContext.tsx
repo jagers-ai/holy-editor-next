@@ -61,43 +61,41 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   const handleSave = useCallback(async () => {
     if (!editorContent) return;
-    
+
     setIsSaving(true);
-    
+
     try {
-      const documentData = {
-        title: sermonInfo.title || '제목 없음',
-        content: editorContent,
+      // content JSON 안에 sermonInfo를 병합 저장하여
+      // 목록/상세에서 바로 읽을 수 있게 함
+      const contentWithMeta = {
+        ...editorContent,
         sermonInfo: {
           title: sermonInfo.title,
           pastor: sermonInfo.pastor,
           verse: sermonInfo.verse,
-          serviceType: sermonInfo.serviceType
+          serviceType: sermonInfo.serviceType,
         },
+      };
+
+      const documentData = {
+        title: sermonInfo.title || '제목 없음',
+        content: contentWithMeta,
         isPublic: false,
       };
-      
+
       if (documentId && documentId !== 'new') {
-        // 기존 문서 업데이트
-        await updateDocument.mutateAsync({
-          id: documentId,
-          data: documentData,
-        });
+        await updateDocument.mutateAsync({ id: documentId, data: documentData });
       } else {
-        // 새 문서 생성
         await createDocument.mutateAsync(documentData);
       }
-      
-      // TODO: 성공 토스트 표시
+
       console.log('문서가 저장되었습니다');
-      
     } catch (error) {
       console.error('저장 실패:', error);
-      // TODO: 에러 토스트 표시
     } finally {
       setIsSaving(false);
     }
-  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, router]);
+  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument]);
 
   return (
     <EditorContext.Provider

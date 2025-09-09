@@ -115,7 +115,7 @@ export const documentRouter = createTRPCRouter({
       const document = await ctx.prisma.document.findUnique({
         where: { id: input.id },
       });
-      
+
       if (!document || document.userId !== ctx.user.id) {
         throw new TRPCError({
           code: 'FORBIDDEN',
@@ -123,14 +123,15 @@ export const documentRouter = createTRPCRouter({
         });
       }
 
+      // Prisma 스키마에 존재하는 필드만 업데이트
+      const allowedData: any = { updatedAt: new Date() };
+      if (typeof input.data?.title === 'string') allowedData.title = input.data.title;
+      if (typeof input.data?.isPublic === 'boolean') allowedData.isPublic = input.data.isPublic;
+      if (input.data?.content !== undefined) allowedData.content = input.data.content as any;
+
       const updated = await ctx.prisma.document.update({
-        where: {
-          id: input.id,
-        },
-        data: {
-          ...input.data,
-          updatedAt: new Date(),
-        },
+        where: { id: input.id },
+        data: allowedData,
       });
 
       return updated;

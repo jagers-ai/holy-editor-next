@@ -6,7 +6,7 @@ export interface SermonInfo {
   title: string;
   pastor: string;
   verse: string;
-  serviceType: '주일설교' | '수요예배' | '금요예배' | '새벽예배' | '청년예배' | '기타';
+  serviceType: '주일설교' | '수요예배' | '금요예배' | '새벽예배' | '청년예배' | '큐티' | '기타';
 }
 
 interface SermonInfoSectionProps {
@@ -65,6 +65,7 @@ export function SermonInfoSection({ info, onChange }: SermonInfoSectionProps) {
             <option value="금요예배">금요예배</option>
             <option value="새벽예배">새벽예배</option>
             <option value="청년예배">청년예배</option>
+            <option value="큐티">큐티</option>
             <option value="기타">기타</option>
           </select>
         </div>
