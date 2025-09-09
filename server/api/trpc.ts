@@ -15,7 +15,7 @@ import { type User } from '@prisma/client';
 import { GlobalErrorHandler } from '@/lib/errors/global-handler';
 import { logger, logApiRequest } from '@/lib/logger';
 import { ErrorCategory, ErrorSeverity } from '@/lib/errors/types';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createClientFromHeaders } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 
 /**
@@ -44,7 +44,7 @@ export const createInnerTRPCContext = (opts: CreateContextOptions) => {
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
   // Supabase Auth에서 사용자 정보 가져오기
-  const supabase = await createClient();
+  const supabase = createClientFromHeaders(opts.headers);
   const { data: { user: authUser } } = await supabase.auth.getUser();
   
   let user: User | null = null;

@@ -45,3 +45,37 @@ export async function createServiceRoleClient() {
     }
   );
 }
+
+/**
+ * Create a Supabase server client using raw request headers.
+ * For contexts (like tRPC) where `cookies()` binding can be unreliable,
+ * we derive cookies directly from the incoming headers.
+ */
+export function createClientFromHeaders(headers: Headers) {
+  const cookieHeader = headers.get('cookie') || '';
+  const pairs = cookieHeader
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => {
+      const idx = s.indexOf('=');
+      const name = idx === -1 ? s : s.slice(0, idx);
+      const value = idx === -1 ? '' : s.slice(idx + 1);
+      return { name, value } as { name: string; value: string };
+    });
+
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return pairs;
+        },
+        setAll() {
+          // No-op in tRPC context; cookie refresh handled by middleware
+        },
+      },
+    }
+  );
+}
