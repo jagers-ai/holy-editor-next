@@ -61,10 +61,11 @@ export function Toolbar({ editor }: ToolbarProps) {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)] md:relative md:inset-auto md:bottom-auto md:z-auto transform-gpu translate-y-[var(--kb-translate,0px)] md:translate-y-0"
+      className="fixed inset-x-0 z-50 border-t bg-background pb-[env(safe-area-inset-bottom)] md:relative md:inset-auto md:bottom-auto md:z-auto"
       role="toolbar"
       aria-label="Editor toolbar"
-      style={{ ['--kb-translate' as any]: 'calc(0px - var(--keyboard-inset, 0px))', transition: 'transform 90ms ease-out', touchAction: 'manipulation' as any }}
+      // iOS Safari에서 하강 스크롤 시에도 정확히 따라오도록 transform 대신 bottom을 직접 구동
+      style={{ bottom: 'var(--keyboard-inset, 0px)', touchAction: 'manipulation' as any }}
     >
       <div className="mx-auto w-full max-w-2xl">
         <div className="flex items-center gap-0.5 p-2 overflow-x-auto min-h-[var(--toolbar-h)]">
