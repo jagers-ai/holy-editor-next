@@ -23,6 +23,8 @@ export function useKeyboardInset(enabled: boolean = true) {
 
   useEffect(() => {
     if (!enabled) return;
+    const vk = getVK();
+    try { if (vk && 'overlaysContent' in vk) (vk as any).overlaysContent = true; } catch {}
 
     const setInset = (px: number) => {
       const value = Math.max(0, Math.round(px));
@@ -38,10 +40,9 @@ export function useKeyboardInset(enabled: boolean = true) {
 
       // 두 가지 추정치 산출
       const topOffset = vv.offsetTop || 0;
-      const layoutH = document.documentElement.clientHeight;
 
-      // 시각 뷰포트 기반 추정: 오버레이(도메인 라벨 등)를 포함할 가능성 있음
-      const vvInset = Math.max(0, layoutH - (vv.height + (isIOS() ? topOffset : 0)));
+      // 1) visualViewport 기반: overlays=true면 실제 가림 영역, overlays=false면 0 근처
+      const vvInset = Math.max(0, Math.round(window.innerHeight - (vv.height + topOffset)));
 
       // 가상 키보드 API 기반 추정: 실제 키보드 높이만 반영(오버레이 제외)
       const vkHeight = vk?.boundingRect ? Math.max(0, Math.round(vk.boundingRect.height)) : 0;
@@ -78,6 +79,9 @@ export function useKeyboardInset(enabled: boolean = true) {
       window.visualViewport.addEventListener('resize', schedule);
       window.visualViewport.addEventListener('scroll', schedule);
     }
+    if (vk && typeof (vk as any).addEventListener === 'function') {
+      try { (vk as any).addEventListener('geometrychange', schedule); } catch {}
+    }
     // 일반 스크롤에서도 재계산하여 하강 시 추적 지연 감소
     window.addEventListener('resize', schedule);
     window.addEventListener('scroll', schedule, { passive: true } as any);
@@ -89,6 +93,9 @@ export function useKeyboardInset(enabled: boolean = true) {
       if ('visualViewport' in window && window.visualViewport) {
         window.visualViewport.removeEventListener('resize', schedule);
         window.visualViewport.removeEventListener('scroll', schedule);
+      }
+      if (vk && typeof (vk as any).removeEventListener === 'function') {
+        try { (vk as any).removeEventListener('geometrychange', schedule); } catch {}
       }
       window.removeEventListener('resize', schedule);
       window.removeEventListener('scroll', schedule as any);
