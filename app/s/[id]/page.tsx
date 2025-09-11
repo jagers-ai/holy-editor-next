@@ -1,17 +1,13 @@
 import { notFound } from 'next/navigation';
-import type { Metadata, ResolvingMetadata } from 'next';
+import type { Metadata } from 'next';
 import { prisma } from '@/server/db';
 import ReadOnlyRenderer from '@/components/reader/ReadOnlyRenderer';
 
-type Params = { params: { id: string } };
-
-export async function generateMetadata(
-  { params }: Params,
-  _parent: ResolvingMetadata
-): Promise<Metadata> {
-  const id = params.id;
+// Next.js 15: 일부 환경에서 params가 Promise로 전달됨 → 안전하게 any + await 처리
+export async function generateMetadata(props: any): Promise<Metadata> {
+  const { id } = await props.params;
   const doc = await prisma.document.findUnique({
-    where: { id },
+    where: { id: String(id) },
     select: { title: true, content: true },
   });
   const sermonTitle = (doc?.content as any)?.sermonInfo?.title as string | undefined;
@@ -24,10 +20,10 @@ export async function generateMetadata(
   };
 }
 
-export default async function SharePage({ params }: Params) {
-  const id = params.id;
+export default async function SharePage(props: any) {
+  const { id } = await props.params;
   const doc = await prisma.document.findUnique({
-    where: { id },
+    where: { id: String(id) },
     select: { id: true, title: true, content: true, updatedAt: true, createdAt: true },
   });
 
@@ -53,4 +49,3 @@ export default async function SharePage({ params }: Params) {
     </div>
   );
 }
-
