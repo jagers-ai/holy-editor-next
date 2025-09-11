@@ -9,6 +9,7 @@ import Focus from '@tiptap/extension-focus';
 import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Toolbar } from './Toolbar';
+import SelectionMiniBar from './SelectionMiniBar';
 import { BibleVerseExtension } from './extensions/BibleVerseExtension';
 import { SermonInfoSection } from './SermonInfoSection';
 import type { SermonInfo } from './SermonInfoSection';
@@ -205,6 +206,8 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
           editor={editor} 
           className="editor-content"
         />
+        {/* 모바일 선택 시 떠는 보조 미니바 */}
+        <SelectionMiniBar editor={editor} enabled={true} />
       </div>
     </div>
   );
