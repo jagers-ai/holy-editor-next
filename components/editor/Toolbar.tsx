@@ -11,8 +11,7 @@ import {
   Redo,
   Camera,
   Save,
-  Highlighter,
-  Share2
+  Highlighter
 } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 import { useEditorContext } from '@/contexts/EditorContext';
@@ -25,7 +24,7 @@ interface ToolbarProps {
 
 export function Toolbar({ editor }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { handleSave, isSaving, documentId } = useEditorContext();
+  const { handleSave, isSaving } = useEditorContext();
   const [showColorPalette, setShowColorPalette] = useState(false);
 
   // 플랫폼별 클래스 적용(필요 시)
@@ -190,30 +189,6 @@ export function Toolbar({ editor }: ToolbarProps) {
         </Button>
         
         <div className="ml-auto">
-          {/* 공유 링크 복사 / 모바일 공유 */}
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={!documentId}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={async () => {
-              if (!documentId) return;
-              const url = `${window.location.origin}/s/${documentId}`;
-              try {
-                if (navigator.share) {
-                  await navigator.share({ title: '설교 필기', url });
-                } else {
-                  await navigator.clipboard.writeText(url);
-                }
-              } catch (e) {
-                await navigator.clipboard.writeText(url);
-              }
-            }}
-            aria-label="공유 링크"
-          >
-            <Share2 className="h-4 w-4" />
-          </Button>
-
           <button
             onClick={handleSave}
             disabled={isSaving}

@@ -10,8 +10,11 @@ export async function generateMetadata(props: any): Promise<Metadata> {
     where: { id: String(id) },
     select: { title: true, content: true },
   });
-  const sermonTitle = (doc?.content as any)?.sermonInfo?.title as string | undefined;
-  const title = `홀리해빗 : ${sermonTitle || doc?.title || '설교 필기'}`;
+  const contentObj: any = (doc?.content && typeof doc.content === 'object') ? doc.content : {};
+  const sermonTitle = typeof contentObj?.sermonInfo?.title === 'string' ? contentObj.sermonInfo.title.trim() : '';
+  const baseTitle = typeof doc?.title === 'string' ? doc.title.trim() : '';
+  const effective = sermonTitle || baseTitle || '설교 필기';
+  const title = `홀리해빗 : ${effective}`;
   return {
     title,
     robots: { index: false, follow: false },
@@ -29,8 +32,11 @@ export default async function SharePage(props: any) {
 
   if (!doc) return notFound();
 
-  const sermonInfo = (doc.content as any)?.sermonInfo || {};
-  const displayTitle = sermonInfo.title || doc.title || '설교 필기';
+  const contentObj: any = (doc.content && typeof doc.content === 'object') ? doc.content : {};
+  const sermonInfo = contentObj.sermonInfo || {};
+  const displayTitle = (typeof sermonInfo.title === 'string' && sermonInfo.title.trim().length > 0)
+    ? sermonInfo.title
+    : (typeof doc.title === 'string' && doc.title.trim().length > 0 ? doc.title : '설교 필기');
   const verse = sermonInfo.verse || '';
   const pastor = sermonInfo.pastor || '';
 

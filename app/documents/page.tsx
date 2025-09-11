@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Trash2, Plus, User, Clock, BookOpen } from 'lucide-react';
+import { FileText, Trash2, Plus, User, Clock, BookOpen, Share2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { api } from '@/utils/api';
 
 // Document 타입은 API 응답에서 자동으로 추론됨
@@ -46,6 +47,22 @@ export default function DocumentsPage() {
     
     if (confirm('정말로 이 문서를 삭제하시겠습니까?')) {
       await deleteDocument.mutateAsync({ id });
+    }
+  };
+
+  const handleShare = async (id: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    const url = `${window.location.origin}/s/${id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: '설교 필기', url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success('공유 링크를 복사했어요');
+      }
+    } catch {
+      await navigator.clipboard.writeText(url);
+      toast.success('공유 링크를 복사했어요');
     }
   };
 
@@ -140,7 +157,7 @@ export default function DocumentsPage() {
                 onClick={() => router.push(`/editor/${doc.id}`)}
               >
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
                       <CardTitle className="text-lg mb-2">
                         {title}
@@ -170,14 +187,25 @@ export default function DocumentsPage() {
                         </div>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => handleDeleteDocument(doc.id, e)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleShare(doc.id, e)}
+                        title="공유"
+                      >
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleDeleteDocument(doc.id, e)}
+                        className="text-destructive hover:text-destructive"
+                        title="삭제"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
