@@ -29,6 +29,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/react-query": "^5.85.5",
     "@tiptap/core": "^3.3.1",
+    "@tiptap/html": "^3.3.1",
     "@tiptap/extension-focus": "^3.4.2",
     "@tiptap/extension-highlight": "^3.3.1",
     "@tiptap/extension-image": "^3.3.1",
