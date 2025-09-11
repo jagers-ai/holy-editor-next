@@ -40,8 +40,6 @@ export function Toolbar({ editor }: ToolbarProps) {
 
   // visualViewport offset을 CSS 변수로 반영
   useVisualViewportOffset(true);
-  
-  if (!editor) return null;
 
   // 색상 옵션
   const highlightColors = [
@@ -268,6 +266,7 @@ export function Toolbar({ editor }: ToolbarProps) {
   );
 
   // 상단 고정(모바일/데스크톱 공통): visualViewport 기준으로 위치 보정
+  if (!editor) return null; // Hook 선언 이후에 배치하여 규칙 준수
   return (
     <div
       className="z-50"
