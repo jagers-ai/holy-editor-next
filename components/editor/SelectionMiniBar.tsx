@@ -56,40 +56,28 @@ export const SelectionMiniBar: React.FC<SelectionMiniBarProps> = ({ editor, enab
     if (!intersectsEditor) return { show: false } as const;
 
     const vv = getVisibleViewport();
-    const gap = 8; // 선택 영역과 미니바 간격
+    const gap = 10; // 선택 영역과 미니바 간격(안드로이드 시스템 메뉴와 간섭 최소화)
     const barW = 200; // 대략적 폭(중앙 정렬을 위한 값)
     const barH = 44;  // 높이 추정치
 
-    // 기본은 선택 영역 위에 띄우되, 공간 부족 시 아래로
+    // 기본 정책: 항상 선택 영역 "하단"에 표시
     let x = rect.left + rect.width / 2 - barW / 2 + vv.offsetLeft;
-    let y = rect.top - gap - barH + vv.offsetTop;
-
-    // 아래쪽으로 뒤집기 조건: 위쪽 공간 부족 또는 키보드에 의해 아래가 더 안전한 경우
-    const topSpace = rect.top - vv.offsetTop;
-    if (topSpace < barH + gap) {
-      y = rect.bottom + gap + vv.offsetTop;
-    }
+    let yCandidate = rect.bottom + gap + vv.offsetTop;
 
     // 좌/우 화면 밖으로 나가면 클램프
     const minX = 8 + vv.offsetLeft;
     const maxX = vv.offsetLeft + vv.width - barW - 8;
     x = Math.max(minX, Math.min(maxX, x));
 
-    // 아래쪽이 키보드로 가려지는 경우(= visualViewport 하단 경계 초과) 위로 재배치
+    // 키보드/하단 가림 회피: 가시 영역 하단 경계 내로 스냅
     const maxY = vv.offsetTop + vv.height - barH - 8;
-    if (y > maxY) {
-      y = rect.top - gap - barH + vv.offsetTop; // 위로 재시도
-    }
+    let y = Math.min(yCandidate, maxY);
 
-    // 최종적으로도 위가 부족하면 숨김(겹침 방지)
+    // 세로 공간이 절대적으로 부족하면(= 미니바를 놓을 하단 공간이 없음) 숨김
     const minY = vv.offsetTop + 8;
-    if (y < minY) {
-      // 위도 아래도 어려우면 숨김
-      if (rect.bottom + gap + barH > vv.offsetTop + vv.height - 8) {
-        return { show: false } as const;
-      }
-      // 아니면 아래로 배치 강제
-      y = rect.bottom + gap + vv.offsetTop;
+    const hasVerticalRoom = (maxY - (rect.bottom + gap)) >= 0 || (maxY - minY) >= barH * 0.6;
+    if (!hasVerticalRoom) {
+      return { show: false } as const;
     }
 
     return { show: true, x, y } as const;
