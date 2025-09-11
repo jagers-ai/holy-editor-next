@@ -145,6 +145,16 @@ html { -webkit-text-size-adjust: 100%; }
     font-size: 20px !important;
     line-height: 1.4 !important;
   }
+  /* 읽기 전용 콘텐츠: 이미지 품질/비율 보존 */
+  .read-only-content img,
+  .read-only-content .read-img {
+    display: block;
+    width: auto;           /* 원본보다 키우지 않음 */
+    max-width: 100%;       /* 컨테이너 넘치지 않게 */
+    height: auto;          /* 비율 유지 */
+    object-fit: contain;   /* 비율 보존 */
+    image-orientation: from-image; /* EXIF 회전 (지원 브라우저) */
+  }
   
   /* Editor base text size */
   .prose {
