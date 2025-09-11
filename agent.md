@@ -141,3 +141,30 @@
    ```
 
 **⚠️ 주의**: 코드 수정 후 반드시 커밋하고 서버 재시작!
+
+## 푸시 전 검사(Checklist)
+
+다음 검사를 통과하지 못하면 푸시하지 않습니다. Vercel 빌드 실패(예: `react-hooks/rules-of-hooks`)를 사전에 차단합니다.
+
+1) TypeScript 타입/문법 검사
+```bash
+npx tsc --noEmit
+```
+- 0 에러여야 합니다.
+
+2) ESLint 검사(Next/React/TS 규칙 포함)
+```bash
+npm run lint
+# 또는 경고까지 실패 처리
+npx eslint . --ext ts,tsx,js,jsx --max-warnings=0
+```
+- 에러가 있으면 `npm run lint:fix`로 자동 수정 후 수동 보정.
+- 중요 규칙: `react-hooks/rules-of-hooks` 위반은 반드시 수정(조건부 훅 호출, 훅 순서 변경 금지).
+
+권장: 자동화(선택)
+```bash
+npx husky-init && npm i -D husky
+echo 'npm run lint && npx tsc --noEmit' > .husky/pre-push
+chmod +x .husky/pre-push
+```
+- 푸시 직전 자동으로 린트/타입 검사를 수행합니다.
