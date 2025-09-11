@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Trash2, Plus, User, Clock, BookOpen, Share2 } from 'lucide-react';
+import { FileText, Trash2, Plus, User, Clock, BookOpen, Share2, FolderOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/utils/api';
 
@@ -30,12 +30,11 @@ export default function DocumentsPage() {
   const deleteDocument = api.document.delete.useMutation({
     onSuccess: () => {
       refetch();
-      console.log('문서가 삭제되었습니다');
-      // TODO: 토스트 알림
+      toast.success('문서가 삭제되었습니다');
     },
     onError: (error) => {
       console.error('문서 삭제 실패:', error);
-      // TODO: 토스트 알림
+      toast.error('문서 삭제에 실패했습니다');
     },
   });
 
@@ -68,50 +67,35 @@ export default function DocumentsPage() {
 
   const formatDate = (dateString: string | Date) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR') + ' ' + date.toLocaleTimeString('ko-KR', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
+    return date.toLocaleDateString('ko-KR');
   };
 
   const getPreviewText = (content: any) => {
     try {
-      // Tiptap JSON에서 텍스트 추출
       if (content && content.content) {
         const texts: string[] = [];
         const extractText = (node: any) => {
-          if (node.text) {
-            texts.push(node.text);
-          }
+          if (node.text) texts.push(node.text);
           if (node.content && Array.isArray(node.content)) {
             node.content.forEach(extractText);
           }
         };
         extractText(content);
-        const fullText = texts.join(' ');
-        return fullText.length > 100 ? fullText.substring(0, 100) + '...' : fullText;
+        const fullText = texts.join(' ').trim();
+        return fullText || '';
       }
     } catch (error) {
-      console.error('미리보기 텍스트 추출 실패:', error);
+      console.error('미리보기 추출 실패:', error);
     }
-    return '내용 없음';
+    return '';
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-bold">문서 저장소</h1>
-          <Button
-            onClick={() => router.push('/editor/new')}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            새 문서
-          </Button>
-        </div>
-        <p className="text-muted-foreground">
-          저장된 문서 {documents.length}개
-        </p>
+    <div className="max-w-full mx-auto px-3 py-4 pb-24">
+      {/* 헤더 간소화 */}
+      <div className="mb-4">
+        <h1 className="text-xl font-bold">내 문서</h1>
+        <p className="text-sm text-gray-500">{documents.length}개</p>
       </div>
 
       {isLoading ? (
@@ -134,93 +118,86 @@ export default function DocumentsPage() {
           <CardContent>
             <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-lg mb-4">저장된 문서가 없습니다</p>
-            <Button asChild>
-              <Link href="/editor/new">
-                <Plus className="h-4 w-4 mr-2" />
-                첫 문서 작성하기
-              </Link>
-            </Button>
+            <p className="text-sm text-gray-500">우측 하단 + 버튼으로 시작하세요</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-3 gap-2">
           {documents.map((doc) => {
             // content 안의 sermonInfo 확인
             const contentObj = typeof doc.content === 'object' && doc.content !== null ? doc.content as any : {};
             const sermonInfo = contentObj.sermonInfo;
             const title = sermonInfo?.title || doc.title || '제목 없음';
+            const previewText = getPreviewText(doc.content);
             
             return (
               <Card
                 key={doc.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow relative"
+                className="cursor-pointer active:scale-95 transition-transform flex flex-col h-[140px] relative overflow-hidden shadow-sm hover:shadow-md"
                 onClick={() => router.push(`/editor/${doc.id}`)}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg mb-2">
-                        {title}
-                      </CardTitle>
-                      {sermonInfo && (
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          <div className="flex flex-wrap gap-3">
-                            {sermonInfo.pastor && (
-                              <div className="flex items-center gap-1">
-                                <User className="h-3 w-3" />
-                                <span>{sermonInfo.pastor}</span>
-                              </div>
-                            )}
-                            {sermonInfo.serviceType && (
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span>{sermonInfo.serviceType}</span>
-                              </div>
-                            )}
-                          </div>
-                          {sermonInfo.verse && (
-                            <div className="flex items-center gap-1">
-                              <BookOpen className="h-3 w-3" />
-                              <span className="text-xs">{sermonInfo.verse}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handleShare(doc.id, e)}
-                        title="공유"
-                      >
-                        <Share2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handleDeleteDocument(doc.id, e)}
-                        className="text-destructive hover:text-destructive"
-                        title="삭제"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                {/* 액션 버튼 - 우상단 고정 */}
+                <div className="absolute top-1 right-1 z-10 flex gap-0.5">
+                  <button
+                    onClick={(e) => handleShare(doc.id, e)}
+                    className="p-1 bg-white/80 rounded-full shadow-sm"
+                    aria-label="공유"
+                  >
+                    <Share2 className="h-3 w-3 text-gray-600" />
+                  </button>
+                  <button
+                    onClick={(e) => handleDeleteDocument(doc.id, e)}
+                    className="p-1 bg-white/80 rounded-full shadow-sm"
+                    aria-label="삭제"
+                  >
+                    <Trash2 className="h-3 w-3 text-red-500" />
+                  </button>
+                </div>
+                
+                {/* 폴더 비주얼 영역 (상단 60%) */}
+                <div className="flex-1 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-2 relative flex flex-col items-center justify-center">
+                  <FolderOpen className="h-8 w-8 text-blue-400 dark:text-blue-300" />
+                  
+                  {/* 미리보기 텍스트 20자 */}
+                  {previewText && (
+                    <p className="text-[10px] text-gray-600 dark:text-gray-400 text-center mt-1 px-1 line-clamp-2">
+                      {previewText.substring(0, 20)}{previewText.length > 20 ? '...' : ''}
+                    </p>
+                  )}
+                </div>
+                
+                {/* 메타데이터 영역 (하단 40%) */}
+                <div className="bg-white dark:bg-gray-800 p-2 border-t dark:border-gray-700">
+                  {/* 제목 */}
+                  <h3 className="text-xs font-semibold truncate mb-1 dark:text-gray-100">
+                    {title}
+                  </h3>
+                  
+                  {/* 메타 정보 - 아이콘 없이 텍스트만 */}
+                  <div className="text-[9px] text-gray-500 dark:text-gray-400 space-y-0.5">
+                    {sermonInfo?.pastor && (
+                      <div className="truncate">{sermonInfo.pastor}</div>
+                    )}
+                    {sermonInfo?.serviceType && (
+                      <div className="truncate">{sermonInfo.serviceType}</div>
+                    )}
+                    <div>{formatDate(doc.updatedAt)}</div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                    {getPreviewText(doc.content)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    수정: {formatDate(doc.updatedAt)}
-                  </p>
-                </CardContent>
+                </div>
               </Card>
             );
           })}
         </div>
       )}
+
+      {/* 플로팅 액션 버튼 (FAB) */}
+      <button
+        onClick={() => router.push('/editor/new')}
+        className="fixed bottom-5 right-5 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg active:scale-90 transition-all flex items-center justify-center z-50"
+        aria-label="새 문서 작성"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
     </div>
   );
 }
