@@ -17,6 +17,9 @@ import { useRef, useState, useEffect } from 'react';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { applyPlatformClasses } from '@/utils/isIOS';
 import { useVisualViewportOffset } from '@/hooks/useVisualViewportOffset';
+import toast from 'react-hot-toast';
+import { compressToUnder } from '@/lib/images/compress';
+import { uploadImageToStorage } from '@/lib/storage/uploadImage';
 
 interface ToolbarProps {
   editor: Editor;
@@ -48,20 +51,27 @@ export function Toolbar({ editor }: ToolbarProps) {
     { name: '보라', value: '#a29bfe' }
   ];
   
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = () => {
-      const url = reader.result as string;
-      editor.chain().focus().setImage({ src: url }).run();
-    };
-    reader.readAsDataURL(file);
-    
-    // Reset input for reupload
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    const id = toast.loading('이미지 업로드 준비 중...');
+    try {
+      // 1) 1MB 미만이 될 때까지 자동 압축
+      let working: Blob = file;
+      if (file.size > 1_000_000) {
+        const res = await compressToUnder(file, { targetBytes: 1_000_000, initialMaxDim: 1280, initialQuality: 0.72 });
+        if (res?.blob) working = res.blob;
+      }
+      toast.loading('이미지 업로드 중...', { id });
+      // 2) Storage 업로드 → URL 삽입
+      const { publicUrl } = await uploadImageToStorage(working, { ext: working.type.includes('webp') ? 'webp' : 'jpg' });
+      editor.chain().focus().setImage({ src: publicUrl }).run();
+      toast.success('이미지를 추가했습니다', { id });
+    } catch (err) {
+      console.error('이미지 업로드 실패', err);
+      toast.error('이미지 업로드에 실패했습니다', { id });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
