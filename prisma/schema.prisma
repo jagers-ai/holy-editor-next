@@ -16,8 +16,26 @@ model User {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   documents Document[]
+  folders   Folder[]
 
   @@map("users")
+}
+
+// 폴더 모델 - 문서 그룹화용
+model Folder {
+  id        String     @id @default(cuid())
+  name      String     // 폴더명
+  icon      String?    // 폴더 아이콘 (이모지)
+  color     String?    // 폴더 색상 (hex 코드)
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents Document[] // 폴더에 속한 문서들
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  @@unique([userId, name]) // 사용자별 폴더명 중복 방지
+  @@index([userId])
+  @@map("folders")
 }
 
 // 문서 모델 - 에디터로 작성한 문서 저장
@@ -27,6 +45,8 @@ model Document {
   content          Json             // Tiptap 에디터의 JSON 컨텐츠
   userId           String?
   user             User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId         String?          // 폴더 ID
+  folder           Folder?          @relation(fields: [folderId], references: [id], onDelete: SetNull)
   isPublic         Boolean          @default(false)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
@@ -34,6 +54,7 @@ model Document {
   tags             DocumentTag[]
   
   @@index([userId])
+  @@index([folderId])
   @@map("documents")
 }
 

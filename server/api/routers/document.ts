@@ -38,6 +38,7 @@ export const documentRouter = createTRPCRouter({
     .input(z.object({
       limit: z.number().min(1).max(100).default(50),
       cursor: z.string().optional(),
+      folderId: z.string().optional(), // 폴더별 필터링 추가
     }).optional())
     .query(async ({ ctx, input }) => {
       const limit = input?.limit ?? 50;
@@ -45,6 +46,7 @@ export const documentRouter = createTRPCRouter({
       const documents = await ctx.prisma.document.findMany({
         where: {
           userId: ctx.user.id, // 현재 사용자의 문서만 조회
+          folderId: input?.folderId, // 폴더 필터링
         },
         take: limit + 1,
         cursor: input?.cursor ? { id: input.cursor } : undefined,
