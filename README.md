@@ -7,6 +7,12 @@
 
 > Note: Reasoning Summary(생각/사고 요약)는 한국어로 강제됩니다. 자세한 정책은 [instruction.md](./instruction.md)와 [AGENTS.md](./AGENTS.md)를 확인하세요.
 
+## 언어/Reasoning 정책
+- Reasoning Summary는 한국어로 강제합니다.
+- 내부 추론 원문(Chain‑of‑Thought)은 공유하지 않으며, 결과 중심의 한국어 요약만 제공합니다.
+- 코드/명령어/파일 경로/로그는 원문 그대로 표기하되, 바로 아래 한 줄 한국어 설명을 덧붙입니다.
+- 사용자가 “영어로 답해”라고 명시 지시한 해당 턴에서만 영어를 허용합니다.
+
 ## 📖 소개
 
 Holy Editor는 설교문이나 성경 공부 자료를 작성할 때 성경 구절을 쉽게 삽입하고 관리할 수 있는 웹 기반 에디터입니다.
@@ -41,6 +47,24 @@ npm run dev
 ```
 
 개발 서버가 `http://localhost:3000`에서 실행됩니다.
+
+## 🏗️ 배포(Vercel) — Supabase 연결 주의사항
+
+Vercel의 서버리스 런타임에서는 Supabase(Postgres)와 연결 시 Connection Pooler(PgBouncer)를 사용해야 합니다. 잘못 설정하면 Prisma가 `prepared statement "s1" already exists (42P05)` 오류를 내고 인증/DB 요청이 모두 실패할 수 있습니다.
+
+- Production 환경 변수 설정
+  - `DATABASE_URL`: Pooler 포트 `6543` + `?pgbouncer=true` 필수
+    - 예: `postgresql://postgres:******@[project-id].supabase.co:6543/postgres?pgbouncer=true`
+    - (옵션) 드물게 연결 난립 시 `&connection_limit=1` 추가
+  - `DIRECT_URL`: 기본 포트 `5432` (마이그레이션 등 직연결용)
+    - 예: `postgresql://postgres:******@[project-id].supabase.co:5432/postgres`
+
+- 왜 필요한가?
+  - 서버리스는 연결이 자주 생성/해제됩니다. Pooler 없이 5432로 연결하면 준비된 쿼리/세션이 꼬여 `prepared statement` 에러가 발생합니다.
+
+- 체크리스트
+  - 배포 후 `/documents`에서 목록/저장이 정상인지 확인
+  - Vercel 로그에 `42P05`가 보이면 `DATABASE_URL`을 재확인하세요
 
 ## 🛠️ 기술 스택
 
