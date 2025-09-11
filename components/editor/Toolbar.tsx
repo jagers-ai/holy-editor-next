@@ -67,9 +67,10 @@ export function Toolbar({ editor }: ToolbarProps) {
       const { publicUrl } = await uploadImageToStorage(working, { ext: working.type.includes('webp') ? 'webp' : 'jpg' });
       editor.chain().focus().setImage({ src: publicUrl }).run();
       toast.success('이미지를 추가했습니다', { id });
-    } catch (err) {
+    } catch (err: any) {
       console.error('이미지 업로드 실패', err);
-      toast.error('이미지 업로드에 실패했습니다', { id });
+      const msg = err?.message || '이미지 업로드에 실패했습니다';
+      toast.error(`업로드 실패: ${msg}`, { id });
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
