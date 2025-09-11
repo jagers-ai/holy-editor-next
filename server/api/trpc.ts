@@ -45,20 +45,25 @@ export const createInnerTRPCContext = (opts: CreateContextOptions) => {
 export const createTRPCContext = async (opts: { headers: Headers }) => {
   // Supabase Auth에서 사용자 정보 가져오기 (Authorization 헤더 우선, 없으면 쿠키)
   const supabase = createClientFromHeaders(opts.headers);
+  const debugMeta: Record<string, any> = {};
   let authUser: any = null;
   const authHeader = opts.headers.get('authorization');
+  debugMeta.hasAuthHeader = !!authHeader;
   if (authHeader?.toLowerCase().startsWith('bearer ')) {
     const token = authHeader.slice(7);
     try {
       const { data } = await supabase.auth.getUser(token);
       authUser = data.user ?? null;
+      debugMeta.userFromToken = !!authUser;
     } catch {
       // 토큰이 유효하지 않은 경우 무시하고 계속 진행
+      debugMeta.userFromToken = false;
     }
   }
   if (!authUser) {
     const { data } = await supabase.auth.getUser();
     authUser = data.user ?? null;
+    debugMeta.userFromCookie = !!authUser;
   }
   
   let user: User | null = null;
@@ -84,6 +89,11 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
       logger.error('Failed to fetch or create user:', error);
     }
   }
+  logger.info('tRPC auth debug', {
+    ...debugMeta,
+    hasUser: !!authUser,
+    envUrlTail: process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(-16),
+  });
   
   return createInnerTRPCContext({
     user,
