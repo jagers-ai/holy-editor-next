@@ -2,8 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-⚠️ **중요**: Claude Code의 날짜 버그로 인해 날짜가 1월로 표시될 수 있습니다. 
-실제 현재 KST 날짜를 확인하려면 다음 명령어를 실행하세요:
+🚨 **매우 중요 - Claude Code 날짜 버그**: 
+Claude Code는 현재 날짜를 **항상 1월**로 잘못 인식하는 심각한 버그가 있습니다.
+**절대 Claude의 날짜 인식을 믿지 마세요!** 
+반드시 아래 명령어로 실제 날짜를 확인하세요:
 ```bash
 # 한국 시간(KST) 확인
 TZ='Asia/Seoul' date '+%Y년 %m월 %d일 %H:%M:%S KST'
@@ -17,18 +19,20 @@ node -e "console.log(new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul',
 성경 구절을 쉽게 삽입하고 편집할 수 있는 웹 기반 에디터입니다.
 
 ### 핵심 기술 스택
-- **프레임워크**: Next.js 15 with App Router + TypeScript
-- **에디터**: Tiptap 3 (ProseMirror 기반 리치 텍스트 에디터)
+- **프레임워크**: Next.js 15.5.0 with App Router + TypeScript 5
+- **에디터**: Tiptap 3.3.x (ProseMirror 기반 리치 텍스트 에디터)
 - **스타일링**: Tailwind CSS 4 + Radix UI 컴포넌트
-- **데이터베이스**: Supabase를 통한 PostgreSQL + Prisma ORM
+- **애니메이션**: tw-animate-css
+- **데이터베이스**: Supabase PostgreSQL + Prisma ORM
+- **인증**: Supabase Auth (SSR 클라이언트)
 - **상태 관리**: TanStack Query (React Query)
 - **폼 처리**: React Hook Form + Zod 검증
-- **API**: tRPC를 통한 타입 안전 API (구현 완료)
+- **API**: tRPC를 통한 타입 안전 API
 - **로깅**: Winston + Daily Rotate File
 - **에러 처리**: React Error Boundary + React Hot Toast
 - **파일 처리**: xlsx (엑셀 import/export)
 - **모니터링**: Sentry + PostHog
-- **인증**: Supabase Auth (페이지 구현 완료, 연동 진행 중)
+- **런타임**: React 19.1.0 + Turbopack
 
 ## 🏗️ 프로젝트 구조
 
@@ -57,7 +61,7 @@ holy-editor-next/
 │   └── system/                # 시스템 컴포넌트
 ├── server/
 │   └── api/                   # 서버 사이드 API
-│       ├── trpc.ts           # tRPC 설정
+│       ├── trpc.ts           # tRPC 설정 (publicProcedure, protectedProcedure)
 │       ├── root.ts           # API 라우터 루트
 │       └── routers/          # API 라우터들
 │           ├── auth.ts       # 인증 API
@@ -66,17 +70,23 @@ holy-editor-next/
 │   ├── bible/                 # 성경 관련 유틸리티
 │   │   └── books.ts          # 성경 책 정의 및 유틸리티
 │   ├── supabase/             # Supabase 클라이언트 설정
+│   │   ├── client.ts         # 브라우저 클라이언트
+│   │   └── server.ts         # 서버 클라이언트 (SSR)
 │   ├── errors/               # 에러 처리 유틸리티
+│   │   ├── global-handler.ts # 글로벌 에러 핸들러
+│   │   └── types.ts          # 에러 타입 정의
+│   ├── logger.ts             # Winston 로거 설정
 │   ├── posthog.ts            # PostHog 분석 도구 설정
 │   └── utils.ts              # 일반 유틸리티
 ├── hooks/                     # 커스텀 React 훅
 ├── contexts/                  # React Context providers
 ├── types/                     # TypeScript 타입 정의
 ├── utils/                     # 유틸리티 함수
-└── prisma/
-    ├── migrations/            # 데이터베이스 마이그레이션 파일들
-    └── schema.prisma          # 데이터베이스 스키마
-
+├── prisma/
+│   ├── migrations/            # 데이터베이스 마이그레이션 파일들
+│   └── schema.prisma          # 데이터베이스 스키마
+└── server/
+    └── db.ts                  # Prisma 클라이언트 인스턴스
 ```
 
 ## 🚀 개발 명령어
@@ -96,6 +106,12 @@ npm run build
 
 # 프로덕션 서버 시작
 npm start
+
+# 린팅
+npm run lint
+
+# 린팅 자동 수정
+npm run lint:fix
 ```
 
 ### 데이터베이스 명령어
@@ -136,7 +152,174 @@ npm run dev
 npx prisma generate && rm -rf .next && npm run dev
 ```
 
+## 🔐 환경 변수
+
+`.env.local` 파일 생성:
+```env
+# ⚠️ Vercel 배포 필수 설정 (PgBouncer)
+# DATABASE_URL은 반드시 포트 6543 + ?pgbouncer=true 사용
+DATABASE_URL="postgresql://[USER]:[PASSWORD]@[HOST]:6543/postgres?pgbouncer=true&connection_limit=1"
+DIRECT_URL="postgresql://[USER]:[PASSWORD]@[HOST]:5432/postgres"
+
+# Supabase 설정
+NEXT_PUBLIC_SUPABASE_URL="https://[PROJECT_ID].supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your_supabase_anon_key"
+# Service Role Key (서버 사이드 전용)
+SUPABASE_SERVICE_ROLE_KEY="your_service_role_key"
+
+# 모니터링 (선택사항)
+NEXT_PUBLIC_SENTRY_DSN="your_sentry_dsn"
+SENTRY_AUTH_TOKEN="your_auth_token"
+NEXT_PUBLIC_POSTHOG_KEY="your_posthog_key"
+NEXT_PUBLIC_POSTHOG_HOST="https://app.posthog.com"
+```
+
+### ⚠️ Vercel 배포 시 중요 설정
+
+**Connection Pooling 필수:**
+- DATABASE_URL: 반드시 포트 `6543` + `?pgbouncer=true` 사용
+- DIRECT_URL: 마이그레이션용 포트 `5432` 직접 연결
+- 이 설정이 없으면 `prepared statement "s1" already exists` 에러 발생
+
+**왜 필요한가?**
+- Vercel의 서버리스 환경은 연결이 자주 생성/해제됨
+- PgBouncer 없이 5432 포트 사용 시 prepared statement 충돌 발생
+- Connection pooling으로 연결 재사용 및 안정성 확보
+
+## 🗂️ Supabase Storage 설정
+
+에디터의 이미지 업로드를 위한 Storage 설정:
+
+### 버킷 생성
+1. Supabase 대시보드 → Storage
+2. 새 버킷 생성:
+   - 이름: `sermon-images`
+   - Public: ✅ (읽기 공개)
+
+### 정책(Policies) 설정
+```sql
+-- 읽기 정책 (모든 사용자)
+CREATE POLICY "Public read access" ON storage.objects
+FOR SELECT USING (bucket_id = 'sermon-images');
+
+-- 업로드 정책 (인증된 사용자)
+CREATE POLICY "Authenticated users can upload" ON storage.objects
+FOR INSERT WITH CHECK (
+  bucket_id = 'sermon-images' AND
+  auth.role() = 'authenticated'
+);
+
+-- 삭제 정책 (소유자만)
+CREATE POLICY "Users can delete own images" ON storage.objects
+FOR DELETE USING (
+  bucket_id = 'sermon-images' AND
+  auth.uid()::text = (storage.foldername(name))[1]
+);
+```
+
+### 업로드 경로 구조
+```
+/{userId}/{docId}/{timestamp-rand}.webp
+```
+
+## 💻 API 사용 예시
+
+### tRPC 클라이언트 사용
+
+```typescript
+import { api } from '@/lib/trpc/client';
+
+// 문서 목록 조회 (publicProcedure)
+const { data: documents, isLoading } = api.document.list.useQuery();
+
+// 문서 생성 (protectedProcedure - 로그인 필요)
+const createDocument = api.document.create.useMutation({
+  onSuccess: (data) => {
+    console.log('문서 생성 성공:', data);
+    router.push(`/editor/${data.id}`);
+  },
+  onError: (error) => {
+    toast.error(error.message);
+  }
+});
+
+// 사용
+await createDocument.mutateAsync({
+  title: "새 설교문",
+  content: tiptapJSON,
+  isPublic: false
+});
+```
+
+### Supabase Auth 사용
+
+```typescript
+import { createClient } from '@/lib/supabase/client';
+
+// 로그인
+const supabase = createClient();
+const { data, error } = await supabase.auth.signInWithPassword({
+  email: 'user@example.com',
+  password: 'password'
+});
+
+// 현재 사용자 가져오기
+const { data: { user } } = await supabase.auth.getUser();
+
+// 로그아웃
+await supabase.auth.signOut();
+```
+
+### Winston 로깅
+
+```typescript
+import { logger } from '@/lib/logger';
+
+// 로그 레벨: error, warn, info, debug
+logger.info('문서 저장 시작', { 
+  documentId: doc.id,
+  userId: user.id 
+});
+
+logger.error('API 오류 발생', { 
+  error: error.message,
+  stack: error.stack,
+  userId: user?.id
+});
+
+// API 요청 로깅 (자동)
+logApiRequest('POST', '/api/document', 200, 125); // method, path, status, duration(ms)
+```
+
+### 에러 처리 패턴
+
+```typescript
+import { GlobalErrorHandler } from '@/lib/errors/global-handler';
+import { ErrorCategory, ErrorSeverity } from '@/lib/errors/types';
+
+// 글로벌 에러 핸들러 사용
+try {
+  // 위험한 작업
+  await riskyOperation();
+} catch (error) {
+  const appError = GlobalErrorHandler.createAppError(
+    error.message,
+    ErrorCategory.API,
+    ErrorSeverity.HIGH,
+    '작업을 완료할 수 없습니다.'
+  );
+  
+  GlobalErrorHandler.handleError(appError, 'DocumentService', user?.id);
+}
+```
+
 ## 💡 주요 구현 세부사항
+
+### tRPC 구조
+- **publicProcedure**: 인증 불필요한 공개 API
+- **protectedProcedure**: 로그인 필수 API
+- **에러 처리 미들웨어**: 모든 API 호출 자동 로깅
+- **SuperJSON**: Date, Map, Set 등 복잡한 타입 자동 직렬화
 
 ### 커스텀 성경 구절 확장
 에디터에는 성경 구절 삽입을 위한 커스텀 Tiptap 확장이 포함되어 있습니다:
@@ -153,116 +336,150 @@ npx prisma generate && rm -rf .next && npm run dev
 - 적절한 형식으로 구절을 인라인 표시
 - 삽입된 구절 편집 또는 삭제
 
-### 에디터 상태 관리
-- Tiptap의 내장 상태 관리 사용
-- 문서 내용은 데이터베이스에 JSON으로 저장
-- 에디터의 `onUpdate` 이벤트를 사용하여 자동 저장 기능 구현 가능
-
-### tRPC API 구조
-- **타입 안전 API**: 프론트엔드와 백엔드 간 완전한 타입 공유
-- **라우터 구성**:
-  - `auth.router`: 인증 관련 프로시저 (로그인, 회원가입, 로그아웃)
-  - `document.router`: 문서 CRUD 작업
-- **미들웨어**: 인증 체크, 에러 핸들링
-- **SuperJSON**: Date, Map, Set 등 복잡한 타입 자동 직렬화
-
 ### 데이터베이스 스키마
-✅ **완료**: Holy Editor 전용 스키마가 성공적으로 적용되었습니다!
-
-**현재 데이터베이스 테이블:**
-- `users` - 사용자 관리 (Supabase Auth 연동 예정)
+**현재 테이블 구조:**
+- `users` - 사용자 관리 (Supabase Auth와 연동)
 - `documents` - 문서 저장 (Tiptap JSON 형식)
 - `bible_references` - 성경 구절 참조
 - `tags` - 태그 시스템
 - `document_tags` - 문서-태그 연결
 - `templates` - 설교 템플릿
 
-⚠️ **중요**: 현재 문서는 **localStorage에만 저장**되고 있습니다. 
-데이터베이스 연동 코드는 아직 구현되지 않았습니다.
+## 🐛 트러블슈팅
 
-## 🔧 환경 변수
+### Vercel 배포 문제
 
-`.env.local` 파일 생성:
+**"prepared statement 's1' already exists" 에러**
+- 원인: DATABASE_URL이 직접 연결(5432)을 사용 중
+- 해결: DATABASE_URL을 pooler 연결(6543)로 변경
 ```env
-# Supabase 데이터베이스 URL
-DATABASE_URL="postgresql://[USER]:[PASSWORD]@[HOST]:6543/postgres?pgbouncer=true&connection_limit=1"
-DIRECT_URL="postgresql://[USER]:[PASSWORD]@[HOST]:5432/postgres"
+# ❌ 잘못된 설정
+DATABASE_URL="postgresql://...@host:5432/postgres"
 
-# Supabase 설정 (인증 및 스토리지용 - 구현 예정)
-NEXT_PUBLIC_SUPABASE_URL="your_supabase_project_url"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="your_supabase_anon_key"
-
-# 모니터링 (선택사항)
-NEXT_PUBLIC_SENTRY_DSN="your_sentry_dsn"
-NEXT_PUBLIC_POSTHOG_KEY="your_posthog_key"
-NEXT_PUBLIC_POSTHOG_HOST="https://app.posthog.com"
+# ✅ 올바른 설정
+DATABASE_URL="postgresql://...@host:6543/postgres?pgbouncer=true"
 ```
 
-⚠️ **중요**: 
-- DATABASE_URL에는 풀러 연결(포트 6543) 사용
-- DIRECT_URL에는 직접 연결(포트 5432) 사용 (마이그레이션에 필요)
+**Connection pool 에러**
+- `&connection_limit=1` 파라미터 추가
+- Vercel 환경 변수에서 직접 수정
 
-## 🎯 기능 로드맵
+### Prisma 관련
 
-현재 구현된 기능:
-- ✅ Tiptap을 사용한 리치 텍스트 편집
-- ✅ 책/장/절 선택을 통한 성경 구절 삽입
-- ✅ 문서 생성 및 편집
-- ✅ tRPC API 엔드포인트 구축
-- ✅ 인증 페이지 (로그인/회원가입) UI 구현
-- ✅ Winston 로깅 시스템
-- ✅ React Error Boundary 에러 처리
+**Client 오류**
+```bash
+# Prisma Client 재생성
+npx prisma generate
 
-진행 중:
-- 🔄 Supabase Auth 연동
-- 🔄 문서 데이터베이스 저장 구현
+# 캐시 정리 후 재시작
+rm -rf .next node_modules/.prisma
+npm install
+npm run dev
+```
 
-향후 개선 사항:
-- 협업 편집
-- 다양한 형식으로 내보내기 (PDF, Word, Excel)
-- 성경 구절 검색 및 상호 참조
-- 설교 템플릿 및 개요
-- 노트 작성 및 주석
-- 실시간 동기화
+**마이그레이션 실패**
+```bash
+# 기존 마이그레이션 리셋 (주의: 데이터 손실)
+npx prisma migrate reset
 
-## 🐛 일반적인 문제 해결
+# 새로 마이그레이션 생성
+npx prisma migrate dev --name init
+```
 
-1. **포트 충돌**: 포트 3000이 사용 중이면 앱이 자동으로 3002를 사용
-2. **Prisma Client 오류**: 스키마 변경 후 항상 `npx prisma generate` 실행
-3. **Next.js 캐시 문제**: 이상한 빌드 오류 발생 시 `.next` 폴더 삭제
-4. **데이터베이스 연결**: DATABASE_URL과 DIRECT_URL이 올바르게 설정되었는지 확인
-5. **Turbopack**: 이 프로젝트는 빠른 빌드를 위해 Turbopack을 사용. 문제 발생 시 package.json 스크립트에서 `--turbopack` 플래그 제거
+### Turbopack 문제
 
-## 📡 API 사용 예시
+개발 서버에서 이상한 동작이 발생하면:
+```bash
+# package.json의 dev 스크립트에서 --turbopack 제거
+"dev": "next dev"  # --turbopack 제거됨
+```
 
-### tRPC 클라이언트 사용
+### 포트 충돌
+포트 3000이 사용 중이면 자동으로 3002 사용. 수동 변경:
+```bash
+PORT=3001 npm run dev
+```
+
+### 이미지 업로드 실패 (Supabase Storage RLS)
+
+**"new row violates row-level security policy" 에러**
+- 원인: 업로드 경로가 RLS 정책과 불일치 또는 브라우저 캐시
+- 증상: 로그인했는데도 이미지 업로드 실패
+
+**해결 방법:**
+1. **즉시 해결 (브라우저)**
+   ```bash
+   # 모바일: 시크릿 모드 사용
+   # 데스크톱: Ctrl+Shift+R (하드 리프레시)
+   ```
+
+2. **코드 확인**
+   ```javascript
+   // uploadImage.ts - 경로 형식 확인
+   const path = `${userPrefix}/${docPrefix}/${filename}`;
+   // 반드시: {userId}/misc/... 형식이어야 함
+   ```
+
+3. **Next.js 캐시 문제**
+   ```bash
+   # 캐시 삭제 후 재시작
+   rm -rf .next node_modules/.cache
+   npm run dev
+   ```
+
+4. **RLS 정책 확인**
+   ```sql
+   -- Supabase Dashboard에서 실행
+   -- SELECT 정책 (읽기 허용) 필수
+   CREATE POLICY "Public read access" ON storage.objects
+   FOR SELECT USING (bucket_id = 'sermon-images');
+   ```
+
+**⚠️ 주의**: 코드 수정 후 반드시 커밋하고 서버 재시작!
+
+## ⚡ 성능 최적화
+
+### React Query 캐싱
 ```typescript
-// 문서 생성
-const createDocument = api.document.create.useMutation();
-await createDocument.mutateAsync({
-  title: "새 설교문",
-  content: tiptapJSON,
-});
-
-// 문서 목록 조회
-const { data: documents } = api.document.list.useQuery();
-
-// 인증
-const login = api.auth.login.useMutation();
-await login.mutateAsync({
-  email: "user@example.com",
-  password: "password",
+// 캐싱 전략 설정
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5분
+      cacheTime: 1000 * 60 * 10, // 10분
+      refetchOnWindowFocus: false,
+    },
+  },
 });
 ```
 
-### 로깅 사용
-```typescript
-import winston from 'winston';
+### 이미지 최적화
+- 업로드 시 자동 WebP 변환
+- Next.js Image 컴포넌트 사용
+- Supabase CDN 활용
 
-// 로그 레벨: error, warn, info, debug
-logger.info('문서 저장 성공', { documentId });
-logger.error('API 오류', { error });
+### Turbopack 활용
+- 개발 환경에서 빠른 HMR
+- 증분 컴파일로 빌드 시간 단축
+
+## 🔒 보안 고려사항
+
+### Supabase RLS (Row Level Security)
+```sql
+-- 문서 접근 정책
+CREATE POLICY "Users can CRUD own documents" ON documents
+USING (auth.uid() = user_id OR is_public = true);
 ```
+
+### API 보호
+- tRPC의 protectedProcedure로 인증 필수 엔드포인트 보호
+- Supabase Auth JWT 토큰 검증
+- Service Role Key는 서버 사이드에서만 사용
+
+### 환경 변수 관리
+- `.env.local`은 절대 커밋하지 않음
+- Vercel 환경 변수 사용
+- Service Role Key는 서버 환경에서만 설정
 
 ---
-*최종 업데이트: 2025-09-07*
+*최종 업데이트: 2025-09-11*
