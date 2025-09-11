@@ -194,7 +194,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
   }
 
   return (
-    <div className="editor-container mx-auto max-w-4xl pb-0">
+    <div className="editor-container mx-auto max-w-4xl pb-0 pt-[var(--toolbar-h)]">
       <SermonInfoSection 
         info={sermonInfo} 
         onChange={setSermonInfo} 

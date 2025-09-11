@@ -16,6 +16,7 @@ import {
 import { useRef, useState, useEffect } from 'react';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { applyPlatformClasses } from '@/utils/isIOS';
+import { useVisualViewportOffset } from '@/hooks/useVisualViewportOffset';
 
 interface ToolbarProps {
   editor: Editor;
@@ -30,6 +31,9 @@ export function Toolbar({ editor }: ToolbarProps) {
   useEffect(() => {
     applyPlatformClasses();
   }, []);
+
+  // visualViewport offset을 CSS 변수로 반영
+  useVisualViewportOffset(true);
   
   if (!editor) return null;
 
@@ -203,9 +207,17 @@ export function Toolbar({ editor }: ToolbarProps) {
     </div>
   );
 
-  // 상단 고정(모바일/데스크톱 공통): 키보드 추적 제거
+  // 상단 고정(모바일/데스크톱 공통): visualViewport 기준으로 위치 보정
   return (
-    <div className="sticky top-0 z-50">
+    <div
+      className="z-50"
+      style={{
+        position: 'fixed',
+        top: `calc(var(--vv-top, 0px) + env(safe-area-inset-top))`,
+        left: 0,
+        right: 0,
+      }}
+    >
       {toolbarContent}
     </div>
   );

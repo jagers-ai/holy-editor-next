@@ -49,6 +49,7 @@
   --toolbar-h: 56px;
   --keyboard-inset: 0px;
   --android-keyboard-inset: 0px;
+  --vv-top: 0px; /* visualViewport offsetTop */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
