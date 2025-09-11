@@ -66,6 +66,27 @@ Vercel의 서버리스 런타임에서는 Supabase(Postgres)와 연결 시 Conne
   - 배포 후 `/documents`에서 목록/저장이 정상인지 확인
   - Vercel 로그에 `42P05`가 보이면 `DATABASE_URL`을 재확인하세요
 
+## 🗂️ Supabase Storage 설정(이미지 업로드)
+
+에디터의 이미지는 Supabase Storage에 업로드되고, 본문엔 URL이 삽입됩니다. 다음을 설정하세요.
+
+- 버킷 생성
+  - 이름: `sermon-images`
+  - Public: 읽기 허용(공유 페이지에서 바로 보이도록)
+
+- 정책(Policies)
+  - Select(읽기): 모든 사용자 허용 — 버킷 `sermon-images`
+  - Insert(업로드): 인증 사용자 허용 — 버킷 `sermon-images`
+    - UI 템플릿 “Insert objects” → `authenticated` 대상으로 생성하면 충분합니다.
+  - Update/Delete는 필요 시 제한(권장: 소유자만)
+
+- 업로드 경로
+  - `/{userId}/{docId}/{timestamp-rand}.webp` 구조로 저장됩니다.
+
+- 문제 해결
+  - 버킷이 없으면 업로드 실패: “Storage 버킷 "sermon-images"을(를) 찾을 수 없습니다.”
+  - 권한/정책 문제면: “Storage 업로드 권한이 없습니다(정책/로그인 확인).”
+
 ## 🛠️ 기술 스택
 
 ### Core

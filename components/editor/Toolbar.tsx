@@ -14,6 +14,7 @@ import {
   Highlighter
 } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { applyPlatformClasses } from '@/utils/isIOS';
 import { useVisualViewportOffset } from '@/hooks/useVisualViewportOffset';
@@ -29,6 +30,8 @@ export function Toolbar({ editor }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { handleSave, isSaving } = useEditorContext();
   const [showColorPalette, setShowColorPalette] = useState(false);
+  const highlightBtnRef = useRef<HTMLButtonElement>(null);
+  const [palettePos, setPalettePos] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
 
   // 플랫폼별 클래스 적용(필요 시)
   useEffect(() => {
@@ -75,6 +78,46 @@ export function Toolbar({ editor }: ToolbarProps) {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
+
+  // 팔레트 위치 계산: 버튼 기준으로 화면 좌표 산출
+  const updatePalettePos = () => {
+    const btn = highlightBtnRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const gap = 8; // 버튼 아래 간격
+    const left = rect.left;
+    const top = rect.bottom + gap;
+    setPalettePos({ left, top });
+  };
+
+  // 팔레트 열릴 때와 윈도우 스크롤/리사이즈 시 위치 갱신 + 바깥 클릭 닫기
+  useEffect(() => {
+    if (!showColorPalette) return;
+    updatePalettePos();
+
+    const onScroll = () => updatePalettePos();
+    const onResize = () => updatePalettePos();
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        highlightBtnRef.current &&
+        (highlightBtnRef.current === target || highlightBtnRef.current.contains(target))
+      ) return; // 버튼 자체 클릭은 무시
+
+      const paletteEl = document.getElementById('he-highlight-palette');
+      if (paletteEl && (paletteEl === target || paletteEl.contains(target))) return;
+      setShowColorPalette(false);
+    };
+
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onResize);
+    document.addEventListener('mousedown', onMouseDown, true);
+    return () => {
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onResize);
+      document.removeEventListener('mousedown', onMouseDown, true);
+    };
+  }, [showColorPalette]);
 
   const toolbarContent = (
     <div
@@ -137,11 +180,16 @@ export function Toolbar({ editor }: ToolbarProps) {
             size="sm"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => setShowColorPalette(!showColorPalette)}
+            ref={highlightBtnRef}
           >
             <Highlighter className="h-4 w-4" />
           </Button>
-          {showColorPalette && (
-            <div className="absolute left-0 top-full mt-2 p-2 bg-white border rounded-lg shadow-lg z-[9999]">
+          {showColorPalette && typeof document !== 'undefined' && createPortal(
+            <div
+              id="he-highlight-palette"
+              className="fixed mt-2 p-2 border rounded-lg shadow-lg z-[10000] bg-popover text-popover-foreground"
+              style={{ left: palettePos.left, top: palettePos.top }}
+            >
               <div className="grid grid-cols-4 gap-1">
                 {highlightColors.map((color) => (
                   <button
@@ -168,7 +216,8 @@ export function Toolbar({ editor }: ToolbarProps) {
                   ✕
                 </button>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
         

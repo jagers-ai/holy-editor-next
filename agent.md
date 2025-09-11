@@ -1,5 +1,7 @@
 # 에이전트 운영 가이드 (Holy Editor Next)
 
+> 언어/Reasoning 정책은 레포 최상단의 [AGENTS.md](./AGENTS.md)를 표준으로 따릅니다.
+
 이 문서는 Codex CLI/에이전트가 본 저장소에서 일하는 방법을 정리한 실전 가이드입니다. 간결하고 안전하게, 필요한 작업을 빠르게 끝내는 것을 목표로 합니다.
 
 ## 프로젝트 개요
@@ -101,3 +103,41 @@
 - 가능하면 “thinking/Reasoning Summary” 블록의 본문은 모두 한국어로 출력.
 
 이 가이드를 기준으로 작업 범위를 명확히 합의하고, 작은 단위로 안전하게 변경해 주세요.
+
+## 트러블슈팅
+
+### 이미지 업로드 실패 (Supabase Storage + RLS)
+- "new row violates row-level security policy" 에러
+- 원인: 업로드 경로가 RLS 정책과 불일치 또는 브라우저 캐시
+- 증상: 로그인했는데도 이미지 업로드 실패
+
+**해결 방법:**
+1. **즉시 해결 (브라우저)**
+   ```bash
+   # 모바일: 시크릿 모드 사용
+   # 데스크톱: Ctrl+Shift+R (하드 리프레시)
+   ```
+
+2. **코드 확인**
+   ```javascript
+   // uploadImage.ts - 경로 형식 확인
+   const path = `${userPrefix}/${docPrefix}/${filename}`;
+   // 반드시: {userId}/misc/... 형식이어야 함
+   ```
+
+3. **Next.js 캐시 문제**
+   ```bash
+   # 캐시 삭제 후 재시작
+   rm -rf .next node_modules/.cache
+   npm run dev
+   ```
+
+4. **RLS 정책 확인**
+   ```sql
+   -- Supabase Dashboard에서 실행
+   -- SELECT 정책 (읽기 허용) 필수
+   CREATE POLICY "Public read access" ON storage.objects
+   FOR SELECT USING (bucket_id = 'sermon-images');
+   ```
+
+**⚠️ 주의**: 코드 수정 후 반드시 커밋하고 서버 재시작!
