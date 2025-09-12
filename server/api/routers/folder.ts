@@ -3,6 +3,44 @@ import { createTRPCRouter, publicProcedure, protectedProcedure } from '@/server/
 import { TRPCError } from '@trpc/server';
 
 export const folderRouter = createTRPCRouter({
+  // 폴더 수정 (이름/아이콘/색상)
+  update: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      name: z.string().min(1, '폴더명은 필수입니다').optional(),
+      icon: z.string().optional(),
+      color: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const folder = await ctx.prisma.folder.findFirst({
+        where: { id: input.id, userId: ctx.user.id },
+      });
+
+      if (!folder) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: '폴더를 찾을 수 없습니다' });
+      }
+
+      // 이름 중복 검사 (동일 사용자 내)
+      if (input.name && input.name !== folder.name) {
+        const dup = await ctx.prisma.folder.findFirst({
+          where: { userId: ctx.user.id, name: input.name, NOT: { id: input.id } },
+        });
+        if (dup) {
+          throw new TRPCError({ code: 'CONFLICT', message: '같은 이름의 폴더가 이미 존재합니다' });
+        }
+      }
+
+      const updated = await ctx.prisma.folder.update({
+        where: { id: input.id },
+        data: {
+          name: input.name ?? folder.name,
+          icon: input.icon ?? folder.icon,
+          color: input.color ?? folder.color,
+        },
+      });
+
+      return updated;
+    }),
   // 미분류 폴더 생성 보장 및 폴더 미지정 문서 일괄 이동
   normalizeUncategorized: protectedProcedure
     .mutation(async ({ ctx }) => {

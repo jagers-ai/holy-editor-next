@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -22,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { FileText, Trash2, Plus, Share2, FolderOpen, ArrowLeft, MoveRight } from 'lucide-react';
+import { FileText, Trash2, Plus, Share2, FolderOpen, ArrowLeft, MoveRight, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/utils/api';
 
@@ -36,12 +38,38 @@ export default function FolderDocumentsPage() {
   const [showMoveConfirm, setShowMoveConfirm] = useState(false);
   const [targetFolderId, setTargetFolderId] = useState<string>('');
   const [targetFolderName, setTargetFolderName] = useState<string>('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editIcon, setEditIcon] = useState('📁');
+  const [editColor, setEditColor] = useState<string>('');
 
   // tRPC queries
   const { data: folder } = api.folder.getById.useQuery({ id: folderId });
   const { data: folders } = api.folder.list.useQuery();
   const { data: documentsData, refetch } = api.folder.getDocuments.useQuery({ folderId });
   const documents = documentsData?.documents || [];
+
+  // 폴더 수정/삭제 관련 뮤테이션
+  const updateFolder = api.folder.update.useMutation({
+    onSuccess: () => {
+      toast.success('폴더가 수정되었습니다');
+      setShowEditModal(false);
+      refetch();
+      router.refresh();
+    },
+    onError: (e) => {
+      const msg = (e as any)?.message || '수정에 실패했습니다';
+      toast.error(msg);
+    },
+  });
+  const deleteFolder = api.folder.delete.useMutation({
+    onSuccess: () => {
+      toast.success('폴더를 삭제했습니다');
+    },
+    onError: () => toast.error('폴더 삭제에 실패했습니다'),
+  });
+  const normalizeUncategorized = api.folder.normalizeUncategorized.useMutation();
 
   const deleteDocument = api.document.delete.useMutation({
     onSuccess: () => {
@@ -124,6 +152,14 @@ export default function FolderDocumentsPage() {
     });
   };
 
+  // 편집 모달 열기 시 기본값 세팅
+  const openEdit = () => {
+    setEditName(folder?.name || '');
+    setEditIcon((folder?.icon as any) || '📁');
+    setEditColor(folder?.color || '');
+    setShowEditModal(true);
+  };
+
   const formatDate = (dateString: string | Date) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ko-KR');
@@ -167,6 +203,14 @@ export default function FolderDocumentsPage() {
             <span>{folder?.name}</span>
           </h1>
           <p className="text-sm text-gray-500">{documents.length}개 문서</p>
+        </div>
+        <div className="ml-auto flex items-center gap-1">
+          <Button size="sm" variant="ghost" onClick={openEdit} aria-label="폴더 수정">
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setShowDeleteModal(true)} aria-label="폴더 삭제">
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
         </div>
       </div>
 
@@ -369,6 +413,125 @@ export default function FolderDocumentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 폴더 편집 모달 */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>폴더 편집</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-folder-name">이름</Label>
+              <Input id="edit-folder-name" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="폴더 이름" />
+            </div>
+            <div>
+              <Label>아이콘</Label>
+              <div className="grid grid-cols-8 gap-2 mt-2">
+                {['📁','📝','📖','🙏','💡','⭐','❤️','📌'].map((ic) => (
+                  <button
+                    key={ic}
+                    onClick={() => setEditIcon(ic)}
+                    className={`p-2 text-xl rounded hover:bg-gray-100 ${editIcon === ic ? 'bg-blue-100 ring-2 ring-blue-500' : ''}`}
+                  >
+                    {ic}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label>색상</Label>
+              <div className="flex gap-2 mt-2">
+                {['#FDE68A','#FCA5A5','#93C5FD','#6EE7B7','#E5E7EB'].map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setEditColor(c)}
+                    className={`h-8 w-8 rounded-full border ${editColor === c ? 'ring-2 ring-blue-500' : ''}`}
+                    style={{ backgroundColor: c }}
+                    aria-label={`색상 ${c}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>취소</Button>
+            <Button
+              onClick={async () => {
+                if (!editName.trim()) { toast.error('폴더명을 입력하세요'); return; }
+                await updateFolder.mutateAsync({ id: folderId, name: editName.trim(), icon: editIcon, color: editColor });
+              }}
+              disabled={updateFolder.isPending}
+            >
+              {updateFolder.isPending ? '저장 중...' : '저장'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 폴더 삭제 모달 */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>폴더 삭제</DialogTitle>
+          </DialogHeader>
+          {documents.length === 0 ? (
+            <div className="space-y-3">
+              <p>이 폴더에는 문서가 없습니다. 삭제하시겠습니까?</p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowDeleteModal(false)}>취소</Button>
+                <Button variant="destructive" onClick={async () => {
+                  await deleteFolder.mutateAsync({ id: folderId });
+                  setShowDeleteModal(false);
+                  router.push('/folders');
+                }}>삭제</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p>문서 {documents.length}개가 있습니다. 삭제 전에 어디로 옮길지 선택하세요.</p>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    const unc = await normalizeUncategorized.mutateAsync();
+                    const docIds = documents.map(d => d.id);
+                    await moveDocuments.mutateAsync({ documentIds: docIds, targetFolderId: unc.folderId });
+                    await deleteFolder.mutateAsync({ id: folderId });
+                    setShowDeleteModal(false);
+                    toast.success('미분류로 이동 후 폴더를 삭제했습니다');
+                    router.push('/folders');
+                  }}
+                >
+                  미분류로 모두 이동 후 삭제
+                </Button>
+                <div className="border rounded-md">
+                  <div className="p-2 text-sm text-gray-600">다른 폴더로 이동</div>
+                  <div className="max-h-48 overflow-auto">
+                    {folders?.filter(f => f.id !== folderId).map(f => (
+                      <button
+                        key={f.id}
+                        onClick={async () => {
+                          const docIds = documents.map(d => d.id);
+                          await moveDocuments.mutateAsync({ documentIds: docIds, targetFolderId: f.id });
+                          await deleteFolder.mutateAsync({ id: folderId });
+                          setShowDeleteModal(false);
+                          toast.success(`${f.name}로 이동 후 폴더를 삭제했습니다`);
+                          router.push('/folders');
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center justify-between"
+                      >
+                        <span className="flex items-center gap-2"><span className="text-xl">{f.icon}</span>{f.name}</span>
+                        <span className="text-sm text-gray-500">{f.documentCount}개</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
