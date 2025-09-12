@@ -36,6 +36,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | undefined>(undefined);
   const dirtyRef = useRef(false);
   const autoSavingRef = useRef(false);
+  const lastSavedHashRef = useRef<string | undefined>(undefined);
   const router = useRouter();
   const utils = api.useUtils();
   
@@ -110,6 +111,22 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         isPublic: false,
       };
 
+      // fingerprint for verification/logging
+      const fingerprint = (obj: unknown) => {
+        try {
+          const s = JSON.stringify(obj);
+          // djb2
+          let h = 5381;
+          for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+          return (h >>> 0).toString(36);
+        } catch { return Math.random().toString(36).slice(2,8); }
+      };
+      const expectedHash = fingerprint(documentData.content);
+
+      const saveStart = new Date();
+      console.log('[SAVE] manual start', { id: documentId ?? 'new', at: saveStart.toISOString(), hash: expectedHash });
+
+      let targetId = documentId;
       if (documentId && documentId !== 'new') {
         await updateDocument.mutateAsync({ 
           id: documentId, 
@@ -120,10 +137,28 @@ export function EditorProvider({ children }: { children: ReactNode }) {
           }
         });
       } else {
-        await createDocument.mutateAsync({
+        const created = await createDocument.mutateAsync({
           ...documentData,
           folderId: currentFolderId,
         });
+        targetId = created?.id ?? targetId;
+      }
+
+      // 서버 반영 검증 1회
+      try {
+        if (targetId) {
+          const fresh = await utils.document.getById.fetch({ id: targetId });
+          const serverHash = fingerprint((fresh as any)?.content);
+          if (serverHash !== expectedHash) {
+            console.warn('[SAVE] verify mismatch, retry once', { targetId, expectedHash, serverHash });
+            // 1회 재시도
+            await updateDocument.mutateAsync({ id: targetId, data: documentData });
+          } else {
+            console.log('[SAVE] verify ok', { targetId, hash: serverHash });
+          }
+        }
+      } catch (e) {
+        console.warn('[SAVE] verify fetch failed', e);
       }
 
       console.log('문서가 저장되었습니다');
@@ -174,6 +209,23 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         isPublic: false,
         ...(currentFolderId ? { folderId: currentFolderId } : {}),
       };
+      // 중복 저장 방지: 동일 해시면 스킵
+      const fingerprint = (obj: unknown) => {
+        try {
+          const s = JSON.stringify(obj);
+          let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+          return (h >>> 0).toString(36);
+        } catch { return Math.random().toString(36).slice(2,8); }
+      };
+      const hash = fingerprint(data.content);
+      if (lastSavedHashRef.current === hash) {
+        dirtyRef.current = false;
+        autoSavingRef.current = false;
+        return;
+      }
+
+      const start = new Date();
+      console.log('[SAVE] autosave start', { id: documentId ?? 'new', at: start.toISOString(), hash });
 
       if (documentId && documentId !== 'new') {
         await updateDocumentSilent.mutateAsync({ id: documentId, data });
@@ -186,6 +238,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }
       }
       dirtyRef.current = false;
+      lastSavedHashRef.current = hash;
       setLastAutoSavedAt(new Date());
       // 자동저장에서는 무분별한 캐시 무효화 생략
     } catch (e) {
