@@ -6,7 +6,7 @@ import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
 import Focus from '@tiptap/extension-focus';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Toolbar } from './Toolbar';
 import SelectionMiniBar from './SelectionMiniBar';
@@ -25,6 +25,9 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
   const { sermonInfo, setSermonInfo, setDocumentId, setEditorContent, setCurrentFolderId } = useEditorContext();
   const router = useRouter();
   const searchParams = useSearchParams();
+  // 로컬 변경/초기 적용 가드(업로드 이미지 사라짐 방지)
+  const hasLocalEditsRef = useRef(false);
+  const initialContentAppliedRef = useRef(false);
   
   // tRPC query for loading document
   const { data: document, isLoading } = api.document.getById.useQuery(
@@ -125,6 +128,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
   // ⚡ onUpdate 최적화 - 디바운싱 고려
   const handleUpdate = useMemo(() => 
     ({ editor }: any) => {
+      hasLocalEditsRef.current = true; // 로컬 편집 발생
       setEditorContent(editor.getJSON());
     },
     [setEditorContent]
@@ -178,9 +182,15 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
         serviceType: normalizeServiceType(sermonData.serviceType) || '주일설교'
       });
       
-      // editor content 설정
-      if (document.content && typeof document.content === 'object') {
+      // editor content 설정: 로컬 편집이 없고, 아직 초기 적용 전일 때만 1회 적용
+      if (
+        document.content &&
+        typeof document.content === 'object' &&
+        !hasLocalEditsRef.current &&
+        !initialContentAppliedRef.current
+      ) {
         editor.commands.setContent(document.content as any);
+        initialContentAppliedRef.current = true;
       }
       console.log('문서를 데이터베이스에서 불러왔습니다');
       return;
