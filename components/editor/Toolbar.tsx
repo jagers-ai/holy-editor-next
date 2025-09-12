@@ -28,7 +28,21 @@ interface ToolbarProps {
 
 export function Toolbar({ editor }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { handleSave, isSaving } = useEditorContext();
+  const { handleSave, isSaving, lastAutoSavedAt } = useEditorContext();
+  const formatKSTTime = (d?: Date) => {
+    if (!d) return '';
+    try {
+      return new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }).format(d);
+    } catch {
+      return '';
+    }
+  };
   const [showColorPalette, setShowColorPalette] = useState(false);
   const highlightBtnRef = useRef<HTMLButtonElement>(null);
   const [palettePos, setPalettePos] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
@@ -246,7 +260,12 @@ export function Toolbar({ editor }: ToolbarProps) {
           <Quote className="h-5 w-5" />
         </Button>
         
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {lastAutoSavedAt && (
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+              자동 저장됨 {formatKSTTime(lastAutoSavedAt)}
+            </span>
+          )}
           <button
             onClick={handleSave}
             disabled={isSaving}
