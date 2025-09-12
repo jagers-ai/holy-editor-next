@@ -14,6 +14,7 @@ const documentInputSchema = z.object({
     date: z.string().optional(),
   }).optional(),
   isPublic: z.boolean().default(false),
+  folderId: z.string().optional(),
 });
 
 export const documentRouter = createTRPCRouter({
@@ -26,6 +27,7 @@ export const documentRouter = createTRPCRouter({
           title: input.title,
           content: input.content,
           isPublic: input.isPublic,
+          folderId: input.folderId,
           userId: ctx.user.id, // 인증된 사용자의 ID
         },
       });
@@ -130,6 +132,7 @@ export const documentRouter = createTRPCRouter({
       if (typeof input.data?.title === 'string') allowedData.title = input.data.title;
       if (typeof input.data?.isPublic === 'boolean') allowedData.isPublic = input.data.isPublic;
       if (input.data?.content !== undefined) allowedData.content = input.data.content as any;
+      if (typeof (input.data as any)?.folderId === 'string') (allowedData as any).folderId = (input.data as any).folderId;
 
       const updated = await ctx.prisma.document.update({
         where: { id: input.id },

@@ -24,16 +24,16 @@ export default async function HomePage() {
           {user ? (
             <>
               <Button asChild className="w-full h-12 text-lg">
-                <Link href="/editor/new">
+                <Link href="/folders">
                   <Plus className="h-5 w-5 mr-2" />
                   새 문서 작성
                 </Link>
               </Button>
               
               <Button asChild variant="outline" className="w-full h-12 text-lg">
-                <Link href="/documents">
+                <Link href="/folders">
                   <FolderOpen className="h-5 w-5 mr-2" />
-                  내 문서
+                  내 폴더
                 </Link>
               </Button>
             </>

@@ -34,7 +34,7 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // 보호된 라우트 정의
-  const protectedPaths = ['/documents', '/editor'];
+  const protectedPaths = ['/documents', '/editor', '/folders'];
   const authPaths = ['/login', '/signup'];
   const publicPaths = ['/', '/auth/callback'];
   const currentPath = request.nextUrl.pathname;
@@ -58,7 +58,7 @@ export async function updateSession(request: NextRequest) {
 
   // 로그인한 사용자가 로그인/회원가입 페이지에 접근하려고 할 때
   if (isAuthPath && user) {
-    return NextResponse.redirect(new URL('/documents', request.url));
+    return NextResponse.redirect(new URL('/folders', request.url));
   }
 
   return supabaseResponse;

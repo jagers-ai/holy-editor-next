@@ -7,7 +7,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
 import Focus from '@tiptap/extension-focus';
 import { useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Toolbar } from './Toolbar';
 import SelectionMiniBar from './SelectionMiniBar';
 import { BibleVerseExtension } from './extensions/BibleVerseExtension';
@@ -15,14 +15,16 @@ import { SermonInfoSection } from './SermonInfoSection';
 import type { SermonInfo } from './SermonInfoSection';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { api } from '@/utils/api';
+import toast from 'react-hot-toast';
 
 interface HolyEditorProps {
   documentId?: string;
 }
 
 export default function HolyEditor({ documentId }: HolyEditorProps) {
-  const { sermonInfo, setSermonInfo, setDocumentId, setEditorContent } = useEditorContext();
+  const { sermonInfo, setSermonInfo, setDocumentId, setEditorContent, setCurrentFolderId } = useEditorContext();
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   // tRPC query for loading document
   const { data: document, isLoading } = api.document.getById.useQuery(
@@ -32,6 +34,20 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       retry: 1, // 한 번만 재시도
     }
   );
+  // 새 문서의 경우 URL 쿼리에서 폴더ID 획득
+  const folderIdFromQuery = searchParams?.get('folderId') || undefined;
+  const activeFolderId = (documentId && documentId !== 'new') ? (document as any)?.folderId : folderIdFromQuery;
+  const { data: activeFolder } = api.folder.getById.useQuery(
+    { id: activeFolderId as string },
+    { enabled: !!activeFolderId }
+  );
+  // 폴더 미선택 가드: 새 문서인데 폴더 미지정이면 폴더 페이지로 유도
+  useEffect(() => {
+    if (documentId === 'new' && !folderIdFromQuery) {
+      toast.error('먼저 폴더를 선택해주세요');
+      router.push('/folders');
+    }
+  }, [documentId, folderIdFromQuery, router]);
   
   // Context에 documentId 설정
   useEffect(() => {
@@ -173,9 +189,14 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     // DB에서 못 찾고, 로딩도 끝났으면 문서가 없는 것
     if (!isLoading && !document) {
       console.error('문서를 찾을 수 없습니다');
-      router.push('/documents');
+      router.push('/folders');
     }
   }, [editor, documentId, document, isLoading, setSermonInfo, router]);
+
+  // 현재 폴더 ID를 Context에 반영
+  useEffect(() => {
+    setCurrentFolderId(activeFolderId);
+  }, [activeFolderId, setCurrentFolderId]);
 
   if (!editor) {
     return (
@@ -195,6 +216,15 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
 
   return (
     <div className="editor-container mx-auto max-w-4xl pb-0 pt-[var(--toolbar-h)]">
+      {activeFolder && (
+        <div className="mb-2 flex items-center gap-2 px-1 text-xs text-muted-foreground">
+          <span>현재 폴더</span>
+          <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 bg-white">
+            <span>{activeFolder.icon ?? '📁'}</span>
+            <span className="font-medium text-gray-700">{activeFolder.name}</span>
+          </span>
+        </div>
+      )}
       <SermonInfoSection 
         info={sermonInfo} 
         onChange={setSermonInfo} 

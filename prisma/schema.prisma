@@ -8,106 +8,101 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// 사용자 모델 (추후 Supabase Auth와 연동)
 model User {
-  id        String     @id @default(cuid())
-  email     String     @unique
-  name      String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  documents Document[]
-  folders   Folder[]
+  id         String     @id @default(cuid())
+  email      String     @unique
+  name       String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  created_at DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime?  @default(now()) @db.Timestamptz(6)
+  documents  Document[]
+  folders    Folder[]
 
   @@map("users")
 }
 
-// 폴더 모델 - 문서 그룹화용
-model Folder {
-  id        String     @id @default(cuid())
-  name      String     // 폴더명
-  icon      String?    // 폴더 아이콘 (이모지)
-  color     String?    // 폴더 색상 (hex 코드)
-  userId    String?
-  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  documents Document[] // 폴더에 속한 문서들
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  
-  @@unique([userId, name]) // 사용자별 폴더명 중복 방지
-  @@index([userId])
-  @@map("folders")
-}
-
-// 문서 모델 - 에디터로 작성한 문서 저장
 model Document {
-  id               String           @id @default(cuid())
-  title            String
-  content          Json             // Tiptap 에디터의 JSON 컨텐츠
-  userId           String?
-  user             User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  folderId         String?          // 폴더 ID
-  folder           Folder?          @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  isPublic         Boolean          @default(false)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  bibleReferences  BibleReference[]
-  tags             DocumentTag[]
-  
+  id              String           @id @default(cuid())
+  title           String
+  content         Json
+  userId          String?
+  folderId        String?
+  isPublic        Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  bibleReferences BibleReference[]
+  tags            DocumentTag[]
+  user            User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder          Folder?          @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
   @@index([userId])
   @@index([folderId])
   @@map("documents")
 }
 
-// 성경 구절 참조 모델
 model BibleReference {
   id         String   @id @default(cuid())
   documentId String
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  book       String   // 성경 책 이름 (창세기, 출애굽기 등)
-  chapter    Int      // 장
-  verseStart Int      // 시작 절
-  verseEnd   Int?     // 끝 절 (범위 선택 시)
-  text       String?  // 실제 성경 구절 텍스트 (캐시용)
-  version    String   @default("개역개정") // 성경 번역본
+  book       String
+  chapter    Int
+  verseStart Int
+  verseEnd   Int?
+  text       String?
+  version    String   @default("개역개정")
   createdAt  DateTime @default(now())
-  
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
   @@index([documentId])
   @@index([book, chapter])
   @@map("bible_references")
 }
 
-// 태그 모델 (문서 분류용)
 model Tag {
   id        String        @id @default(cuid())
   name      String        @unique
   createdAt DateTime      @default(now())
   documents DocumentTag[]
-  
+
   @@map("tags")
 }
 
-// 문서-태그 연결 테이블
 model DocumentTag {
   documentId String
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   tagId      String
-  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
-  
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
   @@id([documentId, tagId])
   @@map("document_tags")
 }
 
-// 템플릿 모델 (설교 템플릿 저장용)
 model Template {
   id          String   @id @default(cuid())
   name        String
   description String?
-  content     Json     // 템플릿 구조
-  category    String   // 설교, 성경공부, 기도문 등
+  content     Json
+  category    String
   isPublic    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   @@map("templates")
+}
+
+model Folder {
+  id        String     @id @default(cuid())
+  name      String
+  icon      String?
+  color     String?
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents Document[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("folders")
 }

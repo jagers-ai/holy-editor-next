@@ -32,7 +32,7 @@ export function LoginForm() {
       if (error) {
         setError(error.message);
       } else {
-        router.push('/documents');
+        router.push('/folders');
         router.refresh();
       }
     } catch (err) {

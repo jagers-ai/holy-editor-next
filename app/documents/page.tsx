@@ -190,9 +190,9 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* 플로팅 액션 버튼 (FAB) */}
+      {/* 플로팅 액션 버튼 (FAB) - 폴더 선택으로 유도 */}
       <button
-        onClick={() => router.push('/editor/new')}
+        onClick={() => router.push('/folders')}
         className="fixed bottom-5 right-5 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg active:scale-90 transition-all flex items-center justify-center z-50"
         aria-label="새 문서 작성"
       >

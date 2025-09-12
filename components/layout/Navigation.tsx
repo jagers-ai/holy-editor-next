@@ -67,10 +67,10 @@ export function Navigation() {
             <>
               {user ? (
                 <>
-                  <Link href="/documents">
+                  <Link href="/folders">
                     <Button variant="ghost" size="sm" className="gap-2">
                       <FileText className="h-4 w-4" />
-                      내 문서
+                      내 폴더
                     </Button>
                   </Link>
                   <DropdownMenu>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,14 @@ export default function FoldersPage() {
 
   // tRPC queries
   const { data: folders, isLoading, refetch } = api.folder.list.useQuery();
+  const normalizeUncategorized = api.folder.normalizeUncategorized.useMutation({
+    onSuccess: (data) => {
+      if (data.movedCount > 0) {
+        toast.success(`미분류로 ${data.movedCount}개 문서를 이동했습니다`);
+        refetch();
+      }
+    },
+  });
   const createFolder = api.folder.create.useMutation({
     onSuccess: () => {
       refetch();
@@ -50,6 +58,12 @@ export default function FoldersPage() {
   if (folders && folders.length === 0) {
     createDefaults.mutate();
   }
+
+  // 기존 폴더 미지정 문서가 있으면 미분류로 정리 (멱등)
+  useEffect(() => {
+    normalizeUncategorized.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) {

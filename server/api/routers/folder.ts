@@ -3,6 +3,39 @@ import { createTRPCRouter, publicProcedure, protectedProcedure } from '@/server/
 import { TRPCError } from '@trpc/server';
 
 export const folderRouter = createTRPCRouter({
+  // 미분류 폴더 생성 보장 및 폴더 미지정 문서 일괄 이동
+  normalizeUncategorized: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const UNCATEGORIZED_NAME = '미분류';
+
+      // 미분류 폴더 찾거나 생성
+      let uncategorized = await ctx.prisma.folder.findFirst({
+        where: { userId: ctx.user.id, name: UNCATEGORIZED_NAME },
+      });
+
+      if (!uncategorized) {
+        uncategorized = await ctx.prisma.folder.create({
+          data: {
+            name: UNCATEGORIZED_NAME,
+            icon: '📂',
+            userId: ctx.user.id,
+          },
+        });
+      }
+
+      // 폴더 미지정 문서 이동
+      const result = await ctx.prisma.document.updateMany({
+        where: {
+          userId: ctx.user.id,
+          OR: [{ folderId: null }, { folderId: undefined as any }],
+        },
+        data: {
+          folderId: uncategorized.id,
+        },
+      });
+
+      return { folderId: uncategorized.id, movedCount: result.count };
+    }),
   // 폴더 생성
   create: protectedProcedure
     .input(z.object({
