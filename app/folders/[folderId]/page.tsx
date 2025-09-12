@@ -170,6 +170,27 @@ export default function FolderDocumentsPage() {
     return date.toLocaleString('ko-KR');
   };
 
+  // KST(Asia/Seoul) 고정, YYMMDD-HHmm 포맷
+  const formatDateTimeKST = (dateString: string | Date) => {
+    const d = new Date(dateString);
+    const parts = new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      year: '2-digit',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(d);
+    const get = (type: string) => parts.find(p => p.type === type)?.value ?? '';
+    const y = get('year');
+    const m = get('month');
+    const day = get('day');
+    const hh = get('hour');
+    const mm = get('minute');
+    return `${y}${m}${day}-${hh}${mm}`;
+  };
+
   const getPreviewText = (content: any) => {
     try {
       if (content && content.content) {
