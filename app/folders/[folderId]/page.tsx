@@ -165,6 +165,11 @@ export default function FolderDocumentsPage() {
     return date.toLocaleDateString('ko-KR');
   };
 
+  const formatDateTime = (dateString: string | Date) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('ko-KR');
+  };
+
   const getPreviewText = (content: any) => {
     try {
       if (content && content.content) {
@@ -259,7 +264,7 @@ export default function FolderDocumentsPage() {
                 </div>
                 
                 <Card
-                  className={`cursor-pointer active:scale-95 transition-transform flex flex-col h-[140px] relative overflow-hidden shadow-sm hover:shadow-md ${
+                  className={`cursor-pointer active:scale-95 transition-transform flex flex-col relative overflow-hidden shadow-sm hover:shadow-md p-2 ${
                     isSelected ? 'ring-2 ring-blue-500' : ''
                   }`}
                   onClick={() => {
@@ -289,34 +294,30 @@ export default function FolderDocumentsPage() {
                       </button>
                     </div>
                   )}
-                  
-                  {/* 폴더 비주얼 영역 */}
-                  <div className="flex-1 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-2 relative flex flex-col items-center justify-center">
-                    <FolderOpen className="h-8 w-8 text-blue-400 dark:text-blue-300" />
-                    
-                    {/* 미리보기 텍스트 */}
-                    {previewText && (
-                      <p className="text-[10px] text-gray-600 dark:text-gray-400 text-center mt-1 px-1 line-clamp-2">
-                        {previewText.substring(0, 20)}{previewText.length > 20 ? '...' : ''}
+
+                  {/* 상단 미리보기 박스 */}
+                  <div className="rounded-md bg-blue-50 border border-blue-200 px-2.5 py-2 min-h-20 mb-2">
+                    {previewText ? (
+                      <p className="text-sm text-gray-700 leading-5 break-words whitespace-pre-line line-clamp-7">
+                        {previewText}
                       </p>
+                    ) : (
+                      <p className="text-sm text-gray-400">내용 없음</p>
                     )}
                   </div>
-                  
-                  {/* 메타데이터 영역 */}
-                  <div className="bg-white dark:bg-gray-800 p-2 border-t dark:border-gray-700">
-                    <h3 className="text-xs font-semibold truncate mb-1 dark:text-gray-100">
-                      {title}
-                    </h3>
-                    
-                    <div className="text-[9px] text-gray-500 dark:text-gray-400 space-y-0.5">
-                      {sermonInfo?.pastor && (
-                        <div className="truncate">{sermonInfo.pastor}</div>
-                      )}
-                      {sermonInfo?.serviceType && (
-                        <div className="truncate">{sermonInfo.serviceType}</div>
-                      )}
-                      <div>{formatDate(doc.updatedAt)}</div>
-                    </div>
+
+                  {/* 메타 5줄 */}
+                  <div className="space-y-0.5">
+                    {/* 1) 제목 */}
+                    <div className="text-sm font-semibold truncate">{title}</div>
+                    {/* 2) 설교자 or 설교종류 */}
+                    <div className="text-[11px] text-gray-600 truncate">{sermonInfo?.pastor || sermonInfo?.serviceType || ''}</div>
+                    {/* 3) 설교종류 */}
+                    <div className="text-[11px] text-gray-600 truncate">{sermonInfo?.serviceType || ''}</div>
+                    {/* 4) 본문 구절 */}
+                    <div className="text-[11px] text-gray-600 truncate">{sermonInfo?.verse || ''}</div>
+                    {/* 5) 최초 생성일시 */}
+                    <div className="text-[11px] text-gray-500 truncate">{formatDateTime(doc.createdAt)}</div>
                   </div>
                 </Card>
               </div>
