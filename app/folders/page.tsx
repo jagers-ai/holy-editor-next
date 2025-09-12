@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, FolderOpen, FileText } from 'lucide-react';
+import { Plus, FolderOpen } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
 import { api } from '@/utils/api';
+import { FolderCard } from '../../components/folders/FolderCard';
 
 export default function FoldersPage() {
   const router = useRouter();
@@ -101,23 +102,21 @@ export default function FoldersPage() {
           <p className="text-sm text-gray-500">+ 버튼으로 새 폴더를 만드세요</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {folders.map((folder, idx) => (
-            <Card
-              key={folder.id}
-              className={`cursor-pointer active:scale-95 transition-transform h-[120px] flex flex-col items-center justify-center hover:shadow-md ${
-                folderColors[idx % folderColors.length]
-              }`}
-              onClick={() => router.push(`/folders/${folder.id}`)}
-            >
-              <div className="text-3xl mb-2">{folder.icon || '📁'}</div>
-              <h3 className="font-medium text-sm">{folder.name}</h3>
-              <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                <FileText className="h-3 w-3" />
-                <span>{folder.documentCount}개</span>
-              </div>
-            </Card>
-          ))}
+        <div className="grid grid-cols-2 gap-4 px-4">
+          {folders.map((folder, idx) => {
+            const accents = ['bg-yellow-400','bg-red-400','bg-blue-400','bg-emerald-400'];
+            const accentClass = accents[idx % accents.length];
+            return (
+              <FolderCard
+                key={folder.id}
+                name={folder.name}
+                count={folder.documentCount}
+                icon={folder.icon || '📁'}
+                href={`/folders/${folder.id}`}
+                accentClass={accentClass}
+              />
+            );
+          })}
         </div>
       )}
 
