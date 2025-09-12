@@ -260,12 +260,7 @@ export function Toolbar({ editor }: ToolbarProps) {
           <Quote className="h-5 w-5" />
         </Button>
         
-        <div className="ml-auto flex items-center gap-2">
-          {lastAutoSavedAt && (
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-              자동 저장됨 {formatKSTTime(lastAutoSavedAt)}
-            </span>
-          )}
+        <div className="ml-auto flex flex-col items-end gap-0">
           <button
             onClick={handleSave}
             disabled={isSaving}
@@ -278,6 +273,11 @@ export function Toolbar({ editor }: ToolbarProps) {
               <Save className="h-4 w-4" />
             )}
           </button>
+          {lastAutoSavedAt && (
+            <span className="text-[10px] leading-none text-muted-foreground whitespace-nowrap mt-0.5">
+              {formatKSTTime(lastAutoSavedAt)}
+            </span>
+          )}
         </div>
         </div>
       </div>
