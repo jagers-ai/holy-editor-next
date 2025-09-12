@@ -264,7 +264,7 @@ export default function FolderDocumentsPage() {
                 </div>
                 
                 <Card
-                  className={`cursor-pointer active:scale-95 transition-transform flex flex-col relative overflow-hidden shadow-sm hover:shadow-md p-2 ${
+                  className={`cursor-pointer active:scale-95 transition-transform flex flex-col relative overflow-hidden shadow-sm hover:shadow-md p-2 pt-8 ${
                     isSelected ? 'ring-2 ring-blue-500' : ''
                   }`}
                   onClick={() => {
@@ -277,17 +277,17 @@ export default function FolderDocumentsPage() {
                 >
                   {/* 액션 버튼 */}
                   {!isSelectionMode && (
-                    <div className="absolute top-1 right-1 z-10 flex gap-0.5">
+                    <div className="absolute top-2 right-2 z-10 flex gap-1">
                       <button
-                        onClick={(e) => handleShare(doc.id, e)}
-                        className="p-1 bg-white/80 rounded-full shadow-sm"
+                        onClick={(e) => { e.stopPropagation(); handleShare(doc.id, e); }}
+                        className="h-6 w-6 flex items-center justify-center bg-white/90 rounded-full shadow-sm border"
                         aria-label="공유"
                       >
                         <Share2 className="h-3 w-3 text-gray-600" />
                       </button>
                       <button
-                        onClick={(e) => handleDeleteDocument(doc.id, e)}
-                        className="p-1 bg-white/80 rounded-full shadow-sm"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteDocument(doc.id, e); }}
+                        className="h-6 w-6 flex items-center justify-center bg-white/90 rounded-full shadow-sm border"
                         aria-label="삭제"
                       >
                         <Trash2 className="h-3 w-3 text-red-500" />
@@ -296,7 +296,7 @@ export default function FolderDocumentsPage() {
                   )}
 
                   {/* 상단 미리보기 박스 */}
-                  <div className="rounded-md bg-blue-50 border border-blue-200 px-2.5 py-2 min-h-20 mb-2">
+                  <div className="rounded-md bg-blue-50 border border-blue-200 px-2.5 py-2 h-28 overflow-hidden mb-2 mt-1">
                     {previewText ? (
                       <p className="text-sm text-gray-700 leading-5 break-words whitespace-pre-line line-clamp-7">
                         {previewText}
@@ -317,7 +317,7 @@ export default function FolderDocumentsPage() {
                     {/* 4) 본문 구절 */}
                     <div className="text-[11px] text-gray-600 truncate">{sermonInfo?.verse || ''}</div>
                     {/* 5) 최초 생성일시 */}
-                    <div className="text-[11px] text-gray-500 truncate">{formatDateTime(doc.createdAt)}</div>
+                    <div className="text-[11px] text-gray-500 truncate">{formatDateTimeKST(doc.createdAt)}</div>
                   </div>
                 </Card>
               </div>
