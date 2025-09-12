@@ -195,9 +195,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }
   }, [editorContent, sermonInfo, currentFolderId, documentId, createDocumentSilent, updateDocumentSilent, router, setDocumentId]);
 
-  // 30초마다 자동 저장
+  // 자동 저장 주기: 5초
   useEffect(() => {
-    const t = setInterval(() => { void doAutoSave(); }, 30_000);
+    const t = setInterval(() => { void doAutoSave(); }, 5_000);
     return () => clearInterval(t);
   }, [doAutoSave]);
 
