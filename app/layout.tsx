@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import { Navigation } from "@/components/layout/Navigation";
-import { EditorProvider } from "@/contexts/EditorContext";
 import { TRPCReactProvider } from "@/app/providers";
 import { PlatformFlags } from "@/components/system/PlatformFlags";
 import { AuthSync } from "@/components/system/AuthSync";
@@ -52,23 +51,21 @@ export default function RootLayout({
           <ErrorInitializer />
           <PlatformFlags />
           <TRPCReactProvider>
-            <EditorProvider>
-              <AuthSync />
-              <Navigation />
-              <main>
-                {children}
-              </main>
-              <Toaster 
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                  },
-                }}
-              />
-            </EditorProvider>
+            <AuthSync />
+            <Navigation />
+            <main>
+              {children}
+            </main>
+            <Toaster 
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                },
+              }}
+            />
           </TRPCReactProvider>
         </AppErrorBoundary>
       </body>
