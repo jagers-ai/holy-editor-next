@@ -112,21 +112,34 @@ export const folderRouter = createTRPCRouter({
   // 폴더 목록 조회 (문서 개수 포함)
   list: protectedProcedure
     .query(async ({ ctx }) => {
-      const folders = await ctx.prisma.folder.findMany({
-        where: {
-          userId: ctx.user.id,
-        },
-        include: {
-          _count: {
-            select: { documents: true },
-          },
-        },
-        orderBy: {
-          createdAt: 'asc',
-        },
-      });
+      const selectFolders = async () =>
+        ctx.prisma.folder.findMany({
+          where: { userId: ctx.user.id },
+          include: { _count: { select: { documents: true } } },
+          orderBy: { createdAt: 'asc' },
+        });
 
-      return folders.map(folder => ({
+      let folders = await selectFolders();
+
+      // 멱등 처리: 폴더가 하나도 없으면 기본 폴더 자동 생성 후 재조회
+      if (folders.length === 0) {
+        const defaults = [
+          { name: '설교노트', icon: '📖' },
+          { name: '감사일기', icon: '🙏' },
+        ];
+        try {
+          await ctx.prisma.folder.createMany({
+            data: defaults.map((d) => ({ ...d, userId: ctx.user.id })),
+            skipDuplicates: true,
+          });
+          folders = await selectFolders();
+        } catch {
+          // 동시성 경합은 무시하고 재조회
+          folders = await selectFolders();
+        }
+      }
+
+      return folders.map((folder) => ({
         ...folder,
         documentCount: folder._count.documents,
       }));
