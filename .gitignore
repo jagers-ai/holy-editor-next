@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# mobile build artifacts
+apps/mobile/*.apk
+apps/mobile/build.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
