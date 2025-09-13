@@ -1,25 +1,19 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-import { normalizeServiceType } from '@core/domain/sermon';
+import { StyleSheet, View } from 'react-native';
+import RootNavigator from './src/navigation';
+import { QueryProvider } from './src/lib/query';
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Holy Editor Mobile</Text>
-      <Text>
-        ServiceType normalize test: {normalizeServiceType('���ϼ���')}
-      </Text>
-      <StatusBar style="auto" />
-    </View>
+    <QueryProvider>
+      <View style={styles.container}>
+        <RootNavigator />
+        <StatusBar style="auto" />
+      </View>
+    </QueryProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontSize: 18, fontWeight: '600', marginBottom: 8 }
+  container: { flex: 1, backgroundColor: '#fff' }
 });
