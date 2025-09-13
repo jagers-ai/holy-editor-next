@@ -82,7 +82,6 @@ export default function FoldersPage() {
   };
 
   const folderIcons = ['📁', '📝', '📖', '🙏', '💡', '⭐', '❤️', '📌'];
-  const folderColors = ['bg-gray-100', 'bg-yellow-100', 'bg-red-100', 'bg-blue-100'];
 
   return (
     <div className="max-w-full mx-auto px-3 py-4 pb-24">

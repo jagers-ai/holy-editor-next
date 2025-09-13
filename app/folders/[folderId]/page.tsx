@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { FileText, Trash2, Plus, Share2, FolderOpen, ArrowLeft, MoveRight, Pencil } from 'lucide-react';
+import { FileText, Trash2, Plus, Share2, ArrowLeft, MoveRight, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/utils/api';
 import { extractPlainTextFromTiptap } from '@/lib/domain/preview';
@@ -74,7 +74,7 @@ export default function FolderDocumentsPage() {
       router.refresh();
     },
     onError: (e) => {
-      const msg = (e as any)?.message || '수정에 실패했습니다';
+      const msg = (e as { message?: string })?.message || '수정에 실패했습니다';
       toast.error(msg);
     },
   });
@@ -92,7 +92,7 @@ export default function FolderDocumentsPage() {
       toast.success('문서가 삭제되었습니다');
       setSelectedDocs([]);
     },
-    onError: (error) => {
+    onError: (_error) => {
       toast.error('문서 삭제에 실패했습니다');
     },
   });
@@ -104,7 +104,7 @@ export default function FolderDocumentsPage() {
       setSelectedDocs([]);
       setShowMoveConfirm(false);
     },
-    onError: (error) => {
+    onError: (_error) => {
       toast.error('문서 이동에 실패했습니다');
     },
   });
@@ -177,23 +177,7 @@ export default function FolderDocumentsPage() {
 
   // 날짜 포맷은 lib/domain/date 사용
 
-  const getPreviewText = (content: any) => extractPlainTextFromTiptap(content, { limit: 300 });
-
   const isLoading = isDocsLoading || isFetching;
-  const SkeletonCard = () => (
-    <div className="relative">
-      <div className="animate-pulse">
-        <div className="h-28 rounded-md bg-gray-200 mb-2" />
-        <div className="space-y-1">
-          <div className="h-4 bg-gray-200 rounded w-3/4" />
-          <div className="h-3 bg-gray-200 rounded w-1/2" />
-          <div className="h-3 bg-gray-200 rounded w-2/3" />
-          <div className="h-3 bg-gray-200 rounded w-1/3" />
-          <div className="h-3 bg-gray-200 rounded w-1/4" />
-        </div>
-      </div>
-    </div>
-  );
 
   const isSelectionMode = selectedDocs.length > 0;
 
@@ -258,10 +242,13 @@ export default function FolderDocumentsPage() {
       ) : (
         <div className="grid grid-cols-3 gap-2">
           {documents.map((doc) => {
-            const contentObj = typeof doc.content === 'object' && doc.content !== null ? (doc.content as any) : {};
+            type DocContent = { sermonInfo?: { title?: string; pastor?: string; verse?: string; serviceType?: string } };
+            const contentObj: DocContent = (typeof doc.content === 'object' && doc.content !== null)
+              ? (doc.content as DocContent)
+              : ({} as DocContent);
             const sermonInfo = contentObj.sermonInfo;
             const title = sermonInfo?.title || doc.title || '제목 없음';
-            const previewText = getPreviewText(doc.content);
+            const previewText = extractPlainTextFromTiptap(doc.content, { limit: 300 });
             const isSelected = selectedDocs.includes(doc.id);
             
             return (

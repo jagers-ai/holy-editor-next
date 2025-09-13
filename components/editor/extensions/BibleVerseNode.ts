@@ -3,9 +3,17 @@ import { ReactNodeViewRenderer } from '@tiptap/react'
 import BibleVerseComponent from './BibleVerseComponent'
 import { resolveBookId } from '@/lib/bible/books'
 
+type BibleVerseRecord = {
+  bookId: string;
+  bookName: string;
+  chapter: number;
+  verse: number;
+  text: string;
+};
+
 declare global {
   interface Window {
-    bibleData?: any[];
+    bibleData?: BibleVerseRecord[];
   }
 }
 

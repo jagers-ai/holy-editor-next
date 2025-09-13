@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Trash2, Plus, User, Clock, BookOpen, Share2, FolderOpen } from 'lucide-react';
+import { FileText, Trash2, Plus, Share2, FolderOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/utils/api';
 
@@ -15,12 +13,12 @@ export default function DocumentsPage() {
   const router = useRouter();
   
   // tRPC queries and mutations
-  const { data: dbDocuments, isLoading, isError, error, refetch, status } = api.document.list.useQuery(
+  const { data: dbDocuments, isLoading, isError, error, refetch } = api.document.list.useQuery(
     undefined,
     {
       // 인증 오류는 재시도하지 않고 즉시 안내
-      retry: (count, err) => {
-        const code = (err as any)?.data?.code;
+      retry: (count, err: unknown) => {
+        const code = (err as { data?: { code?: string } })?.data?.code;
         if (code === 'UNAUTHORIZED') return false;
         return count < 1; // 한 번만 재시도
       },
@@ -70,22 +68,25 @@ export default function DocumentsPage() {
     return date.toLocaleDateString('ko-KR');
   };
 
-  const getPreviewText = (content: any) => {
+  type DocContent = { content?: unknown; sermonInfo?: { title?: string; pastor?: string; verse?: string; serviceType?: string } };
+  const getPreviewText = (content: unknown) => {
     try {
-      if (content && content.content) {
+      const root = content as { content?: unknown[] };
+      if (root && Array.isArray(root.content)) {
         const texts: string[] = [];
-        const extractText = (node: any) => {
-          if (node.text) texts.push(node.text);
-          if (node.content && Array.isArray(node.content)) {
-            node.content.forEach(extractText);
+        const extractText = (node: unknown) => {
+          const n = node as { text?: unknown; content?: unknown[] };
+          if (typeof n.text === 'string') texts.push(n.text);
+          if (Array.isArray(n.content)) {
+            n.content.forEach(extractText);
           }
         };
-        extractText(content);
+        root.content.forEach(extractText);
         const fullText = texts.join(' ').trim();
         return fullText || '';
       }
-    } catch (error) {
-      console.error('미리보기 추출 실패:', error);
+    } catch {
+      console.error('미리보기 추출 실패');
     }
     return '';
   };
@@ -125,7 +126,9 @@ export default function DocumentsPage() {
         <div className="grid grid-cols-3 gap-2">
           {documents.map((doc) => {
             // content 안의 sermonInfo 확인
-            const contentObj = typeof doc.content === 'object' && doc.content !== null ? doc.content as any : {};
+            const contentObj: DocContent = (typeof doc.content === 'object' && doc.content !== null)
+              ? (doc.content as DocContent)
+              : {} as DocContent;
             const sermonInfo = contentObj.sermonInfo;
             const title = sermonInfo?.title || doc.title || '제목 없음';
             const previewText = getPreviewText(doc.content);

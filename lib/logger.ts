@@ -3,8 +3,7 @@
  * Winston 없이 console.log만 사용 (빌드 호환성)
  */
 
-// 브라우저 환경 체크
-const isBrowser = typeof window !== 'undefined';
+// 브라우저 환경 체크(미사용 변수 제거)
 
 /**
  * 환경별 로그 레벨 결정
@@ -35,28 +34,28 @@ class SimpleLogger {
     return messageLevelIndex <= currentLevelIndex;
   }
   
-  error(message: string, meta?: any) {
+  error(message: string, meta?: unknown) {
     if (this.shouldLog('error')) {
       const timestamp = new Date().toISOString();
       console.error(`[${timestamp}] [ERROR]: ${message}`, meta || '');
     }
   }
   
-  warn(message: string, meta?: any) {
+  warn(message: string, meta?: unknown) {
     if (this.shouldLog('warn')) {
       const timestamp = new Date().toISOString();
       console.warn(`[${timestamp}] [WARN]: ${message}`, meta || '');
     }
   }
   
-  info(message: string, meta?: any) {
+  info(message: string, meta?: unknown) {
     if (this.shouldLog('info')) {
       const timestamp = new Date().toISOString();
       console.info(`[${timestamp}] [INFO]: ${message}`, meta || '');
     }
   }
   
-  debug(message: string, meta?: any) {
+  debug(message: string, meta?: unknown) {
     if (this.shouldLog('debug')) {
       const timestamp = new Date().toISOString();
       console.debug(`[${timestamp}] [DEBUG]: ${message}`, meta || '');

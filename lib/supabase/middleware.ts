@@ -36,7 +36,6 @@ export async function updateSession(request: NextRequest) {
   // 보호된 라우트 정의
   const protectedPaths = ['/documents', '/editor', '/folders'];
   const authPaths = ['/login', '/signup'];
-  const publicPaths = ['/', '/auth/callback'];
   const currentPath = request.nextUrl.pathname;
 
   // 보호된 라우트 체크

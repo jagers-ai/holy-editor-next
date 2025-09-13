@@ -6,7 +6,6 @@
 import { AuthError, PostgrestError } from '@supabase/supabase-js';
 import { GlobalErrorHandler } from '@/lib/errors/global-handler';
 import { AppError, ErrorCategory, ErrorSeverity } from '@/lib/errors/types';
-import { getUserMessage } from '@/lib/errors/types';
 import { logger } from '@/lib/logger';
 import { ToastManager } from '@/lib/toast';
 
@@ -122,15 +121,15 @@ export class SupabaseErrorHandler {
    * Database 에러 처리
    */
   static handleDatabaseError(
-    error: PostgrestError | any,
+    error: PostgrestError | unknown,
     context?: string,
     showToast: boolean = true
   ): AppError {
     // PostgrestError 타입 체크
-    const isPostgrestError = error && typeof error === 'object' && 'code' in error;
+    const isPostgrestError = !!(error && typeof error === 'object' && 'code' in (error as Record<string, unknown>));
     
     // 에러 코드 추출
-    const errorCode = isPostgrestError ? error.code : 'unknown_database_error';
+    const errorCode = isPostgrestError ? (error as PostgrestError).code : 'unknown_database_error';
     const errorInfo = SUPABASE_ERROR_CODES[errorCode] || {
       severity: 'high' as ErrorSeverity,
       userMessage: '데이터베이스 작업 중 오류가 발생했습니다.'
@@ -138,24 +137,24 @@ export class SupabaseErrorHandler {
     
     // AppError 생성
     const appError = GlobalErrorHandler.createAppError(
-      error.message || 'Database error',
+      (error as { message?: string })?.message || 'Database error',
       ErrorCategory.DATABASE,
       errorInfo.severity,
       errorInfo.userMessage,
       {
         code: errorCode,
-        details: error.details,
-        hint: error.hint,
+        details: (error as Partial<PostgrestError>)?.details,
+        hint: (error as Partial<PostgrestError>)?.hint,
         context
       }
     );
     
     // 로깅
     logger.error('Supabase Database Error:', {
-      message: error.message,
+      message: (error as { message?: string })?.message,
       code: errorCode,
-      details: error.details,
-      hint: error.hint,
+      details: (error as Partial<PostgrestError>)?.details,
+      hint: (error as Partial<PostgrestError>)?.hint,
       context
     });
     

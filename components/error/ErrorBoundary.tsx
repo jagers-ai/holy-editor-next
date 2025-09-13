@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
+import { ErrorBoundary as ReactErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import * as Sentry from '@sentry/nextjs';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
@@ -87,7 +87,7 @@ function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
 /**
  * 에디터 전용 에러 폴백 UI
  */
-function EditorErrorFallback({ error, resetError }: ErrorFallbackProps) {
+function EditorErrorFallback({ error: _error, resetError }: ErrorFallbackProps) {
   return (
     <div className="flex min-h-[300px] flex-col items-center justify-center p-6 bg-muted/30 rounded-lg m-4">
       <div className="flex flex-col items-center space-y-4 text-center max-w-md">
@@ -145,7 +145,7 @@ export function ErrorBoundary({
   isolate = false,
   level = 'component',
   resetKeys = [],
-  resetOnPropsChange = true
+  resetOnPropsChange: _resetOnPropsChange = true
 }: ErrorBoundaryProps) {
   
   const handleError = React.useCallback((error: Error, errorInfo: React.ErrorInfo) => {
@@ -199,9 +199,13 @@ export function ErrorBoundary({
     logger.info(`Error Boundary reset [${level}]`);
   }, [level]);
   
+  const FallbackAdapter: React.ComponentType<FallbackProps> = ({ error, resetErrorBoundary }) => (
+    <Fallback error={error} resetError={resetErrorBoundary} />
+  );
+
   return (
     <ReactErrorBoundary
-      FallbackComponent={Fallback as any}
+      FallbackComponent={FallbackAdapter}
       onError={handleError}
       onReset={handleReset}
       resetKeys={resetKeys}
