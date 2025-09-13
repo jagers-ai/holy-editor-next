@@ -2,17 +2,6 @@ module.exports = function (api) {
   api.cache(true);
   return {
     presets: ['babel-preset-expo'],
-    plugins: [
-      [
-        'module-resolver',
-        {
-          alias: {
-            '@core': '../../packages/core/src',
-          },
-          extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
-        },
-      ],
-    ],
+    // Note: Metro handles @core alias via metro.config.js. No extra Babel plugins required.
   };
 };
-

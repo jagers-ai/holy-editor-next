@@ -1,0 +1,16 @@
+{
+  "cli": { "version": ">= 13.0.0" },
+  "build": {
+    "preview": {
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://cpujpqxwrcrzdhiiyucp.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwdWpwcXh3cmNyemRoaWl5dWNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY4OTg4MTEsImV4cCI6MjA3MjQ3NDgxMX0.Klt5u-7lcY_8vJFORoHvvNLYpVSgodRt3wrXFQRjbRY",
+        "EXPO_PUBLIC_API_BASE_URL": "https://holy-editor-next.vercel.app"
+      }
+    },
+    "production": {
+      "android": { "buildType": "app-bundle" }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 {
   "expo": {
+    "owner": "jagers-ai",
     "name": "Holy Editor",
     "slug": "holy-editor",
     "scheme": "holyeditor",
@@ -28,6 +29,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8192efb6-222f-482c-8b90-23add8917248"
+      }
     }
   }
 }

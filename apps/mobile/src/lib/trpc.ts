@@ -1,11 +1,11 @@
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import superjson from 'superjson';
-import type { AppRouter } from '../../../server/api/root'; // type-only
 import { supabase } from './supabase';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL as string; // e.g., https://holy-editor-next.vercel.app
 
-export const trpc = createTRPCProxyClient<AppRouter>({
+// Note: Avoid importing server types in RN bundle; keep client untyped for build stability.
+export const trpc = createTRPCProxyClient<any>({
   transformer: superjson,
   links: [
     httpBatchLink({
@@ -18,4 +18,3 @@ export const trpc = createTRPCProxyClient<AppRouter>({
     }),
   ],
 });
-
