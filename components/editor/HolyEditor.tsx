@@ -22,12 +22,14 @@ interface HolyEditorProps {
 }
 
 export default function HolyEditor({ documentId }: HolyEditorProps) {
-  const { sermonInfo, setSermonInfo, setDocumentId, setEditorContent, setCurrentFolderId } = useEditorContext();
+  const { sermonInfo, setSermonInfo, setDocumentId, setEditorContent, setCurrentFolderId, resetForNewDocument } = useEditorContext();
   const router = useRouter();
   const searchParams = useSearchParams();
   // 로컬 변경/초기 적용 가드(업로드 이미지 사라짐 방지)
   const hasLocalEditsRef = useRef(false);
   const initialContentAppliedRef = useRef(false);
+  // 사용자가 실제로 입력했는지 여부(자동저장 가드)
+  const userInteractedRef = useRef(false);
   
   // tRPC query for loading document
   const { data: document, isLoading } = api.document.getById.useQuery(
@@ -46,7 +48,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
   );
   // 폴더 미선택 가드: 새 문서인데 폴더 미지정이면 폴더 페이지로 유도
   useEffect(() => {
-    if (documentId === 'new' && !folderIdFromQuery) {
+    if (!documentId && !folderIdFromQuery) {
       toast.error('먼저 폴더를 선택해주세요');
       router.push('/folders');
     }
@@ -125,10 +127,11 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     })
   ], []);
 
-  // ⚡ onUpdate 최적화 - 디바운싱 고려
+  // ⚡ onUpdate 최적화 - 사용자 입력 시에만 컨텍스트 반영
   const handleUpdate = useMemo(() => 
     ({ editor }: any) => {
-      hasLocalEditsRef.current = true; // 로컬 편집 발생
+      if (!userInteractedRef.current) return; // 초기 하이드레이션 업데이트 무시
+      hasLocalEditsRef.current = true;
       setEditorContent(editor.getJSON());
     },
     [setEditorContent]
@@ -145,6 +148,25 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       }
     }
   });
+
+  // 에디터 DOM에서 사용자 입력 이벤트를 감지하여 실제 입력임을 표시
+  useEffect(() => {
+    if (!editor) return;
+    const dom = editor.view.dom as HTMLElement;
+    const mark = () => { userInteractedRef.current = true; };
+    dom.addEventListener('keydown', mark);
+    dom.addEventListener('paste', mark);
+    dom.addEventListener('drop', mark);
+    dom.addEventListener('compositionend', mark);
+    dom.addEventListener('input', mark);
+    return () => {
+      dom.removeEventListener('keydown', mark);
+      dom.removeEventListener('paste', mark);
+      dom.removeEventListener('drop', mark);
+      dom.removeEventListener('compositionend', mark);
+      dom.removeEventListener('input', mark);
+    };
+  }, [editor]);
 
   // 문서 불러오기 (DB 우선, localStorage 폴백)
   useEffect(() => {
@@ -202,6 +224,23 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       router.push('/folders');
     }
   }, [editor, documentId, document, isLoading, setSermonInfo, router]);
+
+  // 새 문서 진입 시: 전역 상태 초기화 + 에디터 내용 비우기(초기 업데이트 억제)
+  useEffect(() => {
+    if (!editor) return;
+    if (documentId) return; // 기존 문서인 경우 스킵
+    // 상태 리셋(폴더ID 전달)
+    resetForNewDocument(folderIdFromQuery || undefined);
+    // 에디터를 빈 문서로 설정하되 업데이트 이벤트는 발생시키지 않음
+    try {
+      editor.commands.setContent({ type: 'doc', content: [] } as any, false);
+    } catch {
+      editor.commands.clearContent();
+    }
+    userInteractedRef.current = false;
+    hasLocalEditsRef.current = false;
+    initialContentAppliedRef.current = true;
+  }, [documentId, editor, resetForNewDocument, folderIdFromQuery]);
 
   // 현재 폴더 ID를 Context에 반영
   useEffect(() => {

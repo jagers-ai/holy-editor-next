@@ -18,6 +18,8 @@ interface EditorContextType {
   currentFolderId?: string;
   setCurrentFolderId: (id: string | undefined) => void;
   lastAutoSavedAt?: Date;
+  /** 새 문서 진입 시 상태를 초기화합니다. (dirty/hash/내용/설교정보/문서ID/폴더ID) */
+  resetForNewDocument: (folderId?: string) => void;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -39,11 +41,34 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const lastSavedHashRef = useRef<string | undefined>(undefined);
   const router = useRouter();
   const utils = api.useUtils();
+  // 리셋 중 더티 플래그를 건드리지 않기 위한 가드
+  const resettingRef = useRef(false);
   
   // setEditorContent 래퍼: 더티 플래그 표시
   const setEditorContent = useCallback((content: any) => {
     _setEditorContent(content);
-    dirtyRef.current = true;
+    if (!resettingRef.current) {
+      dirtyRef.current = true;
+    }
+  }, []);
+
+  // 새 문서 진입 시 컨텍스트 상태 초기화
+  const resetForNewDocument = useCallback((folderId?: string) => {
+    try {
+      resettingRef.current = true;
+      // 설교 정보 초기화
+      setSermonInfo({ title: '', pastor: '', verse: '', serviceType: '주일설교' });
+      // 에디터 컨텐츠/플래그 초기화
+      _setEditorContent(null);
+      dirtyRef.current = false;
+      lastSavedHashRef.current = undefined;
+      // 문서ID/폴더ID 초기화
+      setDocumentId(undefined);
+      setCurrentFolderId(folderId);
+      setLastAutoSavedAt(undefined);
+    } finally {
+      resettingRef.current = false;
+    }
   }, []);
   
   // tRPC mutations
@@ -283,6 +308,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         currentFolderId,
         setCurrentFolderId,
         lastAutoSavedAt,
+        resetForNewDocument,
       }}
     >
       {children}
