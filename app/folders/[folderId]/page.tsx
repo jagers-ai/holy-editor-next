@@ -45,9 +45,20 @@ export default function FolderDocumentsPage() {
   const [editColor, setEditColor] = useState<string>('');
 
   // tRPC queries
-  const { data: folder } = api.folder.getById.useQuery({ id: folderId });
-  const { data: folders } = api.folder.list.useQuery();
-  const { data: documentsData, refetch } = api.folder.getDocuments.useQuery({ folderId });
+  const { data: folder, isLoading: isFolderLoading } = api.folder.getById.useQuery(
+    { id: folderId },
+    { staleTime: 30_000, refetchOnMount: false, refetchOnWindowFocus: false }
+  );
+  const { data: folders } = api.folder.list.useQuery(undefined, { staleTime: 60_000 });
+  const { data: documentsData, isLoading: isDocsLoading, isFetching, refetch } = api.folder.getDocuments.useQuery(
+    { folderId },
+    {
+      staleTime: 30_000,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      placeholderData: (prev) => prev,
+    }
+  );
   const documents = documentsData?.documents || [];
 
   // 폴더 수정/삭제 관련 뮤테이션
@@ -193,23 +204,48 @@ export default function FolderDocumentsPage() {
 
   const getPreviewText = (content: any) => {
     try {
-      if (content && content.content) {
-        const texts: string[] = [];
-        const extractText = (node: any) => {
-          if (node.text) texts.push(node.text);
-          if (node.content && Array.isArray(node.content)) {
-            node.content.forEach(extractText);
+      if (!content || !content.content) return '';
+      const texts: string[] = [];
+      let total = 0;
+      const LIMIT = 300; // 최대 300자까지만 추출
+      const extractText = (node: any) => {
+        if (total >= LIMIT) return;
+        if (node.text) {
+          const remaining = LIMIT - total;
+          const slice = (node.text as string).slice(0, remaining);
+          texts.push(slice);
+          total += slice.length;
+        }
+        if (node.content && Array.isArray(node.content)) {
+          for (const child of node.content) {
+            if (total >= LIMIT) break;
+            extractText(child);
           }
-        };
-        extractText(content);
-        const fullText = texts.join(' ').trim();
-        return fullText || '';
-      }
+        }
+      };
+      extractText(content);
+      return texts.join(' ').trim();
     } catch (error) {
       console.error('미리보기 추출 실패:', error);
+      return '';
     }
-    return '';
   };
+
+  const isLoading = isDocsLoading || isFetching;
+  const SkeletonCard = () => (
+    <div className="relative">
+      <div className="animate-pulse">
+        <div className="h-28 rounded-md bg-gray-200 mb-2" />
+        <div className="space-y-1">
+          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-3 bg-gray-200 rounded w-1/2" />
+          <div className="h-3 bg-gray-200 rounded w-2/3" />
+          <div className="h-3 bg-gray-200 rounded w-1/3" />
+          <div className="h-3 bg-gray-200 rounded w-1/4" />
+        </div>
+      </div>
+    </div>
+  );
 
   const isSelectionMode = selectedDocs.length > 0;
 
@@ -224,11 +260,20 @@ export default function FolderDocumentsPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <span>{folder?.icon}</span>
-            <span>{folder?.name}</span>
-          </h1>
-          <p className="text-sm text-gray-500">{documents.length}개 문서</p>
+          {isFolderLoading ? (
+            <div className="animate-pulse">
+              <div className="h-6 w-40 bg-gray-200 rounded mb-1" />
+              <div className="h-4 w-24 bg-gray-200 rounded" />
+            </div>
+          ) : (
+            <>
+              <h1 className="text-xl font-bold flex items-center gap-2">
+                <span>{folder?.icon}</span>
+                <span>{folder?.name}</span>
+              </h1>
+              <p className="text-sm text-gray-500">{documents.length}개 문서</p>
+            </>
+          )}
         </div>
         <div className="ml-auto flex items-center gap-1">
           <Button size="sm" variant="ghost" onClick={openEdit} aria-label="폴더 수정">
@@ -257,7 +302,13 @@ export default function FolderDocumentsPage() {
       )}
 
       {/* 문서 목록 */}
-      {documents.length === 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-3 gap-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      ) : documents.length === 0 ? (
         <Card className="text-center py-12">
           <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           <p className="text-lg mb-4">이 폴더에 문서가 없습니다</p>
@@ -266,7 +317,7 @@ export default function FolderDocumentsPage() {
       ) : (
         <div className="grid grid-cols-3 gap-2">
           {documents.map((doc) => {
-            const contentObj = typeof doc.content === 'object' && doc.content !== null ? doc.content as any : {};
+            const contentObj = typeof doc.content === 'object' && doc.content !== null ? (doc.content as any) : {};
             const sermonInfo = contentObj.sermonInfo;
             const title = sermonInfo?.title || doc.title || '제목 없음';
             const previewText = getPreviewText(doc.content);

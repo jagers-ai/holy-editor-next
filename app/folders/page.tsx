@@ -20,6 +20,7 @@ import { FolderCard } from '../../components/folders/FolderCard';
 
 export default function FoldersPage() {
   const router = useRouter();
+  const utils = api.useUtils();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('📁');
@@ -106,6 +107,11 @@ export default function FoldersPage() {
           {folders.map((folder, idx) => {
             const accents = ['bg-yellow-400','bg-red-400','bg-blue-400','bg-emerald-400'];
             const accentClass = accents[idx % accents.length];
+            const prefetchFolder = () => {
+              try { router.prefetch(`/folders/${folder.id}`); } catch {}
+              void utils.folder.getById.prefetch({ id: folder.id });
+              void utils.folder.getDocuments.prefetch({ folderId: folder.id });
+            };
             return (
               <FolderCard
                 key={folder.id}
@@ -113,6 +119,7 @@ export default function FoldersPage() {
                 count={folder.documentCount}
                 icon={folder.icon || '📁'}
                 href={`/folders/${folder.id}`}
+                onPrefetch={prefetchFolder}
                 accentClass={accentClass}
               />
             );

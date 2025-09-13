@@ -9,16 +9,19 @@ type FolderCardProps = {
   icon?: string;
   href?: string;
   onClick?: () => void;
+  onPrefetch?: () => void;
   className?: string;
   accentClass?: string; // tailwind bg-* 클래스 (예: 'bg-yellow-400')
 };
 
-export function FolderCard({ name, count, icon = '📁', href, onClick, className = '', accentClass = 'bg-yellow-400' }: FolderCardProps) {
+export function FolderCard({ name, count, icon = '📁', href, onClick, onPrefetch, className = '', accentClass = 'bg-yellow-400' }: FolderCardProps) {
   const content = (
     <div
       role="button"
       aria-label={`폴더 ${name}, ${count}개`}
       onClick={onClick}
+      onMouseEnter={onPrefetch}
+      onTouchStart={onPrefetch}
       className={[
         'relative rounded-2xl bg-white shadow-md h-[120px] hover:shadow-lg',
         'active:scale-95 transition transform-gpu overflow-visible select-none touch-manipulation',
@@ -47,7 +50,7 @@ export function FolderCard({ name, count, icon = '📁', href, onClick, classNam
 
   if (href) {
     return (
-      <Link href={href} className="block" prefetch={false}>
+      <Link href={href} className="block">
         {content}
       </Link>
     );
@@ -56,4 +59,3 @@ export function FolderCard({ name, count, icon = '📁', href, onClick, classNam
 }
 
 export default FolderCard;
-
