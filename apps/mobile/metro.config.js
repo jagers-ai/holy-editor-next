@@ -6,11 +6,12 @@ const workspaceRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// Watch the monorepo root and packages
-config.watchFolders = [workspaceRoot];
+// Extend (not replace) Expo defaults
+config.watchFolders = [...(config.watchFolders || []), workspaceRoot];
 
-// Ensure metro resolves modules from the monorepo root
+// Ensure metro resolves modules from both app and workspace node_modules
 config.resolver.nodeModulesPaths = [
+  ...(config.resolver?.nodeModulesPaths || []),
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(workspaceRoot, 'node_modules'),
 ];
@@ -22,4 +23,3 @@ config.resolver.alias = {
 };
 
 module.exports = config;
-
