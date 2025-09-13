@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SermonInfo } from '@/components/editor/SermonInfoSection';
 import { api } from '@/utils/api';
 import toast from 'react-hot-toast';
+import { attachSermonInfo } from '@/lib/editor/content';
 
 interface EditorContextType {
   sermonInfo: SermonInfo;
@@ -120,15 +121,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       // content JSON 안에 sermonInfo를 병합 저장하여
       // 목록/상세에서 바로 읽을 수 있게 함
       const emptyDoc = { type: 'doc', content: [] as any[] };
-      const contentWithMeta = {
-        ...(editorContent || emptyDoc),
-        sermonInfo: {
-          title: sermonInfo.title,
-          pastor: sermonInfo.pastor,
-          verse: sermonInfo.verse,
-          serviceType: sermonInfo.serviceType,
-        },
-      };
+      const contentWithMeta = attachSermonInfo(editorContent || emptyDoc, sermonInfo);
 
       const documentData: any = {
         title: sermonInfo.title || '제목 없음',
@@ -219,15 +212,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     autoSavingRef.current = true;
     try {
       const emptyDoc = { type: 'doc', content: [] as any[] };
-      const contentWithMeta = {
-        ...(editorContent || emptyDoc),
-        sermonInfo: {
-          title: sermonInfo.title,
-          pastor: sermonInfo.pastor,
-          verse: sermonInfo.verse,
-          serviceType: sermonInfo.serviceType,
-        },
-      };
+      const contentWithMeta = attachSermonInfo(editorContent || emptyDoc, sermonInfo);
       const data: any = {
         title: sermonInfo.title || '제목 없음',
         content: contentWithMeta,

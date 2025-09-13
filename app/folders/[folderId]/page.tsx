@@ -27,6 +27,10 @@ import {
 import { FileText, Trash2, Plus, Share2, FolderOpen, ArrowLeft, MoveRight, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/utils/api';
+import { extractPlainTextFromTiptap } from '@/lib/domain/preview';
+import { formatDateTimeKST } from '@/lib/domain/date';
+import DocumentGridSkeleton from '@/components/skeleton/DocumentGridSkeleton';
+import FolderHeaderSkeleton from '@/components/skeleton/FolderHeaderSkeleton';
 
 export default function FolderDocumentsPage() {
   const router = useRouter();
@@ -171,65 +175,9 @@ export default function FolderDocumentsPage() {
     setShowEditModal(true);
   };
 
-  const formatDate = (dateString: string | Date) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR');
-  };
+  // 날짜 포맷은 lib/domain/date 사용
 
-  const formatDateTime = (dateString: string | Date) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('ko-KR');
-  };
-
-  // KST(Asia/Seoul) 고정, YYMMDD-HHmm 포맷
-  const formatDateTimeKST = (dateString: string | Date) => {
-    const d = new Date(dateString);
-    const parts = new Intl.DateTimeFormat('ko-KR', {
-      timeZone: 'Asia/Seoul',
-      year: '2-digit',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    }).formatToParts(d);
-    const get = (type: string) => parts.find(p => p.type === type)?.value ?? '';
-    const y = get('year');
-    const m = get('month');
-    const day = get('day');
-    const hh = get('hour');
-    const mm = get('minute');
-    return `${y}${m}${day}-${hh}${mm}`;
-  };
-
-  const getPreviewText = (content: any) => {
-    try {
-      if (!content || !content.content) return '';
-      const texts: string[] = [];
-      let total = 0;
-      const LIMIT = 300; // 최대 300자까지만 추출
-      const extractText = (node: any) => {
-        if (total >= LIMIT) return;
-        if (node.text) {
-          const remaining = LIMIT - total;
-          const slice = (node.text as string).slice(0, remaining);
-          texts.push(slice);
-          total += slice.length;
-        }
-        if (node.content && Array.isArray(node.content)) {
-          for (const child of node.content) {
-            if (total >= LIMIT) break;
-            extractText(child);
-          }
-        }
-      };
-      extractText(content);
-      return texts.join(' ').trim();
-    } catch (error) {
-      console.error('미리보기 추출 실패:', error);
-      return '';
-    }
-  };
+  const getPreviewText = (content: any) => extractPlainTextFromTiptap(content, { limit: 300 });
 
   const isLoading = isDocsLoading || isFetching;
   const SkeletonCard = () => (
@@ -261,10 +209,7 @@ export default function FolderDocumentsPage() {
         </button>
         <div>
           {isFolderLoading ? (
-            <div className="animate-pulse">
-              <div className="h-6 w-40 bg-gray-200 rounded mb-1" />
-              <div className="h-4 w-24 bg-gray-200 rounded" />
-            </div>
+            <FolderHeaderSkeleton />
           ) : (
             <>
               <h1 className="text-xl font-bold flex items-center gap-2">
@@ -303,11 +248,7 @@ export default function FolderDocumentsPage() {
 
       {/* 문서 목록 */}
       {isLoading ? (
-        <div className="grid grid-cols-3 gap-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
+        <DocumentGridSkeleton count={6} />
       ) : documents.length === 0 ? (
         <Card className="text-center py-12">
           <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />

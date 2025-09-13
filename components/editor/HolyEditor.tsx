@@ -16,6 +16,8 @@ import type { SermonInfo } from './SermonInfoSection';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { api } from '@/utils/api';
 import toast from 'react-hot-toast';
+import { normalizeServiceType } from '@/lib/domain/sermon';
+import { bindUserInteraction } from '@/lib/editor/userInteraction';
 
 interface HolyEditorProps {
   documentId?: string;
@@ -153,19 +155,8 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
   useEffect(() => {
     if (!editor) return;
     const dom = editor.view.dom as HTMLElement;
-    const mark = () => { userInteractedRef.current = true; };
-    dom.addEventListener('keydown', mark);
-    dom.addEventListener('paste', mark);
-    dom.addEventListener('drop', mark);
-    dom.addEventListener('compositionend', mark);
-    dom.addEventListener('input', mark);
-    return () => {
-      dom.removeEventListener('keydown', mark);
-      dom.removeEventListener('paste', mark);
-      dom.removeEventListener('drop', mark);
-      dom.removeEventListener('compositionend', mark);
-      dom.removeEventListener('input', mark);
-    };
+    const unbind = bindUserInteraction(dom, () => { userInteractedRef.current = true; });
+    return () => { unbind(); };
   }, [editor]);
 
   // 문서 불러오기 (DB 우선, localStorage 폴백)
@@ -175,23 +166,6 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     
     // DB에서 문서 로드 성공
     if (document) {
-      // 과거 인코딩 오류로 저장된 serviceType 정규화
-      type ServiceType = SermonInfo['serviceType'];
-      const allowed: ServiceType[] = ['주일설교','수요예배','금요예배','새벽예배','청년예배','큐티','기타'];
-      const normalizeServiceType = (raw: any): ServiceType | undefined => {
-        if (typeof raw !== 'string') return undefined;
-        const map: Record<string, ServiceType> = {
-          '���ϼ���': '주일설교',
-          '�����⵵': '수요예배',
-          '�ݿ�⵵': '금요예배',
-          '����⵵': '새벽예배',
-          '����ȸ': '청년예배',
-          '��Ÿ': '기타',
-        };
-        if (map[raw]) return map[raw];
-        if ((allowed as readonly string[]).includes(raw)) return raw as ServiceType;
-        return '기타';
-      };
       // 설교정보 복원
       const contentObj = typeof document.content === 'object' && document.content !== null 
         ? document.content as any 
@@ -201,7 +175,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
         title: document.title || sermonData.title || '',
         pastor: sermonData.pastor || '',
         verse: sermonData.verse || '',
-        serviceType: normalizeServiceType(sermonData.serviceType) || '주일설교'
+        serviceType: (normalizeServiceType(sermonData.serviceType) as SermonInfo['serviceType']) || '주일설교'
       });
       
       // editor content 설정: 로컬 편집이 없고, 아직 초기 적용 전일 때만 1회 적용

@@ -16,6 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
 import { api } from '@/utils/api';
+import { prefetchFolder } from '@/lib/api/prefetch';
+import { asRouterPort } from '@/adapters/web/router';
 import { FolderCard } from '../../components/folders/FolderCard';
 
 export default function FoldersPage() {
@@ -107,11 +109,8 @@ export default function FoldersPage() {
           {folders.map((folder, idx) => {
             const accents = ['bg-yellow-400','bg-red-400','bg-blue-400','bg-emerald-400'];
             const accentClass = accents[idx % accents.length];
-            const prefetchFolder = () => {
-              // 라우트 코드와 데이터를 미리 불러 체감 속도 향상
-              router.prefetch(`/folders/${folder.id}`);
-              void utils.folder.getById.prefetch({ id: folder.id });
-              void utils.folder.getDocuments.prefetch({ folderId: folder.id });
+            const doPrefetch = () => {
+              void prefetchFolder(asRouterPort(router), utils, folder.id);
             };
             return (
               <FolderCard
@@ -120,7 +119,7 @@ export default function FoldersPage() {
                 count={folder.documentCount}
                 icon={folder.icon || '📁'}
                 href={`/folders/${folder.id}`}
-                onPrefetch={prefetchFolder}
+                onPrefetch={doPrefetch}
                 accentClass={accentClass}
               />
             );
