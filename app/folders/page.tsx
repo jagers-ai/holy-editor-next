@@ -108,7 +108,8 @@ export default function FoldersPage() {
             const accents = ['bg-yellow-400','bg-red-400','bg-blue-400','bg-emerald-400'];
             const accentClass = accents[idx % accents.length];
             const prefetchFolder = () => {
-              try { router.prefetch(`/folders/${folder.id}`); } catch {}
+              // 라우트 코드와 데이터를 미리 불러 체감 속도 향상
+              router.prefetch(`/folders/${folder.id}`);
               void utils.folder.getById.prefetch({ id: folder.id });
               void utils.folder.getDocuments.prefetch({ folderId: folder.id });
             };
