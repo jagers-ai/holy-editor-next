@@ -233,7 +233,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     resetForNewDocument(folderIdFromQuery || undefined);
     // 에디터를 빈 문서로 설정하되 업데이트 이벤트는 발생시키지 않음
     try {
-      editor.commands.setContent({ type: 'doc', content: [] } as any, false);
+      editor.commands.setContent({ type: 'doc', content: [] } as any, { emitUpdate: false });
     } catch {
       editor.commands.clearContent();
     }
