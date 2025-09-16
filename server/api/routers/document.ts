@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
 import { TRPCError } from '@trpc/server';
+import { Prisma } from '@prisma/client';
 
 const FRESH_REVISION_LIFETIME_DAYS = 7;
 
@@ -67,6 +68,15 @@ const pruneOldRevisions = async (prisma: any, documentId: string) => {
   });
 };
 
+const toRevisionContent = (
+  value: Prisma.JsonValue | null | undefined
+): typeof Prisma.JsonNull | Prisma.InputJsonValue => {
+  if (value === null || value === undefined) {
+    return Prisma.JsonNull;
+  }
+  return value as unknown as Prisma.InputJsonValue;
+};
+
 // Document 입력 스키마
 const documentInputSchema = z.object({
   title: z.string().min(1, '제목은 필수입니다'),
@@ -101,7 +111,7 @@ export const documentRouter = createTRPCRouter({
         data: {
           documentId: document.id,
           userId: ctx.user.id,
-          content: document.content,
+          content: toRevisionContent(document.content),
         },
       });
       await pruneOldRevisions(ctx.prisma, document.id);
@@ -243,7 +253,7 @@ export const documentRouter = createTRPCRouter({
           data: {
             documentId: document.id,
             userId: ctx.user.id,
-            content: document.content,
+            content: toRevisionContent(document.content),
           },
         });
         await pruneOldRevisions(ctx.prisma, document.id);
@@ -310,7 +320,7 @@ export const documentRouter = createTRPCRouter({
         data: {
           documentId: document.id,
           userId: ctx.user.id,
-          content: document.content,
+          content: toRevisionContent(document.content),
         },
       });
       await pruneOldRevisions(ctx.prisma, document.id);
@@ -318,7 +328,7 @@ export const documentRouter = createTRPCRouter({
       const restored = await ctx.prisma.document.update({
         where: { id: input.documentId },
         data: {
-          content: revision.content,
+          content: toRevisionContent(revision.content),
         },
       });
 
