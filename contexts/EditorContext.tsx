@@ -234,12 +234,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
           currentFolderId ? utils.folder?.getDocuments?.invalidate({ folderId: currentFolderId }) : Promise.resolve(),
         ]);
       } catch {}
-      // 저장 후 이동: 폴더 우선
-      if (currentFolderId) {
-        router.push(`/folders/${currentFolderId}`);
-      } else {
-        router.push('/folders');
-      }
+      // 저장 후 문서 목록으로 이동
+      router.push('/documents');
       router.refresh();
     } catch (error) {
       console.error('저장 실패:', error);

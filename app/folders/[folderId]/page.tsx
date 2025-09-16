@@ -187,7 +187,7 @@ export default function FolderDocumentsPage() {
       {/* 헤더 */}
       <div className="mb-4 flex items-center gap-2">
         <button
-          onClick={() => router.push('/folders')}
+          onClick={() => router.push('/documents')}
           className="p-2 hover:bg-gray-100 rounded-full"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -485,7 +485,7 @@ export default function FolderDocumentsPage() {
                 <Button variant="destructive" onClick={async () => {
                   await deleteFolder.mutateAsync({ id: folderId });
                   setShowDeleteModal(false);
-                  router.push('/folders');
+                  router.push('/documents');
                 }}>삭제</Button>
               </div>
             </div>
@@ -502,7 +502,7 @@ export default function FolderDocumentsPage() {
                     await deleteFolder.mutateAsync({ id: folderId });
                     setShowDeleteModal(false);
                     toast.success('미분류로 이동 후 폴더를 삭제했습니다');
-                    router.push('/folders');
+                    router.push('/documents');
                   }}
                 >
                   미분류로 모두 이동 후 삭제
@@ -519,7 +519,7 @@ export default function FolderDocumentsPage() {
                           await deleteFolder.mutateAsync({ id: folderId });
                           setShowDeleteModal(false);
                           toast.success(`${f.name}로 이동 후 폴더를 삭제했습니다`);
-                          router.push('/folders');
+                          router.push('/documents');
                         }}
                         className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center justify-between"
                       >

@@ -57,7 +57,7 @@ export async function updateSession(request: NextRequest) {
 
   // 로그인한 사용자가 로그인/회원가입 페이지에 접근하려고 할 때
   if (isAuthPath && user) {
-    return NextResponse.redirect(new URL('/folders', request.url));
+    return NextResponse.redirect(new URL('/documents', request.url));
   }
 
   return supabaseResponse;

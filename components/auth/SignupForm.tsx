@@ -62,7 +62,7 @@ export function SignupForm() {
           setError('이메일을 확인하여 계정을 활성화해주세요.');
         } else {
           // 바로 로그인 가능한 경우
-          router.push('/folders');
+          router.push('/documents');
           router.refresh();
         }
       }

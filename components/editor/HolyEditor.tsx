@@ -158,7 +158,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       if (!hasLocalEditsRef.current) {
         leavingRef.current = true;
         window.removeEventListener('popstate', onPopState);
-        router.push('/folders');
+        router.push('/documents');
         return;
       }
 
@@ -177,7 +177,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
           }
         })();
       } else {
-        router.push('/folders');
+        router.push('/documents');
       }
     };
 
@@ -202,7 +202,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
   useEffect(() => {
     if (!documentId && !folderIdFromQuery) {
       toast.error('먼저 폴더를 선택해주세요');
-      router.push('/folders');
+      router.push('/documents');
     }
   }, [documentId, folderIdFromQuery, router]);
 
@@ -350,7 +350,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     // DB에서 못 찾고, 로딩도 끝났으면 문서가 없는 것
     if (!isLoading && !document) {
       console.error('문서를 찾을 수 없습니다');
-      router.push('/folders');
+      router.push('/documents');
     }
   }, [editor, documentId, document, isLoading, setSermonInfo, setEditorContent, syncServerHash, markClean, router]);
 
