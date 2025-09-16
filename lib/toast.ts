@@ -3,7 +3,7 @@
  * react-hot-toast를 래핑하여 일관된 알림 인터페이스 제공
  */
 
-import toast from 'react-hot-toast';
+import toast, { type Renderable, type Toast as HotToast } from 'react-hot-toast';
 import type { AppError } from '@/lib/errors/types';
 import { getUserMessage } from '@/lib/errors/types';
 import { logger } from '@/lib/logger';
@@ -171,7 +171,7 @@ export class ToastManager {
     messages: {
       loading: string;
       success: string | ((data: T) => string);
-      error: string | ((error: any) => string);
+      error: string | ((error: unknown) => string);
     },
     options?: ToastOptions
   ): Promise<T> {
@@ -206,10 +206,10 @@ export class ToastManager {
    * 커스텀 토스트 표시
    */
   static showCustom(
-    content: React.ReactNode,
+    content: Renderable | ((t: HotToast) => Renderable),
     options?: ToastOptions & { style?: React.CSSProperties }
   ): string {
-    return toast.custom(content as any, {
+    return toast.custom(content, {
       duration: options?.duration || 4000,
       position: options?.position || 'top-right',
       className: options?.className,

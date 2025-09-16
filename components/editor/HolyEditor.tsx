@@ -1,6 +1,7 @@
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, type Editor as TiptapEditor } from '@tiptap/react';
+import type { JSONContent } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -18,6 +19,41 @@ import { api } from '@/utils/api';
 import toast from 'react-hot-toast';
 import { normalizeServiceType } from '@/lib/domain/sermon';
 import { bindUserInteraction } from '@/lib/editor/userInteraction';
+
+type TRPCErrorPayload = {
+  data?: {
+    code?: string;
+  };
+};
+
+const EMPTY_DOC: JSONContent = { type: 'doc', content: [] };
+
+const getErrorCode = (error: unknown): string | undefined => {
+  if (!error || typeof error !== 'object') return undefined;
+  const payload = error as TRPCErrorPayload;
+  const code = payload.data?.code;
+  return typeof code === 'string' ? code : undefined;
+};
+
+const toJsonContent = (value: unknown): JSONContent => {
+  if (value && typeof value === 'object') {
+    return value as JSONContent;
+  }
+  return EMPTY_DOC;
+};
+
+const extractSermonInfo = (value: unknown): Partial<SermonInfo> => {
+  if (!value || typeof value !== 'object') return {};
+  const root = value as { sermonInfo?: unknown };
+  if (!root.sermonInfo || typeof root.sermonInfo !== 'object') return {};
+  const info = root.sermonInfo as Record<string, unknown>;
+  return {
+    title: typeof info.title === 'string' ? info.title : undefined,
+    pastor: typeof info.pastor === 'string' ? info.pastor : undefined,
+    verse: typeof info.verse === 'string' ? info.verse : undefined,
+    serviceType: typeof info.serviceType === 'string' ? (normalizeServiceType(info.serviceType) as SermonInfo['serviceType']) : undefined,
+  };
+};
 
 interface HolyEditorProps {
   documentId?: string;
@@ -47,7 +83,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
   );
   // 새 문서의 경우 URL 쿼리에서 폴더ID 획득
   const folderIdFromQuery = searchParams?.get('folderId') || undefined;
-  const activeFolderId = (documentId && documentId !== 'new') ? (document as any)?.folderId : folderIdFromQuery;
+  const activeFolderId = documentId && documentId !== 'new' ? document?.folderId ?? undefined : folderIdFromQuery;
   const { data: activeFolder } = api.folder.getById.useQuery(
     { id: activeFolderId as string },
     { enabled: !!activeFolderId }
@@ -64,19 +100,20 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       await refetchRevisions();
       if (data?.content && editor) {
         try {
-          editor.commands.setContent(data.content as any, { emitUpdate: false });
+          const contentJson = toJsonContent(data.content);
+          editor.commands.setContent(contentJson, { emitUpdate: false });
           hasLocalEditsRef.current = false;
           initialContentAppliedRef.current = true;
           userInteractedRef.current = false;
-          setEditorContent(data.content as any);
-          const sermonData = (data.content as any)?.sermonInfo || {};
+          setEditorContent(contentJson);
+          const sermonData = extractSermonInfo(contentJson);
           setSermonInfo({
             title: data.title || sermonData.title || '',
             pastor: sermonData.pastor || '',
             verse: sermonData.verse || '',
-            serviceType: (normalizeServiceType(sermonData.serviceType) as SermonInfo['serviceType']) || '주일설교'
+            serviceType: sermonData.serviceType || '주일설교'
           });
-          syncServerHash(data.content);
+          syncServerHash(contentJson);
           markClean();
         } catch (err) {
           console.error('복원 콘텐츠 적용 실패:', err);
@@ -88,7 +125,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     },
     onError: (error) => {
       console.error('리비전 복원 실패:', error);
-      const code = (error as any)?.data?.code;
+      const code = getErrorCode(error);
       if (code === 'UNAUTHORIZED') {
         toast.error('로그인이 필요합니다');
         router.push('/login');
@@ -249,8 +286,8 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
   ], []);
 
   // ⚡ onUpdate 최적화 - 사용자 입력 시에만 컨텍스트 반영
-  const handleUpdate = useMemo(() => 
-    ({ editor }: any) => {
+  const handleUpdate = useMemo(() =>
+    ({ editor }: { editor: TiptapEditor }) => {
       if (!userInteractedRef.current) return; // 초기 하이드레이션 업데이트 무시
       hasLocalEditsRef.current = true;
       setEditorContent(editor.getJSON());
@@ -285,34 +322,26 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     
     // DB에서 문서 로드 성공
     if (document) {
-      // 설교정보 복원
-      const contentObj = typeof document.content === 'object' && document.content !== null 
-        ? document.content as any 
-        : {};
-      const sermonData = contentObj.sermonInfo || {};
+      const hasContent = typeof document.content === 'object' && document.content !== null;
+      const sermonData = hasContent ? extractSermonInfo(document.content) : {};
       setSermonInfo({
         title: document.title || sermonData.title || '',
         pastor: sermonData.pastor || '',
         verse: sermonData.verse || '',
-        serviceType: (normalizeServiceType(sermonData.serviceType) as SermonInfo['serviceType']) || '주일설교'
+        serviceType: sermonData.serviceType || '주일설교'
       });
-      if (document.content && typeof document.content === 'object') {
-        setEditorContent(document.content as any);
-        syncServerHash(document.content as any);
+
+      if (hasContent) {
+        const contentJson = toJsonContent(document.content);
+        setEditorContent(contentJson);
+        syncServerHash(contentJson);
         if (!hasLocalEditsRef.current) {
           markClean();
         }
-      }
-      
-      // editor content 설정: 로컬 편집이 없고, 아직 초기 적용 전일 때만 1회 적용
-      if (
-        document.content &&
-        typeof document.content === 'object' &&
-        !hasLocalEditsRef.current &&
-        !initialContentAppliedRef.current
-      ) {
-        editor.commands.setContent(document.content as any);
-        initialContentAppliedRef.current = true;
+        if (!hasLocalEditsRef.current && !initialContentAppliedRef.current) {
+          editor.commands.setContent(contentJson);
+          initialContentAppliedRef.current = true;
+        }
       }
       console.log('문서를 데이터베이스에서 불러왔습니다');
       return;
@@ -333,7 +362,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     resetForNewDocument(folderIdFromQuery || undefined);
     // 에디터를 빈 문서로 설정하되 업데이트 이벤트는 발생시키지 않음
     try {
-      editor.commands.setContent({ type: 'doc', content: [] } as any, { emitUpdate: false });
+      editor.commands.setContent(EMPTY_DOC, { emitUpdate: false });
     } catch {
       editor.commands.clearContent();
     }
@@ -398,7 +427,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
                     <div key={rev.id} className="flex items-center justify-between rounded border px-3 py-2">
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{formatted}</span>
-                        <span className="text-[11px] text-gray-500">저장자: {rev.userId ? (rev.userId === (document as any)?.userId ? '나' : rev.userId.slice(0, 8) + '…') : '알 수 없음'}</span>
+                        <span className="text-[11px] text-gray-500">저장자: {rev.userId ? (rev.userId === document?.userId ? '나' : `${rev.userId.slice(0, 8)}…`) : '알 수 없음'}</span>
                       </div>
                       <button
                         type="button"

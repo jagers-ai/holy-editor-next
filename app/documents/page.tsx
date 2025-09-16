@@ -16,6 +16,19 @@ import { DocumentListItem } from '@/components/documents/DocumentListItem';
 
 const DOCUMENT_PAGE_LIMIT = 50;
 
+type TRPCErrorPayload = {
+  data?: {
+    code?: string;
+  };
+};
+
+const getErrorCode = (error: unknown): string | undefined => {
+  if (!error || typeof error !== 'object') return undefined;
+  const payload = error as TRPCErrorPayload;
+  const code = payload.data?.code;
+  return typeof code === 'string' ? code : undefined;
+};
+
 export default function DocumentsPage() {
   const router = useRouter();
   const [managerOpen, setManagerOpen] = useState(false);
@@ -143,7 +156,7 @@ export default function DocumentsPage() {
         <Card className="text-center py-12">
           <CardContent className="space-y-3">
             <p className="text-destructive">
-              {(documentsQuery.error as any)?.data?.code === 'UNAUTHORIZED'
+              {getErrorCode(documentsQuery.error) === 'UNAUTHORIZED'
                 ? '로그인이 필요합니다.'
                 : '문서 목록을 불러오지 못했습니다.'}
             </p>

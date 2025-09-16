@@ -19,7 +19,15 @@ function isOldIOS(): boolean {
   const ua = navigator.userAgent || '';
   const iOS = /iP(hone|od|ad)/.test(ua);
   // 너무 보수적으로 잡지 않고 포맷 폴백만 처리
-  return iOS && !('image/webp' in (document.createElement('canvas') as any));
+  if (!iOS) return false;
+  try {
+    const canvas = document.createElement('canvas');
+    if (typeof canvas.toDataURL !== 'function') return true;
+    const dataUrl = canvas.toDataURL('image/webp');
+    return !dataUrl.startsWith('data:image/webp');
+  } catch {
+    return true;
+  }
 }
 
 async function loadBitmap(file: Blob): Promise<{ bitmap: ImageBitmap; w: number; h: number }> {
@@ -77,7 +85,6 @@ export async function compressToUnder(input: Blob, opts?: CompressOptions): Prom
         return { blob: b, width: w, height: h, iterations, mime };
       }
       // 프레임 양보(UX 부드럽게)
-      // eslint-disable-next-line no-await-in-loop
       await new Promise((r) => setTimeout(r, 0));
     }
   }
@@ -88,4 +95,3 @@ export async function compressToUnder(input: Blob, opts?: CompressOptions): Prom
   }
   return null;
 }
-

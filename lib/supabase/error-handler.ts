@@ -200,25 +200,32 @@ export class SupabaseErrorHandler {
   /**
    * 재시도 가능 여부 판단
    */
-  static isRetryable(error: AuthError | PostgrestError | any): boolean {
+  static isRetryable(error: AuthError | PostgrestError | unknown): boolean {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+    const message = 'message' in error && typeof (error as { message?: string }).message === 'string'
+      ? (error as { message: string }).message
+      : '';
+
     // Rate limit 에러는 재시도 가능
-    if (error.message?.includes('rate_limit')) {
+    if (message.includes('rate_limit')) {
       return true;
     }
     
     // 네트워크 에러는 재시도 가능
-    if (error.message?.includes('network') || error.message?.includes('fetch')) {
+    if (message.includes('network') || message.includes('fetch')) {
       return true;
     }
     
     // 타임아웃은 재시도 가능
-    if (error.message?.includes('timeout')) {
+    if (message.includes('timeout')) {
       return true;
     }
     
     // 특정 데이터베이스 에러는 재시도 불가
     const nonRetryableCodes = ['23505', '23503', '23502', '42501'];
-    if ('code' in error && nonRetryableCodes.includes(error.code)) {
+    if ('code' in error && typeof (error as { code?: string }).code === 'string' && nonRetryableCodes.includes((error as { code: string }).code)) {
       return false;
     }
     
@@ -258,7 +265,7 @@ export class SupabaseErrorHandler {
    * Supabase 작업 래퍼 (자동 에러 처리)
    */
   static async wrapSupabaseCall<T>(
-    fn: () => Promise<{ data: T | null; error: any }>,
+    fn: () => Promise<{ data: T | null; error: AuthError | PostgrestError | null }>,
     context?: string,
     options?: {
       retry?: boolean;
@@ -268,7 +275,7 @@ export class SupabaseErrorHandler {
   ): Promise<T | null> {
     const { retry = true, maxAttempts = 3, showToast = true } = options || {};
     
-    let lastError: any = null;
+    let lastError: unknown = null;
     
     for (let attempt = 1; attempt <= (retry ? maxAttempts : 1); attempt++) {
       try {
@@ -302,7 +309,7 @@ export class SupabaseErrorHandler {
     }
     
     // 모든 시도 실패
-    if (lastError) {
+    if (lastError && typeof lastError === 'object') {
       if ('status' in lastError && 'message' in lastError) {
         this.handleAuthError(lastError as AuthError, context, showToast);
       } else {

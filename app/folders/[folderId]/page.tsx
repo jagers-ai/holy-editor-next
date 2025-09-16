@@ -170,7 +170,8 @@ export default function FolderDocumentsPage() {
   // 편집 모달 열기 시 기본값 세팅
   const openEdit = () => {
     setEditName(folder?.name || '');
-    setEditIcon((folder?.icon as any) || '📁');
+    const icon = typeof folder?.icon === 'string' && folder.icon.trim().length > 0 ? folder.icon : '📁';
+    setEditIcon(icon);
     setEditColor(folder?.color || '');
     setShowEditModal(true);
   };

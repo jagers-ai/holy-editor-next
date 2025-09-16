@@ -5,11 +5,52 @@ import { generateHTML } from '@tiptap/html';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
 import Image from '@tiptap/extension-image';
+import type { JSONContent } from '@tiptap/core';
 import { BibleVerseExtension } from '@/components/editor/extensions/BibleVerseExtension';
 
 interface ReadOnlyRendererProps {
-  content: any; // Tiptap JSON (메타 포함 가능)
+  content: unknown; // TipTap JSON (메타 포함 가능)
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const toDocOnly = (raw: unknown): JSONContent => {
+  if (!isRecord(raw)) {
+    return { type: 'doc', content: [] };
+  }
+  const type = typeof raw.type === 'string' ? raw.type : undefined;
+  const contentArr = Array.isArray(raw.content) ? raw.content : [];
+  if (type === 'doc') {
+    return { type: 'doc', content: contentArr as JSONContent['content'] };
+  }
+  if (contentArr.length > 0) {
+    return { type: 'doc', content: contentArr as JSONContent['content'] };
+  }
+  return { type: 'doc', content: [] };
+};
+
+const toPlainText = (node: unknown): string => {
+  const output: string[] = [];
+  const walk = (value: unknown) => {
+    if (!isRecord(value)) return;
+    const text = typeof value.text === 'string' ? value.text : '';
+    if (text) {
+      output.push(text);
+    }
+    const children = Array.isArray(value.content) ? value.content : [];
+    children.forEach(walk);
+    if (value.type === 'paragraph') {
+      output.push('\n\n');
+    }
+  };
+  try {
+    walk(node);
+    return output.join('').trim();
+  } catch {
+    return '';
+  }
+};
 
 /**
  * TipTap JSON을 SSR/CSR 가벼운 HTML로 렌더하는 컴포넌트
@@ -18,37 +59,9 @@ interface ReadOnlyRendererProps {
  */
 export default function ReadOnlyRenderer({ content }: ReadOnlyRendererProps) {
   const { html, fallbackText } = useMemo(() => {
-    // TipTap doc 전용으로 정제 (sermonInfo 등 메타 제거)
-    const toDocOnly = (raw: any) => {
-      if (raw && typeof raw === 'object') {
-        const type = (raw as any).type;
-        const contentArr = Array.isArray((raw as any).content) ? (raw as any).content : [];
-        if (type === 'doc') return { type: 'doc', content: contentArr };
-        // type이 없더라도 content만 있으면 doc로 감싸기
-        if (contentArr.length) return { type: 'doc', content: contentArr };
-      }
-      return { type: 'doc', content: [] };
-    };
-
-    const toPlainText = (node: any): string => {
-      try {
-        let out = '';
-        const walk = (n: any) => {
-          if (!n || typeof n !== 'object') return;
-          if (typeof n.text === 'string') out += n.text;
-          if (Array.isArray(n.content)) n.content.forEach(walk);
-          if (n.type === 'paragraph') out += '\n\n';
-        };
-        walk(node);
-        return out.trim();
-      } catch {
-        return '';
-      }
-    };
-
     try {
       const safeContent = toDocOnly(content);
-      const html = generateHTML(safeContent as any, [
+      const html = generateHTML(safeContent, [
         StarterKit.configure({
           heading: { levels: [1, 2, 3] },
         }),
@@ -58,22 +71,22 @@ export default function ReadOnlyRenderer({ content }: ReadOnlyRendererProps) {
             return {
               ...this.parent?.(),
               // SSR에서도 안전한 속성만 허용
-              class: { default: 'read-img' },
-            } as any;
+              class: { default: 'read-img' } as const,
+            };
           },
         }),
         BibleVerseExtension,
       ]);
       return { html, fallbackText: '' };
-    } catch (e: any) {
+    } catch (error: unknown) {
       // 런타임 문제 원인 파악을 위한 경량 로깅
-      const keys = content && typeof content === 'object' ? Object.keys(content) : [];
-      // eslint-disable-next-line no-console
+      const keys = isRecord(content) ? Object.keys(content) : [];
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('ReadOnlyRenderer: HTML 생성 실패', {
-        error: e?.message || String(e),
+        error: errorMessage,
         keys,
-        type: (content as any)?.type,
-        hasContentArray: Array.isArray((content as any)?.content),
+        type: isRecord(content) && typeof content.type === 'string' ? content.type : undefined,
+        hasContentArray: isRecord(content) && Array.isArray(content.content),
       });
       const text = toPlainText(content);
       return { html: '', fallbackText: text };

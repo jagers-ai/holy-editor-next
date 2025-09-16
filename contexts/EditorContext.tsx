@@ -1,11 +1,25 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
+import type { JSONContent } from '@tiptap/core';
 import { useRouter } from 'next/navigation';
 import { SermonInfo } from '@/components/editor/SermonInfoSection';
 import { api } from '@/utils/api';
 import toast from 'react-hot-toast';
 import { attachSermonInfo } from '@/lib/editor/content';
+
+type TRPCErrorPayload = {
+  data?: {
+    code?: string;
+  };
+};
+
+const getErrorCode = (error: unknown): string | undefined => {
+  if (!error || typeof error !== 'object') return undefined;
+  const payload = error as TRPCErrorPayload;
+  const code = payload.data?.code;
+  return typeof code === 'string' ? code : undefined;
+};
 
 const fingerprint = (obj: unknown) => {
   try {
@@ -25,15 +39,15 @@ interface EditorContextType {
   handleSave: () => void;
   documentId?: string;
   setDocumentId: (id: string | undefined) => void;
-  editorContent: any;
-  setEditorContent: (content: any) => void;
+  editorContent: JSONContent | null;
+  setEditorContent: (content: JSONContent | null) => void;
   currentFolderId?: string;
   setCurrentFolderId: (id: string | undefined) => void;
   lastAutoSavedAt?: Date;
   /** 새 문서 진입 시 상태를 초기화합니다. (dirty/hash/내용/설교정보/문서ID/폴더ID) */
   resetForNewDocument: (folderId?: string) => void;
   /** 서버에서 불러온 최신 content 해시를 동기화합니다. */
-  syncServerHash: (content: any) => void;
+  syncServerHash: (content: JSONContent | null) => void;
   /** 강제 덮어쓰기 후 더티 플래그를 수동으로 초기화합니다. */
   markClean: () => void;
 }
@@ -49,7 +63,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [documentId, setDocumentId] = useState<string | undefined>(undefined);
-  const [editorContent, _setEditorContent] = useState<any>(null);
+  const [editorContent, _setEditorContent] = useState<JSONContent | null>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(undefined);
   const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | undefined>(undefined);
   const dirtyRef = useRef(false);
@@ -61,7 +75,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const resettingRef = useRef(false);
   
   // setEditorContent 래퍼: 더티 플래그 표시
-  const setEditorContent = useCallback((content: any) => {
+  const setEditorContent = useCallback((content: JSONContent | null) => {
     _setEditorContent(content);
     if (!resettingRef.current) {
       dirtyRef.current = true;
@@ -87,7 +101,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const syncServerHash = useCallback((content: any) => {
+  const syncServerHash = useCallback((content: JSONContent | null) => {
     if (content) {
       lastSavedHashRef.current = fingerprint(content);
     } else {
@@ -109,7 +123,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     },
     onError: (error) => {
       console.error('문서 생성 실패:', error);
-      const code = (error as any)?.data?.code;
+      const code = getErrorCode(error);
       if (code === 'UNAUTHORIZED') {
         toast.error('로그인이 필요합니다');
         router.push('/login?returnTo=' + encodeURIComponent('/editor/new'));
@@ -127,7 +141,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     },
     onError: (error) => {
       console.error('문서 업데이트 실패:', error);
-      const code = (error as any)?.data?.code;
+      const code = getErrorCode(error);
       if (code === 'UNAUTHORIZED') {
         toast.error('로그인이 필요합니다');
         router.push('/login?returnTo=' + encodeURIComponent(`/editor/${documentId ?? 'new'}`));
@@ -158,14 +172,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     try {
       // content JSON 안에 sermonInfo를 병합 저장하여
       // 목록/상세에서 바로 읽을 수 있게 함
-      const emptyDoc = { type: 'doc', content: [] as any[] };
+      const emptyDoc: JSONContent = { type: 'doc', content: [] };
       const contentWithMeta = attachSermonInfo(editorContent || emptyDoc, sermonInfo);
 
-      const documentData: any = {
+      const documentData = {
         title: sermonInfo.title || '제목 없음',
         content: contentWithMeta,
         isPublic: false,
-      };
+      } satisfies Parameters<typeof createDocument.mutateAsync>[0];
       const previousHash = lastSavedHashRef.current;
       const newHash = fingerprint(documentData.content);
 
@@ -198,7 +212,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       try {
         if (targetId) {
           const fresh = await utils.document.getById.fetch({ id: targetId });
-          const serverHash = fingerprint((fresh as any)?.content);
+          const serverHash = fingerprint(fresh?.content);
           if (serverHash !== newHash) {
             console.warn('[SAVE] verify mismatch', { targetId, expected: newHash, server: serverHash });
             toast.error('서버에 다른 내용이 저장되어 있습니다. 복구 메뉴에서 확인해주세요.');
@@ -243,14 +257,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
     autoSavingRef.current = true;
     try {
-      const emptyDoc = { type: 'doc', content: [] as any[] };
+      const emptyDoc: JSONContent = { type: 'doc', content: [] };
       const contentWithMeta = attachSermonInfo(editorContent || emptyDoc, sermonInfo);
-      const data: any = {
+      const data = {
         title: sermonInfo.title || '제목 없음',
         content: contentWithMeta,
         isPublic: false,
         ...(currentFolderId ? { folderId: currentFolderId } : {}),
-      };
+      } satisfies Parameters<typeof updateDocumentSilent.mutateAsync>[0]['data'];
       // 중복 저장 방지: 동일 해시면 스킵
       const hash = fingerprint(data.content);
       const previousHash = lastSavedHashRef.current;
@@ -279,7 +293,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       // 자동저장에서는 무분별한 캐시 무효화 생략
     } catch (e) {
       console.error('자동 저장 실패:', e);
-      const code = (e as any)?.data?.code;
+      const code = getErrorCode(e);
       if (code === 'CONFLICT') {
         toast.error('자동 저장이 충돌했습니다. 페이지를 새로고침한 뒤 다시 시도해주세요.');
         if (documentId) {
