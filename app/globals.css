@@ -42,6 +42,26 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
 }
 
 :root {
@@ -127,19 +147,19 @@ html { -webkit-text-size-adjust: 100%; }
     @apply bg-background text-foreground;
   }
   .is-ios body { overscroll-behavior-y: contain; }
-  
+
   /* Android 플랫폼별 스타일 */
   .is-android body { 
     overscroll-behavior-y: none; 
   }
-  
+
   /* (제거됨) KeyboardStickyView 및 하단 툴바 스타일 잔여 코드 삭제 */
-  
+
   /* 포커스된 에디터 블록 스타일 (Focus 확장) */
   .is-focused {
     outline: none;
   }
-  
+
   /* Editor h1 style override */
   .prose h1 {
     font-size: 20px !important;
@@ -155,24 +175,24 @@ html { -webkit-text-size-adjust: 100%; }
     object-fit: contain;   /* 비율 보존 */
     image-orientation: from-image; /* EXIF 회전 (지원 브라우저) */
   }
-  
+
   /* Editor base text size */
   .prose {
     font-size: 15px !important;
     line-height: 1.5 !important;  /* 줄간격 최적화 */
   }
-  
+
   /* Editor paragraph spacing */
   .prose p {
     margin-top: 0.75em !important;
     margin-bottom: 0.75em !important;
   }
-  
+
   /* Editor image styles */
   .prose img {
     @apply max-w-full h-auto rounded-lg my-4;
   }
-  
+
   /* Editor placeholder */
   .is-editor-empty:first-child::before {
     content: attr(data-placeholder);
@@ -182,7 +202,7 @@ html { -webkit-text-size-adjust: 100%; }
     pointer-events: none;
     height: 0;
   }
-  
+
   /* 성경구절 스타일 */
   .bible-verse-wrapper > div {
     background-color: rgb(229 231 235) !important;  /* 연한 회색 (bg-gray-200) */
@@ -214,16 +234,16 @@ html { -webkit-text-size-adjust: 100%; }
     margin-top: 0.5rem;
     font-style: italic !important;  /* 이탤릭체 */
   }
-  
+
   /* 성경구절 내부 paragraph 스타일 */
   .bible-verse-wrapper p {
     margin: 0.5em 0;
   }
-  
+
   .bible-verse-wrapper p:first-child {
     margin-top: 0;
   }
-  
+
   .bible-verse-wrapper p:last-child {
     margin-bottom: 0;
   }
@@ -239,7 +259,7 @@ html { -webkit-text-size-adjust: 100%; }
     padding: 2px 4px;
     border-radius: 2px;
   }
-  
+
   /* TipTap 형광펜 mark 스타일 */
   mark[data-color] {
     background-color: var(--highlight-color);
