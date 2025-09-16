@@ -24,7 +24,7 @@ interface HolyEditorProps {
 }
 
 export default function HolyEditor({ documentId }: HolyEditorProps) {
-  const { sermonInfo, setSermonInfo, setDocumentId, setEditorContent, setCurrentFolderId, resetForNewDocument, syncServerHash, markClean } = useEditorContext();
+  const { sermonInfo, setSermonInfo, setDocumentId, setEditorContent, setCurrentFolderId, resetForNewDocument, syncServerHash, markClean, handleSave } = useEditorContext();
   const router = useRouter();
   const searchParams = useSearchParams();
   const utils = api.useUtils();
@@ -34,6 +34,8 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
   // 사용자가 실제로 입력했는지 여부(자동저장 가드)
   const userInteractedRef = useRef(false);
   const [showRevisionPanel, setShowRevisionPanel] = useState(false);
+  const navigationGuardActiveRef = useRef(false);
+  const leavingRef = useRef(false);
   
   // tRPC query for loading document
   const { data: document, isLoading } = api.document.getById.useQuery(
@@ -102,6 +104,53 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     if (!confirmed) return;
     await restoreRevision.mutateAsync({ documentId, revisionId });
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const guardState = { holyEditorGuard: true };
+    if (!navigationGuardActiveRef.current) {
+      window.history.pushState(guardState, '', window.location.href);
+      navigationGuardActiveRef.current = true;
+    }
+
+    const onPopState = () => {
+      if (leavingRef.current) return;
+
+      window.history.pushState(guardState, '', window.location.href);
+
+      if (!hasLocalEditsRef.current) {
+        leavingRef.current = true;
+        window.removeEventListener('popstate', onPopState);
+        router.push('/folders');
+        return;
+      }
+
+      const shouldSave = window.confirm('변경 사항을 저장하시겠습니까?');
+      leavingRef.current = true;
+      window.removeEventListener('popstate', onPopState);
+
+      if (shouldSave) {
+        (async () => {
+          try {
+            await handleSave();
+          } catch (error) {
+            console.error('저장 실패, 편집기 머무름:', error);
+            leavingRef.current = false;
+            window.addEventListener('popstate', onPopState);
+          }
+        })();
+      } else {
+        router.push('/folders');
+      }
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      navigationGuardActiveRef.current = false;
+      leavingRef.current = false;
+    };
+  }, [handleSave, router]);
 
   const toggleRevisionPanel = () => {
     setShowRevisionPanel((prev) => {
@@ -328,7 +377,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       {canUseRevisions && (
         <div className="mb-4 rounded-lg border bg-white px-3 py-2 text-xs text-gray-700">
           <div className="flex items-center justify-between">
-            <span className="font-medium">저장 안전장치</span>
+            <span className="font-medium">임시저장 목록</span>
             <button
               type="button"
               onClick={toggleRevisionPanel}
