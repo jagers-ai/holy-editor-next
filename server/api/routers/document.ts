@@ -70,9 +70,9 @@ const pruneOldRevisions = async (prisma: any, documentId: string) => {
 
 const toRevisionContent = (
   value: Prisma.JsonValue | null | undefined
-): typeof Prisma.JsonNull.instance | Prisma.InputJsonValue => {
+): typeof Prisma.JsonNull | Prisma.InputJsonValue => {
   if (value === null || value === undefined) {
-    return Prisma.JsonNull.instance;
+    return Prisma.JsonNull;
   }
   return value as unknown as Prisma.InputJsonValue;
 };
