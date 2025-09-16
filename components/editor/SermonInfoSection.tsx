@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 export interface SermonInfo {
   title: string;
   pastor: string;
   verse: string;
-  serviceType: '주일설교' | '수요예배' | '금요예배' | '새벽예배' | '청년예배' | '큐티' | '기타';
+  serviceType: '감사일기' | '주일설교' | '수요예배' | '금요예배' | '새벽예배' | '청년예배' | '큐티' | '기타';
 }
 
 interface SermonInfoSectionProps {
@@ -55,19 +56,23 @@ export function SermonInfoSection({ info, onChange }: SermonInfoSectionProps) {
             className="flex-1 text-base px-3 py-2 border rounded-md bg-background"
           />
           
-          <select
-            value={info.serviceType}
-            onChange={(e) => onChange({ ...info, serviceType: e.target.value as SermonInfo['serviceType'] })}
-            className="text-base px-3 py-2 border rounded-md bg-background"
-          >
-            <option value="주일설교">주일설교</option>
-            <option value="수요예배">수요예배</option>
-            <option value="금요예배">금요예배</option>
-            <option value="새벽예배">새벽예배</option>
-            <option value="청년예배">청년예배</option>
-            <option value="큐티">큐티</option>
-            <option value="기타">기타</option>
-          </select>
+          <div className="relative">
+            <select
+              value={info.serviceType}
+              onChange={(e) => onChange({ ...info, serviceType: e.target.value as SermonInfo['serviceType'] })}
+              className="text-base appearance-none px-3 pr-12 py-2 border rounded-md bg-background"
+            >
+              <option value="감사일기">감사일기</option>
+              <option value="주일설교">주일설교</option>
+              <option value="수요예배">수요예배</option>
+              <option value="금요예배">금요예배</option>
+              <option value="새벽예배">새벽예배</option>
+              <option value="청년예배">청년예배</option>
+              <option value="큐티">큐티</option>
+              <option value="기타">기타</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-8 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          </div>
         </div>
         
         {/* 본문 구절 */}
