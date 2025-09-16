@@ -33,12 +33,25 @@ model Document {
   updatedAt       DateTime         @updatedAt
   bibleReferences BibleReference[]
   tags            DocumentTag[]
+  revisions       DocumentRevision[]
   user            User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
   folder          Folder?          @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([folderId])
   @@map("documents")
+}
+
+model DocumentRevision {
+  id         String   @id @default(cuid())
+  documentId String
+  userId     String?
+  content    Json
+  createdAt  DateTime @default(now())
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, createdAt])
+  @@map("document_revisions")
 }
 
 model BibleReference {

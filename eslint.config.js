@@ -1,11 +1,12 @@
-import js from '@eslint/js';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
-import tsParser from '@typescript-eslint/parser';
-import nextPlugin from '@next/eslint-plugin-next';
-import reactPlugin from 'eslint-plugin-react';
-import reactHooksPlugin from 'eslint-plugin-react-hooks';
+const js = require('@eslint/js');
+const tsPlugin = require('@typescript-eslint/eslint-plugin');
+const tsParser = require('@typescript-eslint/parser');
+const nextPlugin = require('@next/eslint-plugin-next');
+const reactPlugin = require('eslint-plugin-react');
+const reactHooksPlugin = require('eslint-plugin-react-hooks');
 
-export default [
+/** @type {import('eslint').Linter.FlatConfig[]} */
+module.exports = [
   {
     ignores: [
       '.next/**',
@@ -54,25 +55,18 @@ export default [
       '@next/next': nextPlugin
     },
     rules: {
-      // TypeScript rules
-      '@typescript-eslint/no-unused-vars': ['warn', { 
+      '@typescript-eslint/no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_'
       }],
       '@typescript-eslint/no-explicit-any': 'warn',
-      'no-unused-vars': 'off', // handled by @typescript-eslint
-      
-      // React rules
-      'react/react-in-jsx-scope': 'off', // Not needed in Next.js
+      'no-unused-vars': 'off',
+      'react/react-in-jsx-scope': 'off',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      
-      // General rules
       'no-console': 'off',
-      'no-undef': 'off', // TypeScript handles this
-      'no-redeclare': 'off', // TypeScript handles this
-      
-      // Next.js specific
+      'no-undef': 'off',
+      'no-redeclare': 'off',
       '@next/next/no-html-link-for-pages': 'off'
     }
   }

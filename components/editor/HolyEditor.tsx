@@ -6,7 +6,7 @@ import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
 import Focus from '@tiptap/extension-focus';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Toolbar } from './Toolbar';
 import SelectionMiniBar from './SelectionMiniBar';
@@ -24,14 +24,16 @@ interface HolyEditorProps {
 }
 
 export default function HolyEditor({ documentId }: HolyEditorProps) {
-  const { sermonInfo, setSermonInfo, setDocumentId, setEditorContent, setCurrentFolderId, resetForNewDocument } = useEditorContext();
+  const { sermonInfo, setSermonInfo, setDocumentId, setEditorContent, setCurrentFolderId, resetForNewDocument, syncServerHash, markClean } = useEditorContext();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const utils = api.useUtils();
   // 로컬 변경/초기 적용 가드(업로드 이미지 사라짐 방지)
   const hasLocalEditsRef = useRef(false);
   const initialContentAppliedRef = useRef(false);
   // 사용자가 실제로 입력했는지 여부(자동저장 가드)
   const userInteractedRef = useRef(false);
+  const [showRevisionPanel, setShowRevisionPanel] = useState(false);
   
   // tRPC query for loading document
   const { data: document, isLoading } = api.document.getById.useQuery(
@@ -48,6 +50,68 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     { id: activeFolderId as string },
     { enabled: !!activeFolderId }
   );
+  const canUseRevisions = !!documentId && documentId !== 'new';
+  const { data: revisions, isLoading: isLoadingRevisions, refetch: refetchRevisions, isFetching: isFetchingRevisions } = api.document.revisions.useQuery(
+    { documentId: documentId! , limit: 10 },
+    { enabled: canUseRevisions }
+  );
+  const restoreRevision = api.document.restoreFromRevision.useMutation({
+    onSuccess: async (data) => {
+      toast.success('이전 버전으로 복원했습니다');
+      setShowRevisionPanel(false);
+      await refetchRevisions();
+      if (data?.content && editor) {
+        try {
+          editor.commands.setContent(data.content as any, { emitUpdate: false });
+          hasLocalEditsRef.current = false;
+          initialContentAppliedRef.current = true;
+          userInteractedRef.current = false;
+          setEditorContent(data.content as any);
+          const sermonData = (data.content as any)?.sermonInfo || {};
+          setSermonInfo({
+            title: data.title || sermonData.title || '',
+            pastor: sermonData.pastor || '',
+            verse: sermonData.verse || '',
+            serviceType: (normalizeServiceType(sermonData.serviceType) as SermonInfo['serviceType']) || '주일설교'
+          });
+          syncServerHash(data.content);
+          markClean();
+        } catch (err) {
+          console.error('복원 콘텐츠 적용 실패:', err);
+        }
+      }
+      if (documentId) {
+        await utils.document.getById.invalidate({ id: documentId });
+      }
+    },
+    onError: (error) => {
+      console.error('리비전 복원 실패:', error);
+      const code = (error as any)?.data?.code;
+      if (code === 'UNAUTHORIZED') {
+        toast.error('로그인이 필요합니다');
+        router.push('/login');
+        return;
+      }
+      toast.error('복원 중 오류가 발생했습니다');
+    },
+  });
+
+  const handleRestoreRevision = async (revisionId: string) => {
+    if (!documentId) return;
+    const confirmed = window.confirm('선택한 저장본으로 되돌립니다. 현재 편집 중 내용은 사라집니다. 진행할까요?');
+    if (!confirmed) return;
+    await restoreRevision.mutateAsync({ documentId, revisionId });
+  };
+
+  const toggleRevisionPanel = () => {
+    setShowRevisionPanel((prev) => {
+      const next = !prev;
+      if (!prev && canUseRevisions) {
+        void refetchRevisions();
+      }
+      return next;
+    });
+  };
   // 폴더 미선택 가드: 새 문서인데 폴더 미지정이면 폴더 페이지로 유도
   useEffect(() => {
     if (!documentId && !folderIdFromQuery) {
@@ -55,6 +119,12 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       router.push('/folders');
     }
   }, [documentId, folderIdFromQuery, router]);
+
+  useEffect(() => {
+    if (!documentId || documentId === 'new') {
+      setShowRevisionPanel(false);
+    }
+  }, [documentId]);
   
   // Context에 documentId 설정
   useEffect(() => {
@@ -177,6 +247,13 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
         verse: sermonData.verse || '',
         serviceType: (normalizeServiceType(sermonData.serviceType) as SermonInfo['serviceType']) || '주일설교'
       });
+      if (document.content && typeof document.content === 'object') {
+        setEditorContent(document.content as any);
+        syncServerHash(document.content as any);
+        if (!hasLocalEditsRef.current) {
+          markClean();
+        }
+      }
       
       // editor content 설정: 로컬 편집이 없고, 아직 초기 적용 전일 때만 1회 적용
       if (
@@ -197,7 +274,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       console.error('문서를 찾을 수 없습니다');
       router.push('/folders');
     }
-  }, [editor, documentId, document, isLoading, setSermonInfo, router]);
+  }, [editor, documentId, document, isLoading, setSermonInfo, setEditorContent, syncServerHash, markClean, router]);
 
   // 새 문서 진입 시: 전역 상태 초기화 + 에디터 내용 비우기(초기 업데이트 억제)
   useEffect(() => {
@@ -246,6 +323,50 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
             <span>{activeFolder.icon ?? '📁'}</span>
             <span className="font-medium text-gray-700">{activeFolder.name}</span>
           </span>
+        </div>
+      )}
+      {canUseRevisions && (
+        <div className="mb-4 rounded-lg border bg-white px-3 py-2 text-xs text-gray-700">
+          <div className="flex items-center justify-between">
+            <span className="font-medium">저장 안전장치</span>
+            <button
+              type="button"
+              onClick={toggleRevisionPanel}
+              className="rounded bg-primary/10 px-2 py-1 font-semibold text-primary hover:bg-primary/20"
+            >
+              {showRevisionPanel ? '이전 버전 숨기기' : '이전 버전 보기'}
+            </button>
+          </div>
+          {showRevisionPanel && (
+            <div className="mt-2 max-h-56 space-y-2 overflow-y-auto">
+              {isLoadingRevisions || isFetchingRevisions ? (
+                <div className="text-[11px] text-muted-foreground">이전 버전을 불러오는 중...</div>
+              ) : (revisions && revisions.length > 0 ? (
+                revisions.map((rev) => {
+                  const createdAt = rev.createdAt instanceof Date ? rev.createdAt : new Date(rev.createdAt as unknown as string);
+                  const formatted = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(createdAt);
+                  return (
+                    <div key={rev.id} className="flex items-center justify-between rounded border px-3 py-2">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{formatted}</span>
+                        <span className="text-[11px] text-gray-500">저장자: {rev.userId ? (rev.userId === (document as any)?.userId ? '나' : rev.userId.slice(0, 8) + '…') : '알 수 없음'}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRestoreRevision(rev.id)}
+                        className="rounded border border-primary px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-50"
+                        disabled={restoreRevision.isPending}
+                      >
+                        복원
+                      </button>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-[11px] text-muted-foreground">저장된 이전 버전이 없습니다.</div>
+              ))}
+            </div>
+          )}
         </div>
       )}
       <SermonInfoSection 

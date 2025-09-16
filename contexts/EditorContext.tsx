@@ -7,6 +7,17 @@ import { api } from '@/utils/api';
 import toast from 'react-hot-toast';
 import { attachSermonInfo } from '@/lib/editor/content';
 
+const fingerprint = (obj: unknown) => {
+  try {
+    const s = JSON.stringify(obj);
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+    return (h >>> 0).toString(36);
+  } catch {
+    return Math.random().toString(36).slice(2, 8);
+  }
+};
+
 interface EditorContextType {
   sermonInfo: SermonInfo;
   setSermonInfo: (info: SermonInfo) => void;
@@ -21,6 +32,10 @@ interface EditorContextType {
   lastAutoSavedAt?: Date;
   /** 새 문서 진입 시 상태를 초기화합니다. (dirty/hash/내용/설교정보/문서ID/폴더ID) */
   resetForNewDocument: (folderId?: string) => void;
+  /** 서버에서 불러온 최신 content 해시를 동기화합니다. */
+  syncServerHash: (content: any) => void;
+  /** 강제 덮어쓰기 후 더티 플래그를 수동으로 초기화합니다. */
+  markClean: () => void;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
@@ -71,6 +86,18 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       resettingRef.current = false;
     }
   }, []);
+
+  const syncServerHash = useCallback((content: any) => {
+    if (content) {
+      lastSavedHashRef.current = fingerprint(content);
+    } else {
+      lastSavedHashRef.current = undefined;
+    }
+  }, []);
+
+  const markClean = useCallback(() => {
+    dirtyRef.current = false;
+  }, []);
   
   // tRPC mutations
   const createDocument = api.document.create.useMutation({
@@ -104,9 +131,20 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       if (code === 'UNAUTHORIZED') {
         toast.error('로그인이 필요합니다');
         router.push('/login?returnTo=' + encodeURIComponent(`/editor/${documentId ?? 'new'}`));
-      } else {
-        toast.error('저장 중 오류가 발생했습니다');
+        return;
       }
+      if (code === 'CONFLICT') {
+        toast.error('다른 기기에서 먼저 저장되었습니다. 페이지 새로고침 후 복구 메뉴를 이용해주세요.');
+        if (documentId) {
+          utils.document.getById.invalidate({ id: documentId });
+        }
+        return;
+      }
+      if (code === 'BAD_REQUEST') {
+        toast.error('비어 있는 내용으로는 저장할 수 없습니다. 내용을 확인해주세요.');
+        return;
+      }
+      toast.error('저장 중 오류가 발생했습니다');
     },
   });
 
@@ -128,21 +166,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         content: contentWithMeta,
         isPublic: false,
       };
-
-      // fingerprint for verification/logging
-      const fingerprint = (obj: unknown) => {
-        try {
-          const s = JSON.stringify(obj);
-          // djb2
-          let h = 5381;
-          for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
-          return (h >>> 0).toString(36);
-        } catch { return Math.random().toString(36).slice(2,8); }
-      };
-      const expectedHash = fingerprint(documentData.content);
+      const previousHash = lastSavedHashRef.current;
+      const newHash = fingerprint(documentData.content);
 
       const saveStart = new Date();
-      console.log('[SAVE] manual start', { id: documentId ?? 'new', at: saveStart.toISOString(), hash: expectedHash });
+      console.log('[SAVE] manual start', { id: documentId ?? 'new', at: saveStart.toISOString(), hash: newHash, previousHash });
 
       let targetId = documentId;
       if (documentId && documentId !== 'new') {
@@ -152,7 +180,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             ...documentData,
             // 편집 중 폴더가 바뀌는 시나리오 고려(선택적)
             ...(currentFolderId ? { folderId: currentFolderId } : {}),
-          }
+          },
+          expectedHash: previousHash,
         });
       } else {
         const created = await createDocument.mutateAsync({
@@ -162,15 +191,18 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         targetId = created?.id ?? targetId;
       }
 
+      lastSavedHashRef.current = newHash;
+      dirtyRef.current = false;
+
       // 서버 반영 검증 1회
       try {
         if (targetId) {
           const fresh = await utils.document.getById.fetch({ id: targetId });
           const serverHash = fingerprint((fresh as any)?.content);
-          if (serverHash !== expectedHash) {
-            console.warn('[SAVE] verify mismatch, retry once', { targetId, expectedHash, serverHash });
-            // 1회 재시도
-            await updateDocument.mutateAsync({ id: targetId, data: documentData });
+          if (serverHash !== newHash) {
+            console.warn('[SAVE] verify mismatch', { targetId, expected: newHash, server: serverHash });
+            toast.error('서버에 다른 내용이 저장되어 있습니다. 복구 메뉴에서 확인해주세요.');
+            lastSavedHashRef.current = serverHash;
           } else {
             console.log('[SAVE] verify ok', { targetId, hash: serverHash });
           }
@@ -220,14 +252,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         ...(currentFolderId ? { folderId: currentFolderId } : {}),
       };
       // 중복 저장 방지: 동일 해시면 스킵
-      const fingerprint = (obj: unknown) => {
-        try {
-          const s = JSON.stringify(obj);
-          let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
-          return (h >>> 0).toString(36);
-        } catch { return Math.random().toString(36).slice(2,8); }
-      };
       const hash = fingerprint(data.content);
+      const previousHash = lastSavedHashRef.current;
       if (lastSavedHashRef.current === hash) {
         dirtyRef.current = false;
         autoSavingRef.current = false;
@@ -238,7 +264,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       console.log('[SAVE] autosave start', { id: documentId ?? 'new', at: start.toISOString(), hash });
 
       if (documentId && documentId !== 'new') {
-        await updateDocumentSilent.mutateAsync({ id: documentId, data });
+        await updateDocumentSilent.mutateAsync({ id: documentId, data, expectedHash: previousHash });
       } else {
         // 새 문서일 경우 1회만 생성 후 URL 교체, 이후 모두 update
         const created = await createDocumentSilent.mutateAsync({ ...data });
@@ -253,6 +279,15 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       // 자동저장에서는 무분별한 캐시 무효화 생략
     } catch (e) {
       console.error('자동 저장 실패:', e);
+      const code = (e as any)?.data?.code;
+      if (code === 'CONFLICT') {
+        toast.error('자동 저장이 충돌했습니다. 페이지를 새로고침한 뒤 다시 시도해주세요.');
+        if (documentId) {
+          utils.document.getById.invalidate({ id: documentId });
+        }
+      } else if (code === 'BAD_REQUEST') {
+        toast.error('내용이 비어 있어 자동 저장하지 못했습니다. 내용을 확인해주세요.');
+      }
     } finally {
       autoSavingRef.current = false;
     }
@@ -294,6 +329,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         setCurrentFolderId,
         lastAutoSavedAt,
         resetForNewDocument,
+        syncServerHash,
+        markClean,
       }}
     >
       {children}

@@ -1,6 +1,71 @@
 import { z } from 'zod';
-import { createTRPCRouter, publicProcedure, protectedProcedure } from '@/server/api/trpc';
+import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
 import { TRPCError } from '@trpc/server';
+
+const FRESH_REVISION_LIFETIME_DAYS = 7;
+
+const fingerprint = (obj: unknown) => {
+  try {
+    const s = JSON.stringify(obj);
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) {
+      h = ((h << 5) + h) ^ s.charCodeAt(i);
+    }
+    return (h >>> 0).toString(36);
+  } catch {
+    return Math.random().toString(36).slice(2, 8);
+  }
+};
+
+const hasMeaningfulContent = (content: unknown): boolean => {
+  if (!content || typeof content !== 'object') return false;
+  const maybeDoc = content as { content?: unknown };
+  const search = (node: unknown): boolean => {
+    if (!node) return false;
+    if (Array.isArray(node)) {
+      return node.some(search);
+    }
+    if (typeof node !== 'object') return false;
+
+    const obj = node as Record<string, unknown>;
+    const type = typeof obj.type === 'string' ? obj.type : undefined;
+    const text = obj.text;
+    if (typeof text === 'string' && text.trim().length > 0) {
+      return true;
+    }
+
+    const attrs = (obj.attrs ?? {}) as Record<string, unknown>;
+    const mediaTypes = new Set(['image', 'video', 'audio', 'iframe', 'embed', 'file']);
+    if (type && mediaTypes.has(type)) {
+      const src = attrs.src as string | undefined;
+      const href = attrs.href as string | undefined;
+      if ((src && src.trim().length > 0) || (href && href.trim().length > 0)) {
+        return true;
+      }
+    }
+
+    if (Array.isArray(obj.content) && obj.content.some(search)) {
+      return true;
+    }
+
+    return false;
+  };
+
+  if (Array.isArray((maybeDoc as any).content)) {
+    return search((maybeDoc as any).content);
+  }
+  return false;
+};
+
+const pruneOldRevisions = async (prisma: any, documentId: string) => {
+  const threshold = new Date(Date.now() - FRESH_REVISION_LIFETIME_DAYS * 24 * 60 * 60 * 1000);
+  await prisma.documentRevision.deleteMany({
+    where: {
+      documentId,
+      createdAt: { lt: threshold },
+    },
+  });
+};
 
 // Document 입력 스키마
 const documentInputSchema = z.object({
@@ -31,6 +96,15 @@ export const documentRouter = createTRPCRouter({
           userId: ctx.user.id, // 인증된 사용자의 ID
         },
       });
+
+      await ctx.prisma.documentRevision.create({
+        data: {
+          documentId: document.id,
+          userId: ctx.user.id,
+          content: document.content,
+        },
+      });
+      await pruneOldRevisions(ctx.prisma, document.id);
 
       return document;
     }),
@@ -112,10 +186,10 @@ export const documentRouter = createTRPCRouter({
       z.object({
         id: z.string(),
         data: documentInputSchema.partial(),
+        expectedHash: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // 소유권 검사
       const document = await ctx.prisma.document.findUnique({
         where: { id: input.id },
       });
@@ -127,12 +201,53 @@ export const documentRouter = createTRPCRouter({
         });
       }
 
-      // Prisma 스키마에 존재하는 필드만 업데이트
-      const allowedData: any = { updatedAt: new Date() };
+      const currentHash = fingerprint(document.content);
+      if (input.expectedHash && input.expectedHash !== currentHash) {
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: '문서가 다른 기기에서 우선 저장되었습니다. 새로고침 후 다시 시도해주세요.',
+        });
+      }
+
+      const allowedData: Record<string, unknown> = {};
       if (typeof input.data?.title === 'string') allowedData.title = input.data.title;
       if (typeof input.data?.isPublic === 'boolean') allowedData.isPublic = input.data.isPublic;
-      if (input.data?.content !== undefined) allowedData.content = input.data.content as any;
-      if (typeof (input.data as any)?.folderId === 'string') (allowedData as any).folderId = (input.data as any).folderId;
+      if (typeof (input.data as any)?.folderId === 'string') allowedData.folderId = (input.data as any).folderId;
+
+      let contentChanged = false;
+      if (input.data?.content !== undefined) {
+        const incomingContent = input.data.content as unknown;
+        const incomingHash = fingerprint(incomingContent);
+        contentChanged = incomingHash !== currentHash;
+
+        const incomingHasBody = hasMeaningfulContent(incomingContent);
+        const hadPrevious = hasMeaningfulContent(document.content as unknown);
+        if (!incomingHasBody && hadPrevious) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: '내용이 비어 있어 기존 문서를 덮어쓸 수 없습니다.',
+          });
+        }
+
+        if (contentChanged) {
+          allowedData.content = incomingContent as any;
+        }
+      }
+
+      if (!Object.keys(allowedData).length) {
+        return document;
+      }
+
+      if (contentChanged) {
+        await ctx.prisma.documentRevision.create({
+          data: {
+            documentId: document.id,
+            userId: ctx.user.id,
+            content: document.content,
+          },
+        });
+        await pruneOldRevisions(ctx.prisma, document.id);
+      }
 
       const updated = await ctx.prisma.document.update({
         where: { id: input.id },
@@ -140,6 +255,74 @@ export const documentRouter = createTRPCRouter({
       });
 
       return updated;
+    }),
+
+  revisions: protectedProcedure
+    .input(z.object({ documentId: z.string(), limit: z.number().min(1).max(50).default(20) }))
+    .query(async ({ ctx, input }) => {
+      const document = await ctx.prisma.document.findUnique({
+        where: { id: input.documentId },
+        select: { userId: true },
+      });
+
+      if (!document || document.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: '이 문서의 리비전을 조회할 권한이 없습니다.',
+        });
+      }
+
+      const revisions = await ctx.prisma.documentRevision.findMany({
+        where: { documentId: input.documentId },
+        orderBy: { createdAt: 'desc' },
+        take: input.limit,
+      });
+
+      return revisions;
+    }),
+
+  restoreFromRevision: protectedProcedure
+    .input(z.object({ documentId: z.string(), revisionId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const document = await ctx.prisma.document.findUnique({
+        where: { id: input.documentId },
+      });
+
+      if (!document || document.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: '이 문서를 복구할 권한이 없습니다.',
+        });
+      }
+
+      const revision = await ctx.prisma.documentRevision.findUnique({
+        where: { id: input.revisionId },
+      });
+
+      if (!revision || revision.documentId !== input.documentId) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: '리비전을 찾을 수 없습니다.',
+        });
+      }
+
+      await ctx.prisma.documentRevision.create({
+        data: {
+          documentId: document.id,
+          userId: ctx.user.id,
+          content: document.content,
+        },
+      });
+      await pruneOldRevisions(ctx.prisma, document.id);
+
+      const restored = await ctx.prisma.document.update({
+        where: { id: input.documentId },
+        data: {
+          content: revision.content,
+        },
+      });
+
+      return restored;
     }),
 
   // 문서 삭제 (소유권 검증 포함)
