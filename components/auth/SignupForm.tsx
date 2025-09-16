@@ -66,7 +66,7 @@ export function SignupForm() {
           router.refresh();
         }
       }
-    } catch (err) {
+    } catch {
       setError('회원가입 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
