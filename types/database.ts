@@ -33,6 +33,7 @@ export type Database = {
           title: string;
           content: any; // JSON type
           userId: string | null;
+          folderId: string | null;
           isPublic: boolean;
           createdAt: string;
           updatedAt: string;
@@ -42,6 +43,7 @@ export type Database = {
           title: string;
           content: any;
           userId?: string | null;
+          folderId?: string | null;
           isPublic?: boolean;
           createdAt?: string;
           updatedAt?: string;
@@ -51,9 +53,33 @@ export type Database = {
           title?: string;
           content?: any;
           userId?: string | null;
+          folderId?: string | null;
           isPublic?: boolean;
           createdAt?: string;
           updatedAt?: string;
+        };
+      };
+      document_revisions: {
+        Row: {
+          id: string;
+          documentId: string;
+          userId: string | null;
+          content: any;
+          createdAt: string;
+        };
+        Insert: {
+          id?: string;
+          documentId: string;
+          userId?: string | null;
+          content: any;
+          createdAt?: string;
+        };
+        Update: {
+          id?: string;
+          documentId?: string;
+          userId?: string | null;
+          content?: any;
+          createdAt?: string;
         };
       };
       bible_references: {
