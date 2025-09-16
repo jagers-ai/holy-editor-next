@@ -26,16 +26,31 @@ const hasMeaningfulContent = (content: unknown): boolean => {
       return node.some(search);
     }
     if (typeof node !== 'object') return false;
+
     const obj = node as Record<string, unknown>;
+    const type = typeof obj.type === 'string' ? obj.type : undefined;
     const text = obj.text;
     if (typeof text === 'string' && text.trim().length > 0) {
       return true;
     }
-    if (Array.isArray(obj.content) && obj.content.length > 0) {
-      return obj.content.some(search);
+
+    const attrs = (obj.attrs ?? {}) as Record<string, unknown>;
+    const mediaTypes = new Set(['image', 'video', 'audio', 'iframe', 'embed', 'file']);
+    if (type && mediaTypes.has(type)) {
+      const src = attrs.src as string | undefined;
+      const href = attrs.href as string | undefined;
+      if ((src && src.trim().length > 0) || (href && href.trim().length > 0)) {
+        return true;
+      }
     }
+
+    if (Array.isArray(obj.content) && obj.content.some(search)) {
+      return true;
+    }
+
     return false;
   };
+
   if (Array.isArray((maybeDoc as any).content)) {
     return search((maybeDoc as any).content);
   }
