@@ -328,7 +328,7 @@ export const documentRouter = createTRPCRouter({
       const restored = await ctx.prisma.document.update({
         where: { id: input.documentId },
         data: {
-          content: revision.content,
+          content: toRevisionContent(revision.content),
         },
       });
 
