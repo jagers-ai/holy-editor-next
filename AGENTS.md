@@ -1,45 +1,39 @@
 # Repository Guidelines
 
-## 언어/Reasoning 정책
-- Reasoning Summary(생각/사고 요약)는 한국어로 강제합니다.
-- 내부 추론 원문(Chain‑of‑Thought)은 공유하지 말고, 결과 중심의 한국어 요약으로만 제시합니다.
-- 코드/명령어/파일 경로/로그는 원문 그대로 표기 가능하되, 바로 아래 한 줄 한국어 설명을 덧붙입니다.
-- 사용자가 “영어로 답해”라고 명시 지시한 해당 턴에서만 영어 허용합니다.
-
 ## Project Structure & Module Organization
-- `app/`: Next.js App Router (페이지, `layout.tsx`, `app/api/*`).
-- `components/`: UI·에디터·레이아웃 컴포넌트(작게 분리, 재사용 우선).
-- `lib/`: 공용 유틸과 서비스(`logger`, `supabase`, `toast`).
-- `server/`: 서버 전용 코드(`db.ts`, tRPC 라우터는 `server/api`).
-- `prisma/`: `schema.prisma`, `migrations/`, `seed.ts`.
-- 기타: `public/` 정적, `hooks/`, `utils/`, `contexts/`, `types/`, `docs/`, `scripts/`.
+- `app/` holds Next.js App Router pages, layouts, and API handlers; subfolders like `(auth)/` and `editor/` isolate flows.
+- `components/` contains shared UI and feature modules; `components/ui/` includes shadcn/ui building blocks.
+- `contexts/`, `hooks/`, `lib/`, and `utils/` provide shared state, React hooks, domain helpers, and utilities.
+- `server/` encapsulates backend-only logic (tRPC routers, Prisma access). `prisma/` stores the schema and migrations.
+- `apps/mobile/` and `packages/` support Expo/mobile and shared libraries.
+- Static assets live in `public/`; scripts and docs are under `scripts/` and `docs/`.
 
 ## Build, Test, and Development Commands
-- `npm run dev` — 개발 서버(Turbopack) 실행: http://localhost:3000
-- `npm run build` — `prisma generate` 후 Next 빌드.
-- `npm run start` — 프로덕션 서버 실행.
-- `npm run lint` / `lint:fix` — ESLint 점검 / 자동 수정.
-- `npm run db:migrate` — Prisma 마이그레이션 적용(개발용).
-- `npm run db:seed` / `db:studio` — 시드 실행 / Prisma Studio.
+- `npm run dev` – start the Next.js dev server (Turbopack) at http://localhost:3000.
+- `npm run build` – generate the production bundle after running `prisma generate`.
+- `npm run start` – launch the production build locally.
+- `npm run lint` / `npm run lint:fix` – check or auto-fix lint issues.
+- `npm run mobile` – launch the Expo mobile workspace.
+- Database: `npm run db:migrate`, `npm run db:seed`, `npm run db:studio` for migrations, seeding, and Prisma Studio.
 
 ## Coding Style & Naming Conventions
-- TypeScript 사용. 들여쓰기 2 스페이스(`.editorconfig`).
-- 파일명: 일반 `kebab-case`, React 컴포넌트 `PascalCase`, 훅 `useXxx`.
-- 기능 단위 콜로케이션 권장. 불필요한 `any` 지양, 미사용 변수는 `_` 접두 허용.
-- ESLint 적용(React Hooks 규칙 엄격). 클라이언트 컴포넌트는 상단에 `"use client"` 명시.
+- TypeScript everywhere; follow 2-space indentation (`.editorconfig`).
+- React components use PascalCase filenames (`SermonInfoSection.tsx`); hooks use `useXxx` pattern.
+- shadcn/ui components live under `components/ui/`; extend them rather than duplicating styles.
+- Run ESLint (`npm run lint`) before commits; format with Prettier defaults embedded in ESLint.
 
 ## Testing Guidelines
-- 현재 테스트 러너 미구성. 도입 권장: Vitest + React Testing Library, E2E는 Playwright.
-- 파일 위치: 소스 인접 `*.test.ts(x)` 또는 `__tests__/`.
-- 커버리지 기준은 도입 시 결정(핵심 유틸·훅 우선 커버).
+- Automated tests are not yet configured; when adding tests prefer Vitest + React Testing Library.
+- Place unit tests alongside sources (`*.test.ts(x)` or `__tests__/`).
+- Ensure new scripts or server utilities include at least smoke tests once the harness is introduced.
 
 ## Commit & Pull Request Guidelines
-- 커밋: Conventional Commits 권장(`feat|fix|docs|refactor|chore` 등, 이모지 선택적).
-- 제목은 명령조(~50자 내), 본문에 “왜/어떻게”를 간략히 기술.
-- PR: 목적·변경 요약, 관련 이슈 링크, UI 변경은 스크린샷, 테스트 방법/리스크/롤백 전략 포함.
+- Follow Conventional Commits (`feat:`, `fix:`, `chore:`) as seen in history.
+- Commits should be scoped and descriptive: e.g., `feat(editor): add revision history panel`.
+- Pull requests must describe the change, include testing notes, and link related issues; add UI screenshots when relevant.
+- Document migration or configuration impacts in the PR body and provide rollback notes.
 
 ## Security & Configuration Tips
-- 비밀키는 커밋 금지. `cp .env.example .env.local` 후 값 설정(`DATABASE_URL`, `SUPABASE_*`, `SENTRY_DSN`).
-- Prisma 스키마 불일치 의심 시 `node check-holy-tables.js` 확인.
-- 데이터 마이그레이션은 `./migrate-to-holy-editor.sh` 사용 전 스크립트 검토.
-- 클라이언트 번들에 서버 전용 코드(`server/*`, DB 접근) 임포트 금지.
+- Keep secrets out of Git; copy `.env.example` to `.env.local` and fill required values (`DATABASE_URL`, Supabase keys, Sentry DSN).
+- Client bundles must not import `server/` modules; use tRPC endpoints instead.
+- When editing Prisma schema, run `npm run db:migrate` and commit the generated migration.
