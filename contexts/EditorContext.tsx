@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef, Dispatch, SetStateAction } from 'react';
 import type { JSONContent } from '@tiptap/core';
 import { useRouter } from 'next/navigation';
 import { SermonInfo } from '@/components/editor/SermonInfoSection';
@@ -42,7 +42,7 @@ interface EditorContextType {
   editorContent: JSONContent | null;
   setEditorContent: (content: JSONContent | null) => void;
   currentFolderId?: string;
-  setCurrentFolderId: (id: string | undefined) => void;
+  setCurrentFolderId: Dispatch<SetStateAction<string | undefined>>;
   lastAutoSavedAt?: Date;
   /** 새 문서 진입 시 상태를 초기화합니다. (dirty/hash/내용/설교정보/문서ID/폴더ID) */
   resetForNewDocument: (folderId?: string) => void;
@@ -59,7 +59,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     title: '',
     pastor: '',
     verse: '',
-    serviceType: '주일설교'
+    serviceType: '감사일기'
   });
   const [isSaving, setIsSaving] = useState(false);
   const [documentId, setDocumentId] = useState<string | undefined>(undefined);
@@ -87,7 +87,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     try {
       resettingRef.current = true;
       // 설교 정보 초기화
-      setSermonInfo({ title: '', pastor: '', verse: '', serviceType: '주일설교' });
+      setSermonInfo({ title: '', pastor: '', verse: '', serviceType: '감사일기' });
       // 에디터 컨텐츠/플래그 초기화
       _setEditorContent(null);
       dirtyRef.current = false;
@@ -167,6 +167,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const updateDocumentSilent = api.document.update.useMutation();
 
   const handleSave = useCallback(async () => {
+    if (!currentFolderId && (!documentId || documentId === 'new')) {
+      toast.error('먼저 폴더를 선택해주세요');
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -250,6 +255,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     if (autoSavingRef.current) return;
     if (!editorContent) return;
     if (!dirtyRef.current && documentId && documentId !== 'new') return; // 변경 없으면 스킵
+    if ((!documentId || documentId === 'new') && !currentFolderId) return;
 
     autoSavingRef.current = true;
     try {

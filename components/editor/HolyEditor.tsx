@@ -60,7 +60,18 @@ interface HolyEditorProps {
 }
 
 export default function HolyEditor({ documentId }: HolyEditorProps) {
-  const { sermonInfo, setSermonInfo, setDocumentId, setEditorContent, setCurrentFolderId, resetForNewDocument, syncServerHash, markClean, handleSave } = useEditorContext();
+  const {
+    sermonInfo,
+    setSermonInfo,
+    setDocumentId,
+    setEditorContent,
+    currentFolderId,
+    setCurrentFolderId,
+    resetForNewDocument,
+    syncServerHash,
+    markClean,
+    handleSave,
+  } = useEditorContext();
   const router = useRouter();
   const searchParams = useSearchParams();
   const utils = api.useUtils();
@@ -81,13 +92,28 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       retry: 1, // 한 번만 재시도
     }
   );
+  const folderListQuery = api.folder.list.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const folderOptions = useMemo(
+    () =>
+      (folderListQuery.data ?? []).map((folder) => ({
+        id: folder.id,
+        name: folder.name,
+        icon: folder.icon ?? null,
+      })),
+    [folderListQuery.data]
+  );
   // 새 문서의 경우 URL 쿼리에서 폴더ID 획득
   const folderIdFromQuery = searchParams?.get('folderId') || undefined;
-  const activeFolderId = documentId && documentId !== 'new' ? document?.folderId ?? undefined : folderIdFromQuery;
+  const derivedFolderId = documentId && documentId !== 'new'
+    ? document?.folderId ?? currentFolderId
+    : currentFolderId ?? folderIdFromQuery;
   const { data: activeFolder } = api.folder.getById.useQuery(
-    { id: activeFolderId as string },
-    { enabled: !!activeFolderId }
+    { id: derivedFolderId as string },
+    { enabled: !!derivedFolderId }
   );
+  const selectedFolderId = currentFolderId ?? (documentId && documentId !== 'new' ? document?.folderId ?? undefined : folderIdFromQuery);
   const canUseRevisions = !!documentId && documentId !== 'new';
   const { data: revisions, isLoading: isLoadingRevisions, refetch: refetchRevisions, isFetching: isFetchingRevisions } = api.document.revisions.useQuery(
     { documentId: documentId! , limit: 10 },
@@ -111,7 +137,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
             title: data.title || sermonData.title || '',
             pastor: sermonData.pastor || '',
             verse: sermonData.verse || '',
-            serviceType: sermonData.serviceType || '주일설교'
+            serviceType: sermonData.serviceType || '감사일기'
           });
           syncServerHash(contentJson);
           markClean();
@@ -198,14 +224,6 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       return next;
     });
   };
-  // 폴더 미선택 가드: 새 문서인데 폴더 미지정이면 폴더 페이지로 유도
-  useEffect(() => {
-    if (!documentId && !folderIdFromQuery) {
-      toast.error('먼저 폴더를 선택해주세요');
-      router.push('/documents');
-    }
-  }, [documentId, folderIdFromQuery, router]);
-
   useEffect(() => {
     if (!documentId || documentId === 'new') {
       setShowRevisionPanel(false);
@@ -328,8 +346,9 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
         title: document.title || sermonData.title || '',
         pastor: sermonData.pastor || '',
         verse: sermonData.verse || '',
-        serviceType: sermonData.serviceType || '주일설교'
+        serviceType: sermonData.serviceType || '감사일기'
       });
+      setCurrentFolderId(document.folderId ?? undefined);
 
       if (hasContent) {
         const contentJson = toJsonContent(document.content);
@@ -352,7 +371,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       console.error('문서를 찾을 수 없습니다');
       router.push('/documents');
     }
-  }, [editor, documentId, document, isLoading, setSermonInfo, setEditorContent, syncServerHash, markClean, router]);
+  }, [editor, documentId, document, isLoading, setSermonInfo, setEditorContent, syncServerHash, markClean, router, setCurrentFolderId]);
 
   // 새 문서 진입 시: 전역 상태 초기화 + 에디터 내용 비우기(초기 업데이트 억제)
   useEffect(() => {
@@ -447,9 +466,13 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
           )}
         </div>
       )}
-      <SermonInfoSection 
-        info={sermonInfo} 
-        onChange={setSermonInfo} 
+      <SermonInfoSection
+        info={sermonInfo}
+        onChange={setSermonInfo}
+        folders={folderOptions}
+        selectedFolderId={selectedFolderId}
+        onSelectFolder={(value) => setCurrentFolderId(value)}
+        isLoadingFolders={folderListQuery.isLoading}
       />
       
       <div className="editor-wrapper bg-background border rounded-lg shadow-sm">

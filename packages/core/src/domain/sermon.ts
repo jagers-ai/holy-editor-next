@@ -16,7 +16,7 @@ export interface SermonInfo {
 }
 
 export function normalizeServiceType(raw?: string): ServiceType {
-  if (!raw || typeof raw !== 'string') return '주일설교';
+  if (!raw || typeof raw !== 'string') return '감사일기';
   const allowed: ServiceType[] = ['감사일기', '주일설교', '수요예배', '금요예배', '새벽예배', '청년예배', '큐티', '기타'];
   const map: Record<string, ServiceType> = {
     감사일기: '감사일기',
