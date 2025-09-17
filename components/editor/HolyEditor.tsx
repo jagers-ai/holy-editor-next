@@ -390,11 +390,6 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     initialContentAppliedRef.current = true;
   }, [documentId, editor, resetForNewDocument, folderIdFromQuery]);
 
-  // 현재 폴더 ID를 Context에 반영
-  useEffect(() => {
-    setCurrentFolderId(activeFolderId);
-  }, [activeFolderId, setCurrentFolderId]);
-
   if (!editor) {
     return (
       <div className="flex items-center justify-center min-h-screen">
