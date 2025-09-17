@@ -3,20 +3,9 @@ import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
 import { TRPCError } from '@trpc/server';
 import { Prisma } from '@prisma/client';
 
-const FRESH_REVISION_LIFETIME_DAYS = 7;
+import { fingerprintJson as fingerprint } from '@/lib/utils/json';
 
-const fingerprint = (obj: unknown) => {
-  try {
-    const s = JSON.stringify(obj);
-    let h = 5381;
-    for (let i = 0; i < s.length; i++) {
-      h = ((h << 5) + h) ^ s.charCodeAt(i);
-    }
-    return (h >>> 0).toString(36);
-  } catch {
-    return Math.random().toString(36).slice(2, 8);
-  }
-};
+const FRESH_REVISION_LIFETIME_DAYS = 7;
 
 const hasMeaningfulContent = (content: unknown): boolean => {
   if (!content || typeof content !== 'object') return false;

@@ -7,6 +7,7 @@ import { SermonInfo } from '@/components/editor/SermonInfoSection';
 import { api } from '@/utils/api';
 import toast from 'react-hot-toast';
 import { attachSermonInfo } from '@/lib/editor/content';
+import { fingerprintJson as fingerprint } from '@/lib/utils/json';
 
 type TRPCErrorPayload = {
   data?: {
@@ -19,17 +20,6 @@ const getErrorCode = (error: unknown): string | undefined => {
   const payload = error as TRPCErrorPayload;
   const code = payload.data?.code;
   return typeof code === 'string' ? code : undefined;
-};
-
-const fingerprint = (obj: unknown) => {
-  try {
-    const s = JSON.stringify(obj);
-    let h = 5381;
-    for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
-    return (h >>> 0).toString(36);
-  } catch {
-    return Math.random().toString(36).slice(2, 8);
-  }
 };
 
 interface EditorContextType {
