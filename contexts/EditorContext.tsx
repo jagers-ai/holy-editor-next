@@ -62,6 +62,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const lastSavedHashRef = useRef<string | undefined>(undefined);
   const router = useRouter();
   const utils = api.useUtils();
+  const documentUtils = utils.document;
+  const folderUtils = utils.folder;
   // 리셋 중 더티 플래그를 건드리지 않기 위한 가드
   const resettingRef = useRef(false);
   
@@ -118,7 +120,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       console.log('문서 생성 성공:', data.id);
       toast.success('문서를 저장했습니다');
       // 캐시 무효화 후 수동 저장 요청이 있었다면 목록으로 리디렉션
-      utils.document.list.invalidate();
+      documentUtils.list.invalidate();
       handleRedirectAfterSave();
     },
     onError: (error) => {
@@ -137,7 +139,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     onSuccess: (data) => {
       console.log('문서 업데이트 성공:', data.id);
       toast.success('문서를 저장했습니다');
-      utils.document.list.invalidate();
+      documentUtils.list.invalidate();
       handleRedirectAfterSave();
     },
     onError: (error) => {
@@ -151,7 +153,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       if (code === 'CONFLICT') {
         toast.error('다른 기기에서 먼저 저장되었습니다. 페이지 새로고침 후 복구 메뉴를 이용해주세요.');
         if (documentId) {
-          utils.document.getById.invalidate({ id: documentId });
+          documentUtils.getById.invalidate({ id: documentId });
         }
         return;
       }
@@ -218,7 +220,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       // 서버 반영 검증 1회
       try {
         if (targetId) {
-          const fresh = await utils.document.getById.fetch({ id: targetId });
+          const fresh = await documentUtils.getById.fetch({ id: targetId });
           const serverHash = fingerprint(fresh?.content);
           if (serverHash !== newHash) {
             console.warn('[SAVE] verify mismatch', { targetId, expected: newHash, server: serverHash });
@@ -236,11 +238,13 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       // 목록/폴더 캐시 무효화
       try {
         await Promise.all([
-          utils.document.list.invalidate(),
-          utils.folder?.list?.invalidate?.(),
-          currentFolderId ? utils.folder?.getDocuments?.invalidate({ folderId: currentFolderId }) : Promise.resolve(),
+          documentUtils.list.invalidate(),
+          folderUtils?.list?.invalidate?.(),
+          currentFolderId ? folderUtils?.getDocuments?.invalidate({ folderId: currentFolderId }) : Promise.resolve(),
         ]);
-      } catch {}
+      } catch (invalidateError) {
+        console.warn('document cache invalidation failed', invalidateError);
+      }
     } catch (error) {
       console.error('저장 실패:', error);
       toast.error('저장 실패: 잠시 후 다시 시도해주세요');
@@ -248,7 +252,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       redirectOnSaveRef.current = false;
       setIsSaving(false);
     }
-  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, utils, currentFolderId]);
+  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, documentUtils, folderUtils, currentFolderId]);
 
   // 자동 저장 루틴 (30초마다, 화면 이탈 시 플러시)
   const doAutoSave = useCallback(async () => {
@@ -286,7 +290,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         const created = await createDocumentSilent.mutateAsync({ ...data });
         if (created?.id) {
           setDocumentId(created.id);
-          try { router.replace(`/editor/${created.id}`); } catch {}
+          try {
+            router.replace(`/editor/${created.id}`);
+          } catch (replaceError) {
+            console.warn('router.replace failed', replaceError);
+          }
         }
       }
       dirtyRef.current = false;
@@ -299,7 +307,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       if (code === 'CONFLICT') {
         toast.error('자동 저장이 충돌했습니다. 페이지를 새로고침한 뒤 다시 시도해주세요.');
         if (documentId) {
-          utils.document.getById.invalidate({ id: documentId });
+          documentUtils.getById.invalidate({ id: documentId });
         }
       } else if (code === 'BAD_REQUEST') {
         toast.error('내용이 비어 있어 자동 저장하지 못했습니다. 내용을 확인해주세요.');
@@ -307,7 +315,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     } finally {
       autoSavingRef.current = false;
     }
-  }, [editorContent, sermonInfo, currentFolderId, documentId, createDocumentSilent, updateDocumentSilent, router, setDocumentId]);
+  }, [editorContent, sermonInfo, currentFolderId, documentId, createDocumentSilent, updateDocumentSilent, router, setDocumentId, documentUtils]);
 
   // 자동 저장 주기: 5초
   useEffect(() => {

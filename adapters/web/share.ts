@@ -14,7 +14,8 @@ export const webShare: SharePort = {
       if (text) {
         await navigator.clipboard.writeText(text);
       }
-    } catch {}
+    } catch (error) {
+      console.warn('webShare failed', error);
+    }
   },
 };
-

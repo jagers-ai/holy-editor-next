@@ -5,9 +5,12 @@ export function asRouterPort(router: AppRouterInstance): RouterPort {
   return {
     push: (p) => router.push(p),
     replace: (p) => router.replace(p),
-    prefetch: (p) => {
-      try { router.prefetch(p); } catch {}
+    prefetch: async (p) => {
+      try {
+        await router.prefetch(p);
+      } catch (error) {
+        console.warn('router.prefetch failed', error);
+      }
     },
   };
 }
-
