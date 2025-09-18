@@ -1,4 +1,4 @@
-import type { SermonInfo } from '@/lib/domain/sermon';
+import type { SermonInfo } from 'core';
 
 type JsonLike = Record<string, unknown>;
 

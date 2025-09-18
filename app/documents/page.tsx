@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useFolderTabs } from '@/hooks/useFolderTabs';
 import { FolderTabsManagerDialog } from '@/components/documents/FolderTabsManagerDialog';
 import { DocumentListItem } from '@/components/documents/DocumentListItem';
+import type { DocumentListEntry } from 'core';
 
 const DOCUMENT_PAGE_LIMIT = 50;
 
@@ -72,7 +73,7 @@ export default function DocumentsPage() {
     },
   });
 
-  const documents = documentsQuery.data?.documents ?? [];
+  const documents: DocumentListEntry[] = documentsQuery.data?.documents ?? [];
   const isLoadingDocuments = documentsQuery.isLoading;
   const isErrorDocuments = documentsQuery.isError;
 

@@ -17,7 +17,7 @@ import type { SermonInfo } from './SermonInfoSection';
 import { useEditorContext } from '@/contexts/EditorContext';
 import { api } from '@/utils/api';
 import toast from 'react-hot-toast';
-import { normalizeServiceType } from '@/lib/domain/sermon';
+import { normalizeServiceType } from 'core';
 import { bindUserInteraction } from '@/lib/editor/userInteraction';
 
 type TRPCErrorPayload = {
