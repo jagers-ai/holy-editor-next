@@ -2,13 +2,13 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Mail, Lock } from 'lucide-react';
 import Link from 'next/link';
+import { webAuthPort } from '@/adapters/web/auth';
 
 const redirectToKey = 'redirectTo';
 
@@ -18,7 +18,6 @@ function LoginFormInner({ redirectTo }: { redirectTo: string }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,33 +25,15 @@ function LoginFormInner({ redirectTo }: { redirectTo: string }) {
     setError(null);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setError(error.message);
+      await webAuthPort.signInWithPassword(email, password);
+      router.push(redirectTo);
+      router.refresh();
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
       } else {
-        try {
-          const session = data.session ?? (await supabase.auth.getSession()).data.session;
-          if (session) {
-            await fetch('/auth/callback', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ event: 'SIGNED_IN', session }),
-              credentials: 'include',
-            });
-          }
-        } catch (syncError) {
-          console.error('세션 동기화 실패:', syncError);
-        }
-
-        router.push(redirectTo);
-        router.refresh();
+        setError('로그인 중 오류가 발생했습니다.');
       }
-    } catch {
-      setError('로그인 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }

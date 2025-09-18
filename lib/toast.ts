@@ -7,6 +7,7 @@ import toast, { type Renderable, type Toast as HotToast } from 'react-hot-toast'
 import type { AppError } from '@/lib/errors/types';
 import { getUserMessage } from '@/lib/errors/types';
 import { logger } from '@/lib/logger';
+import type { ToastPort } from '@/ports/toast';
 
 /**
  * Toast 옵션 인터페이스
@@ -285,6 +286,21 @@ export class ToastManager {
     });
   }
 }
+
+export const toastPort: ToastPort = {
+  success: (message: string) => {
+    ToastManager.showSuccess(message);
+  },
+  error: (message: string) => {
+    ToastManager.showError(message);
+  },
+  info: (message: string) => {
+    ToastManager.showInfo(message);
+  },
+  warning: (message: string) => {
+    ToastManager.showWarning(message);
+  },
+};
 
 // 간편 사용을 위한 export
 export const showError = ToastManager.showError;

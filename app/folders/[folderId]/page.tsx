@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { FileText, Trash2, Plus, Share2, ArrowLeft, MoveRight, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { toastPort } from '@/lib/toast';
 import { api } from '@/utils/api';
 import { extractPlainTextFromTiptap, formatDateTimeKST } from 'core';
 import type { DocumentListEntry, FolderSummary } from 'core';
@@ -74,14 +75,14 @@ export default function FolderDocumentsPage() {
   // 폴더 수정/삭제 관련 뮤테이션
   const updateFolder = api.folder.update.useMutation({
     onSuccess: () => {
-      toast.success('폴더가 수정되었습니다');
+      toastPort.success('폴더가 수정되었습니다');
       setShowEditModal(false);
       refetch();
       router.refresh();
     },
     onError: (e) => {
       const msg = (e as { message?: string })?.message || '수정에 실패했습니다';
-      toast.error(msg);
+      toastPort.error(msg);
     },
   });
 
@@ -91,11 +92,11 @@ export default function FolderDocumentsPage() {
     try {
       await documentService.delete(id);
       refetch();
-      toast.success('문서가 삭제되었습니다');
+      toastPort.success('문서가 삭제되었습니다');
       setSelectedDocs([]);
     } catch (error) {
       console.error('문서 삭제 실패:', error);
-      toast.error('문서 삭제에 실패했습니다');
+      toastPort.error('문서 삭제에 실패했습니다');
     }
   };
 
@@ -125,7 +126,7 @@ export default function FolderDocumentsPage() {
 
   const handleMoveClick = () => {
     if (selectedDocs.length === 0) {
-      toast.error('이동할 문서를 선택해주세요');
+      toastPort.error('이동할 문서를 선택해주세요');
       return;
     }
     setShowFolderSelect(true);
@@ -133,7 +134,7 @@ export default function FolderDocumentsPage() {
 
   const handleFolderSelect = (selectedFolderId: string, folderName: string) => {
     if (selectedFolderId === folderId) {
-      toast.error('같은 폴더로는 이동할 수 없습니다');
+      toastPort.error('같은 폴더로는 이동할 수 없습니다');
       return;
     }
     setTargetFolderId(selectedFolderId);
@@ -149,12 +150,12 @@ export default function FolderDocumentsPage() {
         targetFolderId,
       });
       refetch();
-      toast.success(`${result.movedCount}개 문서를 ${result.targetFolder} 폴더로 이동했습니다`);
+      toastPort.success(`${result.movedCount}개 문서를 ${result.targetFolder} 폴더로 이동했습니다`);
       setSelectedDocs([]);
       setShowMoveConfirm(false);
     } catch (error) {
       console.error('문서 이동 실패:', error);
-      toast.error('문서 이동에 실패했습니다');
+      toastPort.error('문서 이동에 실패했습니다');
     }
   };
 
@@ -451,7 +452,7 @@ export default function FolderDocumentsPage() {
             <Button variant="outline" onClick={() => setShowEditModal(false)}>취소</Button>
             <Button
               onClick={async () => {
-                if (!editName.trim()) { toast.error('폴더명을 입력하세요'); return; }
+                if (!editName.trim()) { toastPort.error('폴더명을 입력하세요'); return; }
                 await updateFolder.mutateAsync({ id: folderId, name: editName.trim(), icon: editIcon, color: editColor });
               }}
               disabled={updateFolder.isPending}
@@ -478,12 +479,12 @@ export default function FolderDocumentsPage() {
                   onClick={async () => {
                     try {
                       await folderService.delete(folderId);
-                      toast.success('폴더를 삭제했습니다');
+                      toastPort.success('폴더를 삭제했습니다');
                       setShowDeleteModal(false);
                       router.push('/documents');
                     } catch (error) {
                       console.error('폴더 삭제 실패:', error);
-                      toast.error('폴더 삭제에 실패했습니다');
+                      toastPort.error('폴더 삭제에 실패했습니다');
                     }
                   }}
                 >
@@ -504,11 +505,11 @@ export default function FolderDocumentsPage() {
                       await folderService.moveDocuments({ documentIds: docIds, targetFolderId: unc.folderId });
                       await folderService.delete(folderId);
                       setShowDeleteModal(false);
-                      toast.success('미분류로 이동 후 폴더를 삭제했습니다');
+                      toastPort.success('미분류로 이동 후 폴더를 삭제했습니다');
                       router.push('/documents');
                     } catch (error) {
                       console.error('폴더 삭제 실패:', error);
-                      toast.error('폴더 삭제에 실패했습니다');
+                      toastPort.error('폴더 삭제에 실패했습니다');
                     }
                   }}
                 >
@@ -526,11 +527,11 @@ export default function FolderDocumentsPage() {
                             await folderService.moveDocuments({ documentIds: docIds, targetFolderId: f.id });
                             await folderService.delete(folderId);
                             setShowDeleteModal(false);
-                            toast.success(`${f.name}로 이동 후 폴더를 삭제했습니다`);
+                            toastPort.success(`${f.name}로 이동 후 폴더를 삭제했습니다`);
                             router.push('/documents');
                           } catch (error) {
                             console.error('폴더 삭제 실패:', error);
-                            toast.error('폴더 삭제에 실패했습니다');
+                            toastPort.error('폴더 삭제에 실패했습니다');
                           }
                         }}
                         className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center justify-between"
