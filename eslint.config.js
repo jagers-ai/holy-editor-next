@@ -4,6 +4,9 @@ const tsParser = require('@typescript-eslint/parser');
 const nextPlugin = require('@next/eslint-plugin-next');
 const reactPlugin = require('eslint-plugin-react');
 const reactHooksPlugin = require('eslint-plugin-react-hooks');
+const { FlatCompat } = require('@eslint/eslintrc');
+
+const compat = new FlatCompat({ baseDirectory: __dirname });
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 module.exports = [
@@ -21,6 +24,7 @@ module.exports = [
     ]
   },
   js.configs.recommended,
+  ...compat.config({ extends: ['plugin:@next/next/recommended'] }),
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
