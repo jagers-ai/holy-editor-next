@@ -247,9 +247,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('저장 실패:', error);
+      redirectOnSaveRef.current = false;
       toast.error('저장 실패: 잠시 후 다시 시도해주세요');
     } finally {
-      redirectOnSaveRef.current = false;
       setIsSaving(false);
     }
   }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, documentUtils, folderUtils, currentFolderId]);
