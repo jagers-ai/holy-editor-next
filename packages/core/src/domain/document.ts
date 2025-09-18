@@ -15,3 +15,18 @@ export interface DocumentListEntry extends DocumentIdentifier, DocumentTimestamp
 }
 
 export type DocumentList = DocumentListEntry[];
+
+export interface DocumentDetail extends DocumentListEntry {
+  title: string;
+  folderId: string | null;
+  isPublic: boolean;
+}
+
+export interface DocumentRevision extends DocumentIdentifier {
+  documentId: string;
+  userId?: string | null;
+  content: unknown;
+  createdAt: string | Date;
+}
+
+export type DocumentRevisionList = DocumentRevision[];

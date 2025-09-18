@@ -5,3 +5,5 @@ export * from './domain/constants';
 export * from './domain/document';
 export * from './domain/folder';
 export * from './editor/content';
+export * from './services/document';
+export * from './services/folder';
