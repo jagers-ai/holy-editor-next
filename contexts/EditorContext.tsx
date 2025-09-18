@@ -58,6 +58,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [lastAutoSavedAt, setLastAutoSavedAt] = useState<Date | undefined>(undefined);
   const dirtyRef = useRef(false);
   const autoSavingRef = useRef(false);
+  const redirectOnSaveRef = useRef(false);
   const lastSavedHashRef = useRef<string | undefined>(undefined);
   const router = useRouter();
   const utils = api.useUtils();
@@ -104,12 +105,20 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   }, []);
   
   // tRPC mutations
+  const handleRedirectAfterSave = useCallback(() => {
+    if (!redirectOnSaveRef.current) return;
+    redirectOnSaveRef.current = false;
+    router.push('/documents');
+    router.refresh();
+  }, [router]);
+
   const createDocument = api.document.create.useMutation({
     onSuccess: (data) => {
       console.log('문서 생성 성공:', data.id);
       toast.success('문서를 저장했습니다');
-      // 리스트 무효화만 수행, 이동은 handleSave에서 처리
+      // 캐시 무효화 후 수동 저장 요청이 있었다면 목록으로 리디렉션
       utils.document.list.invalidate();
+      handleRedirectAfterSave();
     },
     onError: (error) => {
       console.error('문서 생성 실패:', error);
@@ -128,6 +137,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       console.log('문서 업데이트 성공:', data.id);
       toast.success('문서를 저장했습니다');
       utils.document.list.invalidate();
+      handleRedirectAfterSave();
     },
     onError: (error) => {
       console.error('문서 업데이트 실패:', error);
@@ -162,6 +172,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    redirectOnSaveRef.current = true;
     setIsSaving(true);
 
     try {
@@ -229,16 +240,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
           currentFolderId ? utils.folder?.getDocuments?.invalidate({ folderId: currentFolderId }) : Promise.resolve(),
         ]);
       } catch {}
-      // 저장 후 문서 목록으로 이동
-      router.push('/documents');
-      router.refresh();
     } catch (error) {
       console.error('저장 실패:', error);
       toast.error('저장 실패: 잠시 후 다시 시도해주세요');
     } finally {
+      redirectOnSaveRef.current = false;
       setIsSaving(false);
     }
-  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, utils, router, currentFolderId]);
+  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, utils, currentFolderId]);
 
   // 자동 저장 루틴 (30초마다, 화면 이탈 시 플러시)
   const doAutoSave = useCallback(async () => {
