@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef, Dispatch, SetStateAction } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef, Dispatch, SetStateAction, startTransition } from 'react';
 import type { JSONContent } from '@tiptap/core';
 import { useRouter } from 'next/navigation';
 import { SermonInfo } from '@/components/editor/SermonInfoSection';
@@ -108,8 +108,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const handleRedirectAfterSave = useCallback(() => {
     if (!redirectOnSaveRef.current) return;
     redirectOnSaveRef.current = false;
-    router.push('/documents');
-    router.refresh();
+    startTransition(() => {
+      router.push('/documents');
+    });
   }, [router]);
 
   const createDocument = api.document.create.useMutation({
