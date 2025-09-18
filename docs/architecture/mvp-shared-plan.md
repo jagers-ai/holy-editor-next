@@ -33,3 +33,17 @@
 - `packages/core` 구조 확장 설계 초안 작성.
 - 공용 서비스 인터페이스 명명 규칙 합의(`DocumentService`, `FolderService` 등).
 - 플랫폼 어댑터에 포함할 최소 기능 정의(인증 세션, 토스트, 로컬 스토리지).
+
+## 6. 진행 현황 요약 (2025-09-18)
+- 도메인 타입: `packages/core/src/domain`에 문서/폴더 타입을 통합하고 웹 코드는 `core` 패키지를 직접 참조.
+- 서비스 인터페이스: `packages/core/src/services/{document,folder}.ts`에 tRPC/Supabase 호출 규약을 정의하고, 웹 레이어에서 `useDocumentService`·`useFolderService` 훅으로 구현.
+- 플랫폼 어댑터: `ports/toast.ts`, `ports/auth.ts`에 공용 포트를 추가하고, `adapters/web/{auth,toast}`로 웹 구현을 제공. 로그인 폼 등 일부 화면에서 신규 어댑터 사용을 시작.
+
+## 7. RN 전환 준비 체크리스트 (초안)
+- [x] 공용 도메인 타입(`DocumentListEntry`, `FolderSummary`, `SermonInfo`)을 `core` 패키지에서 관리
+- [x] 문서/폴더 서비스 인터페이스 초안 및 웹 구현 훅 작성
+- [x] 토스트/인증 포트 정의 및 웹 어댑터 연결
+- [ ] Supabase Storage 업로드 추상화(웹/RN 분리) 설계
+- [ ] Expo 앱에서 `core` 패키지 참조 검증 및 타입 공유 경로 점검
+- [ ] Document/Folder 서비스의 RN 클라이언트 어댑터 프로토타입 작성
+- [ ] RN 전용 네비게이션/스토리지 포트 초안 수립
