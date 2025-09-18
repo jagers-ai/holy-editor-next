@@ -56,7 +56,7 @@ export function SermonInfoSection({
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">폴더 선택</span>
             <Select
-              value={selectedFolderId ?? undefined}
+              value={selectedFolderId ?? ''}
               onValueChange={onSelectFolder}
               disabled={isLoadingFolders}
             >

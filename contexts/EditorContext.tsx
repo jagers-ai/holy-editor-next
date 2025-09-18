@@ -245,6 +245,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       } catch (invalidateError) {
         console.warn('document cache invalidation failed', invalidateError);
       }
+
+      handleRedirectAfterSave();
     } catch (error) {
       console.error('저장 실패:', error);
       redirectOnSaveRef.current = false;
@@ -252,7 +254,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsSaving(false);
     }
-  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, documentUtils, folderUtils, currentFolderId]);
+  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, documentUtils, folderUtils, currentFolderId, handleRedirectAfterSave]);
 
   // 자동 저장 루틴 (30초마다, 화면 이탈 시 플러시)
   const doAutoSave = useCallback(async () => {
