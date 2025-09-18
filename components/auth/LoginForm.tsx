@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,7 +25,7 @@ export function LoginForm() {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -32,7 +33,22 @@ export function LoginForm() {
       if (error) {
         setError(error.message);
       } else {
-        router.push('/documents');
+        try {
+          const session = data.session ?? (await supabase.auth.getSession()).data.session;
+          if (session) {
+            await fetch('/auth/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ event: 'SIGNED_IN', session }),
+              credentials: 'include',
+            });
+          }
+        } catch (syncError) {
+          console.error('세션 동기화 실패:', syncError);
+        }
+
+        const redirectTo = searchParams?.get('redirectTo') ?? '/documents';
+        router.push(redirectTo);
         router.refresh();
       }
     } catch {

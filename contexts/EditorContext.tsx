@@ -26,7 +26,7 @@ interface EditorContextType {
   sermonInfo: SermonInfo;
   setSermonInfo: (info: SermonInfo) => void;
   isSaving: boolean;
-  handleSave: () => void;
+  handleSave: () => Promise<void>;
   documentId?: string;
   setDocumentId: (id: string | undefined) => void;
   editorContent: JSONContent | null;
@@ -110,9 +110,34 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const handleRedirectAfterSave = useCallback(() => {
     if (!redirectOnSaveRef.current) return;
     redirectOnSaveRef.current = false;
-    startTransition(() => {
-      router.push('/documents');
-    });
+    const isDev = process.env.NODE_ENV !== 'production';
+    try {
+      if (typeof window !== 'undefined') {
+        const from = window.location.pathname;
+        if (isDev) {
+          console.log('[SAVE] redirect -> /documents (from', from, ')');
+        }
+        router.push('/documents');
+        // 혹시 push가 경쟁 상태로 무시되면 500ms 후 한 번 더 replace 시도
+        const fallbackDelay = 600;
+        setTimeout(() => {
+          const currentPath = window.location.pathname;
+          if (currentPath.startsWith('/editor')) {
+            if (isDev) {
+              console.log('[SAVE] redirect fallback replace -> /documents (still at', currentPath, ')');
+            }
+            router.replace('/documents');
+          }
+        }, fallbackDelay);
+      } else {
+        router.push('/documents');
+      }
+    } catch (e) {
+      if (isDev) {
+        console.warn('[SAVE] redirect failed, will retry with replace', e);
+      }
+      try { router.replace('/documents'); } catch {}
+    }
   }, [router]);
 
   const createDocument = api.document.create.useMutation({
@@ -176,6 +201,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }
 
     redirectOnSaveRef.current = true;
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[SAVE] redirect flag set = true');
+    }
     setIsSaving(true);
 
     try {
@@ -212,10 +240,16 @@ export function EditorProvider({ children }: { children: ReactNode }) {
           folderId: currentFolderId,
         });
         targetId = created?.id ?? targetId;
+        if (created?.id) {
+          setDocumentId(created.id);
+        }
       }
 
       lastSavedHashRef.current = newHash;
       dirtyRef.current = false;
+      if (targetId && targetId !== documentId) {
+        setDocumentId(targetId);
+      }
 
       // 서버 반영 검증 1회
       try {
@@ -245,7 +279,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       } catch (invalidateError) {
         console.warn('document cache invalidation failed', invalidateError);
       }
-
       handleRedirectAfterSave();
     } catch (error) {
       console.error('저장 실패:', error);
@@ -254,7 +287,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsSaving(false);
     }
-  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, documentUtils, folderUtils, currentFolderId, handleRedirectAfterSave]);
+  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, documentUtils, folderUtils, currentFolderId, handleRedirectAfterSave, setDocumentId]);
 
   // 자동 저장 루틴 (30초마다, 화면 이탈 시 플러시)
   const doAutoSave = useCallback(async () => {

@@ -7,5 +7,9 @@
   "sideEffects": false,
   "scripts": {
     "lint": "eslint \"src/**/*.{ts,tsx}\" --no-error-on-unmatched-pattern"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "autoprefixer": "^10.4.21"
   }
 }

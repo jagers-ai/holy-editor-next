@@ -1,3 +1,9 @@
+@source "../app/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../components/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../contexts/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../hooks/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../lib/**/*.{ts,tsx,js,jsx,mdx}";
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";

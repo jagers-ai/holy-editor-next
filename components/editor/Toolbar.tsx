@@ -262,7 +262,7 @@ export function Toolbar({ editor }: ToolbarProps) {
         
         <div className="ml-auto flex flex-col items-end gap-0">
           <button
-            onClick={handleSave}
+            onClick={() => { void handleSave(); }}
             disabled={isSaving}
             className="p-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
             aria-label="저장"
