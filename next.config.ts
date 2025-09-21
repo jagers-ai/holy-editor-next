@@ -8,14 +8,14 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       // 단수 표기 잔재 대비 (/folder → /documents)
-      { source: '/folder', destination: '/documents', permanent: true },
-      { source: '/folder/:folderId', destination: '/documents?folderId=:folderId', permanent: true },
       { source: '/folder/:folderId/:path*', destination: '/documents?folderId=:folderId', permanent: true },
+      { source: '/folder/:folderId', destination: '/documents?folderId=:folderId', permanent: true },
+      { source: '/folder', destination: '/documents', permanent: true },
 
       // 실제 사용 경로 일괄 이전 (/folders → /documents)
-      { source: '/folders', destination: '/documents', permanent: true },
-      { source: '/folders/:folderId', destination: '/documents?folderId=:folderId', permanent: true },
       { source: '/folders/:folderId/:path*', destination: '/documents?folderId=:folderId', permanent: true },
+      { source: '/folders/:folderId', destination: '/documents?folderId=:folderId', permanent: true },
+      { source: '/folders', destination: '/documents', permanent: true },
     ];
   },
 };
