@@ -98,28 +98,25 @@ export default function DocumentsPage() {
   };
 
   useEffect(() => {
-    if (folderQuery.isLoading) return;
+    if (!folderQuery.isSuccess) return;
 
+    // 쿼리 파라미터가 없으면 'all' 탭으로 고정하고 종료
     if (!folderIdParam) {
-      if (selectedTab !== 'all') {
-        setSelectedTab('all');
-      }
+      if (selectedTab !== 'all') setSelectedTab('all');
       return;
     }
 
-    const targetTabExists = tabs.some((tab) => tab.id === folderIdParam);
-    if (!targetTabExists) {
-      if (selectedTab !== 'all') {
-        setSelectedTab('all');
-      }
-      updateUrlForTab('all');
+    // 서버에서 받은 실제 폴더 목록 기준으로 존재 여부 판별
+    const exists = (folderQuery.data ?? []).some((f) => f.id === folderIdParam);
+    if (exists) {
+      if (selectedTab !== folderIdParam) setSelectedTab(folderIdParam);
       return;
     }
 
-    if (selectedTab !== folderIdParam) {
-      setSelectedTab(folderIdParam);
-    }
-  }, [folderIdParam, folderQuery.isLoading, selectedTab, setSelectedTab, tabs, updateUrlForTab]);
+    // 유효하지 않은 ID인 것이 확정된 경우에만 URL 정리
+    if (selectedTab !== 'all') setSelectedTab('all');
+    updateUrlForTab('all');
+  }, [folderIdParam, folderQuery.isSuccess, folderQuery.data, selectedTab, setSelectedTab, updateUrlForTab]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('정말로 이 문서를 삭제하시겠습니까?')) return;

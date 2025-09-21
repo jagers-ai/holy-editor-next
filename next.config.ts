@@ -9,7 +9,8 @@ const nextConfig: NextConfig = {
     return [
       // 단수 표기 잔재 대비 (/folder → /documents)
       { source: '/folder', destination: '/documents', permanent: true },
-      { source: '/folder/:path*', destination: '/documents/:path*', permanent: true },
+      { source: '/folder/:folderId', destination: '/documents?folderId=:folderId', permanent: true },
+      { source: '/folder/:folderId/:path*', destination: '/documents?folderId=:folderId', permanent: true },
 
       // 실제 사용 경로 일괄 이전 (/folders → /documents)
       { source: '/folders', destination: '/documents', permanent: true },
