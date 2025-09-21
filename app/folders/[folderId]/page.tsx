@@ -345,10 +345,15 @@ export default function FolderDocumentsPage() {
             <Button
               variant="destructive"
               onClick={async () => {
-                if (confirm(`${selectedDocs.length}개 문서를 삭제하시겠습니까?`)) {
-                  for (const docId of selectedDocs) {
-                    await deleteDocument.mutateAsync({ id: docId });
-                  }
+                if (!confirm(`${selectedDocs.length}개 문서를 삭제하시겠습니까?`)) return;
+                try {
+                  await Promise.all(selectedDocs.map((docId) => documentService.delete(docId)));
+                  await refetch();
+                  setSelectedDocs([]);
+                  toastPort.success('선택한 문서를 삭제했습니다');
+                } catch (error) {
+                  console.error('일괄 삭제 실패:', error);
+                  toastPort.error('문서 삭제에 실패했습니다');
                 }
               }}
             >
