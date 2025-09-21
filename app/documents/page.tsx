@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ListFilter, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { toastPort } from '@/lib/toast';
 
 import { api } from '@/utils/api';
 import { Button } from '@/components/ui/button';
@@ -74,10 +75,10 @@ export default function DocumentsPage() {
     try {
       await documentService.delete(id);
       documentsQuery.refetch();
-      toast.success('문서가 삭제되었습니다');
+      toastPort.success('문서가 삭제되었습니다');
     } catch (error) {
       console.error('문서 삭제 실패:', error);
-      toast.error('문서 삭제에 실패했습니다');
+      toastPort.error('문서 삭제에 실패했습니다');
     }
   };
 
