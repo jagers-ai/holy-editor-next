@@ -1,2 +1,1 @@
-export const DEFAULT_PREVIEW_LIMIT = 300;
-export const DEFAULT_SERVICE_TYPE = '감사일기' as const;
+export { DEFAULT_PREVIEW_LIMIT, DEFAULT_SERVICE_TYPE } from 'core';
