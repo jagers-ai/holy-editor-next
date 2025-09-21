@@ -40,12 +40,16 @@ interface EditorContextType {
   syncServerHash: (content: JSONContent | null) => void;
   /** 강제 덮어쓰기 후 더티 플래그를 수동으로 초기화합니다. */
   markClean: () => void;
+  /** 저장 직전 콘텐츠를 editor에서 직접 제공받기 위한 등록자 */
+  registerContentProvider: (fn: () => JSONContent | null) => void;
 }
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
+type AutoSaveOptions = { force?: boolean; skipJitter?: boolean };
+
 export function EditorProvider({ children }: { children: ReactNode }) {
-  const [sermonInfo, setSermonInfo] = useState<SermonInfo>({
+  const [sermonInfo, _setSermonInfo] = useState<SermonInfo>({
     title: '',
     pastor: '',
     verse: '',
@@ -60,20 +64,51 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const autoSavingRef = useRef(false);
   const redirectOnSaveRef = useRef(false);
   const lastSavedHashRef = useRef<string | undefined>(undefined);
+  const contentProviderRef = useRef<() => JSONContent | null>(() => editorContent);
+  const autoSaveFnRef = useRef<(opts?: AutoSaveOptions) => Promise<void> | void>();
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const maxWaitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const DEBOUNCE_MS = 5_000; // 입력 멈춤 5초 후 저장
+  const MAX_WAIT_MS = 25_000; // 계속 입력 중에도 최대 25초 내 1회 저장
   const router = useRouter();
   const utils = api.useUtils();
   const documentUtils = utils.document;
   const folderUtils = utils.folder;
   // 리셋 중 더티 플래그를 건드리지 않기 위한 가드
   const resettingRef = useRef(false);
+  const isUnmountedRef = useRef(false);
   
   // setEditorContent 래퍼: 더티 플래그 표시
+  const armAutoSaveTimers = useCallback(() => {
+    if (isUnmountedRef.current) return;
+    // 디바운스 타이머 재설정
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      void autoSaveFnRef.current?.();
+    }, DEBOUNCE_MS);
+    // 최초 변경 시 maxWait 타이머 장전
+    if (!maxWaitTimerRef.current) {
+      maxWaitTimerRef.current = setTimeout(() => {
+        void autoSaveFnRef.current?.();
+      }, MAX_WAIT_MS);
+    }
+  }, [DEBOUNCE_MS, MAX_WAIT_MS]);
+
   const setEditorContent = useCallback((content: JSONContent | null) => {
     _setEditorContent(content);
     if (!resettingRef.current) {
       dirtyRef.current = true;
+      armAutoSaveTimers();
     }
-  }, []);
+  }, [armAutoSaveTimers]);
+
+  const setSermonInfo = useCallback((info: SermonInfo) => {
+    _setSermonInfo(info);
+    if (!resettingRef.current) {
+      dirtyRef.current = true;
+      armAutoSaveTimers();
+    }
+  }, [armAutoSaveTimers]);
 
   // 새 문서 진입 시 컨텍스트 상태 초기화
   const resetForNewDocument = useCallback((folderId?: string) => {
@@ -104,6 +139,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   const markClean = useCallback(() => {
     dirtyRef.current = false;
+  }, []);
+
+  const registerContentProvider = useCallback((fn: () => JSONContent | null) => {
+    contentProviderRef.current = fn;
   }, []);
   
   // tRPC mutations
@@ -176,10 +215,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (code === 'CONFLICT') {
-        toast.error('다른 기기에서 먼저 저장되었습니다. 페이지 새로고침 후 복구 메뉴를 이용해주세요.');
-        if (documentId) {
-          documentUtils.getById.invalidate({ id: documentId });
-        }
+        toast.error('다른 기기에서 먼저 저장되었습니다. 복구 메뉴에서 비교 후 처리해주세요.');
         return;
       }
       if (code === 'BAD_REQUEST') {
@@ -195,6 +231,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const updateDocumentSilent = api.document.update.useMutation();
 
   const handleSave = useCallback(async () => {
+    if (autoSavingRef.current) {
+      toast.error('자동 저장 중입니다. 잠시 후 다시 시도해주세요');
+      return;
+    }
     if (!currentFolderId && (!documentId || documentId === 'new')) {
       toast.error('먼저 폴더를 선택해주세요');
       return;
@@ -210,7 +250,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       // content JSON 안에 sermonInfo를 병합 저장하여
       // 목록/상세에서 바로 읽을 수 있게 함
       const emptyDoc: JSONContent = { type: 'doc', content: [] };
-      const contentWithMeta = attachSermonInfo(editorContent || emptyDoc, sermonInfo);
+      const latest = (contentProviderRef.current?.() ?? editorContent ?? emptyDoc);
+      const contentWithMeta = attachSermonInfo(latest || emptyDoc, sermonInfo);
 
       const documentData = {
         title: sermonInfo.title || '제목 없음',
@@ -286,20 +327,31 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       toast.error('저장 실패: 잠시 후 다시 시도해주세요');
     } finally {
       setIsSaving(false);
+      // 저장 완료 후 타이머 초기화
+      if (debounceTimerRef.current) { clearTimeout(debounceTimerRef.current); debounceTimerRef.current = null; }
+      if (maxWaitTimerRef.current) { clearTimeout(maxWaitTimerRef.current); maxWaitTimerRef.current = null; }
     }
   }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, documentUtils, folderUtils, currentFolderId, handleRedirectAfterSave, setDocumentId]);
 
   // 자동 저장 루틴 (30초마다, 화면 이탈 시 플러시)
-  const doAutoSave = useCallback(async () => {
+  const doAutoSave = useCallback(async (opts?: AutoSaveOptions) => {
     if (autoSavingRef.current) return;
-    if (!editorContent) return;
-    if (!dirtyRef.current && documentId && documentId !== 'new') return; // 변경 없으면 스킵
+    if (isSaving) return; // 수동 저장 중에는 자동 저장 스킵
+    if (!editorContent && !opts?.force) return;
+    if (!dirtyRef.current && documentId && documentId !== 'new' && !opts?.force) return; // 변경 없으면 스킵
     if ((!documentId || documentId === 'new') && !currentFolderId) return;
 
     autoSavingRef.current = true;
     try {
+      // 지터(멀티 탭 저장 분산)
+      if (!opts?.skipJitter) {
+        const jitter = Math.floor(Math.random() * 800);
+        await new Promise((r) => setTimeout(r, jitter));
+      }
+
       const emptyDoc: JSONContent = { type: 'doc', content: [] };
-      const contentWithMeta = attachSermonInfo(editorContent || emptyDoc, sermonInfo);
+      const latest = (contentProviderRef.current?.() ?? editorContent ?? emptyDoc);
+      const contentWithMeta = attachSermonInfo(latest || emptyDoc, sermonInfo);
       const data = {
         title: sermonInfo.title || '제목 없음',
         content: contentWithMeta,
@@ -340,29 +392,38 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       console.error('자동 저장 실패:', e);
       const code = getErrorCode(e);
       if (code === 'CONFLICT') {
-        toast.error('자동 저장이 충돌했습니다. 페이지를 새로고침한 뒤 다시 시도해주세요.');
-        if (documentId) {
-          documentUtils.getById.invalidate({ id: documentId });
-        }
+        toast.error('자동 저장이 충돌했습니다. 복구 메뉴에서 비교 후 처리해주세요.');
       } else if (code === 'BAD_REQUEST') {
         toast.error('내용이 비어 있어 자동 저장하지 못했습니다. 내용을 확인해주세요.');
       }
     } finally {
       autoSavingRef.current = false;
+      // 한 번 저장 시 타이머 초기화
+      if (debounceTimerRef.current) { clearTimeout(debounceTimerRef.current); debounceTimerRef.current = null; }
+      if (maxWaitTimerRef.current) { clearTimeout(maxWaitTimerRef.current); maxWaitTimerRef.current = null; }
     }
-  }, [editorContent, sermonInfo, currentFolderId, documentId, createDocumentSilent, updateDocumentSilent, router, setDocumentId, documentUtils]);
+  }, [editorContent, sermonInfo, currentFolderId, documentId, createDocumentSilent, updateDocumentSilent, router, setDocumentId, isSaving]);
 
-  // 자동 저장 주기: 5초
   useEffect(() => {
-    const t = setInterval(() => { void doAutoSave(); }, 5_000);
-    return () => clearInterval(t);
+    autoSaveFnRef.current = doAutoSave;
+    return () => {
+      if (autoSaveFnRef.current === doAutoSave) {
+        autoSaveFnRef.current = undefined;
+      }
+    };
   }, [doAutoSave]);
+
+  // 인터벌 제거: 입력 디바운스 + maxWait로 전환 (타이머는 setEditorContent/setSermonInfo에서 관리)
 
   // 탭 숨김/페이지 이동 시 마지막 저장 시도
   useEffect(() => {
-    const onVis = () => { if (document.visibilityState === 'hidden') void doAutoSave(); };
-    const onPageHide = () => { void doAutoSave(); };
-    const onBeforeUnload = () => { void doAutoSave(); };
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') {
+        void autoSaveFnRef.current?.({ force: true, skipJitter: true });
+      }
+    };
+    const onPageHide = () => { void autoSaveFnRef.current?.({ force: true, skipJitter: true }); };
+    const onBeforeUnload = () => { void autoSaveFnRef.current?.({ force: true, skipJitter: true }); };
     document.addEventListener('visibilitychange', onVis);
     window.addEventListener('pagehide', onPageHide);
     window.addEventListener('beforeunload', onBeforeUnload);
@@ -372,6 +433,15 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
   }, [doAutoSave]);
+
+  useEffect(() => {
+    return () => {
+      isUnmountedRef.current = true;
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (maxWaitTimerRef.current) clearTimeout(maxWaitTimerRef.current);
+      autoSaveFnRef.current = undefined;
+    };
+  }, []);
 
   return (
     <EditorContext.Provider
@@ -390,6 +460,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         resetForNewDocument,
         syncServerHash,
         markClean,
+        registerContentProvider,
       }}
     >
       {children}

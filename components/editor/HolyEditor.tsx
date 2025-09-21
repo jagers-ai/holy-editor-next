@@ -71,6 +71,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     syncServerHash,
     markClean,
     handleSave,
+    registerContentProvider,
   } = useEditorContext();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -333,6 +334,15 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     return () => { unbind(); };
   }, [editor]);
 
+  // 저장 소스 일치: 저장 직전 editor에서 직접 읽을 수 있도록 프로바이더 등록
+  useEffect(() => {
+    if (!editor) return;
+    registerContentProvider(() => editor.getJSON() as JSONContent);
+    return () => {
+      registerContentProvider(() => null);
+    };
+  }, [editor, registerContentProvider]);
+
   // 문서 불러오기 (DB 우선, localStorage 폴백)
   useEffect(() => {
     if (!editor) return;
@@ -342,24 +352,31 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
     if (document) {
       const hasContent = typeof document.content === 'object' && document.content !== null;
       const sermonData = hasContent ? extractSermonInfo(document.content) : {};
-      setSermonInfo({
-        title: document.title || sermonData.title || '',
-        pastor: sermonData.pastor || '',
-        verse: sermonData.verse || '',
-        serviceType: sermonData.serviceType || '감사일기'
-      });
-      setCurrentFolderId(document.folderId ?? undefined);
+
+      // 로컬 편집본이 있는 경우 서버 데이터로 UI/상태를 덮어쓰지 않음
+      if (!hasLocalEditsRef.current) {
+        setSermonInfo({
+          title: document.title || sermonData.title || '',
+          pastor: sermonData.pastor || '',
+          verse: sermonData.verse || '',
+          serviceType: sermonData.serviceType || '감사일기'
+        });
+        setCurrentFolderId(document.folderId ?? undefined);
+      }
 
       if (hasContent) {
         const contentJson = toJsonContent(document.content);
-        setEditorContent(contentJson);
-        syncServerHash(contentJson);
         if (!hasLocalEditsRef.current) {
+          setEditorContent(contentJson);
+          syncServerHash(contentJson);
           markClean();
-        }
-        if (!hasLocalEditsRef.current && !initialContentAppliedRef.current) {
-          editor.commands.setContent(contentJson);
-          initialContentAppliedRef.current = true;
+          if (!initialContentAppliedRef.current) {
+            editor.commands.setContent(contentJson);
+            initialContentAppliedRef.current = true;
+          }
+        } else {
+          // 로컬 편집본이 있으면 서버 해시/콘텐츠를 주입하지 않음(충돌 감지 유지)
+          console.log('[EDITOR] 서버 데이터 도착(로컬 편집본 존재) - 화면/상태 유지');
         }
       }
       console.log('문서를 데이터베이스에서 불러왔습니다');
