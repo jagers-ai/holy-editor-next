@@ -65,7 +65,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const redirectOnSaveRef = useRef(false);
   const lastSavedHashRef = useRef<string | undefined>(undefined);
   const contentProviderRef = useRef<() => JSONContent | null>(() => editorContent);
-  const autoSaveFnRef = useRef<(opts?: AutoSaveOptions) => Promise<void> | void>();
+  const autoSaveFnRef = useRef<((opts?: AutoSaveOptions) => Promise<void> | void) | undefined>(undefined);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxWaitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const DEBOUNCE_MS = 5_000; // 입력 멈춤 5초 후 저장
