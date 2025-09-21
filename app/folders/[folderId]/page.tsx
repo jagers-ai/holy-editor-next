@@ -27,8 +27,8 @@ import {
 import { FileText, Trash2, Plus, Share2, ArrowLeft, MoveRight, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/utils/api';
-import { extractPlainTextFromTiptap } from '@/lib/domain/preview';
-import { formatDateTimeKST } from '@/lib/domain/date';
+import { extractPlainTextFromTiptap, formatDateTimeKST } from 'core';
+import type { DocumentListEntry, FolderSummary } from 'core';
 import DocumentGridSkeleton from '@/components/skeleton/DocumentGridSkeleton';
 import FolderHeaderSkeleton from '@/components/skeleton/FolderHeaderSkeleton';
 
@@ -63,7 +63,8 @@ export default function FolderDocumentsPage() {
       placeholderData: (prev) => prev,
     }
   );
-  const documents = documentsData?.documents || [];
+  const documents: DocumentListEntry[] = documentsData?.documents ?? [];
+  const folderList: FolderSummary[] = (folders ?? []) as FolderSummary[];
 
   // 폴더 수정/삭제 관련 뮤테이션
   const updateFolder = api.folder.update.useMutation({
@@ -374,7 +375,7 @@ export default function FolderDocumentsPage() {
             <DialogTitle>저장 폴더 선택</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            {folders?.filter(f => f.id !== folderId).map((folder) => (
+            {folderList.filter((f) => f.id !== folderId).map((folder) => (
               <button
                 key={folder.id}
                 onClick={() => handleFolderSelect(folder.id, folder.name)}
@@ -510,7 +511,7 @@ export default function FolderDocumentsPage() {
                 <div className="border rounded-md">
                   <div className="p-2 text-sm text-gray-600">다른 폴더로 이동</div>
                   <div className="max-h-48 overflow-auto">
-                    {folders?.filter(f => f.id !== folderId).map(f => (
+                    {folderList.filter((f) => f.id !== folderId).map((f) => (
                       <button
                         key={f.id}
                         onClick={async () => {

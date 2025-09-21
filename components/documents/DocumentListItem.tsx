@@ -4,15 +4,8 @@ import { Share2, Trash2 } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { extractPlainTextFromTiptap } from '@/lib/domain/preview';
-
-type DocumentListEntry = {
-  id: string;
-  title: string | null;
-  content: unknown;
-  createdAt: string | Date;
-  updatedAt: string | Date;
-};
+import { extractPlainTextFromTiptap } from 'core';
+import type { DocumentListEntry } from 'core';
 
 interface DocumentListItemProps {
   document: DocumentListEntry;
@@ -108,4 +101,3 @@ export function DocumentListItem({ document, onOpen, onShare, onDelete }: Docume
     </Card>
   );
 }
-
