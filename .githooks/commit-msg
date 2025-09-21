@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+COMMIT_MSG_FILE=${1:-}
+
+if [[ -z "${COMMIT_MSG_FILE}" || ! -f "${COMMIT_MSG_FILE}" ]]; then
+  echo "[commit-msg] 커밋 메시지 파일을 찾을 수 없습니다." >&2
+  exit 1
+fi
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+AGENT_GUIDE="$REPO_ROOT/agent.md"
+
+if [[ ! -f "$AGENT_GUIDE" ]]; then
+  echo "[commit-msg] agent.md 가 없습니다. 현재 커밋 메시지 검사 규칙을 확인할 수 없습니다." >&2
+  exit 1
+fi
+
+SUBJECT=$(sed -n '1p' "$COMMIT_MSG_FILE" | tr -d '\r')
+
+if [[ -z "$SUBJECT" ]]; then
+  cat <<'EOF' >&2
+[commit-msg] 첫 줄(제목)이 비어 있습니다.
+agent.md의 커밋 메시지 규칙에 따라 첫 줄에 한국어 제목을 작성해주세요.
+EOF
+  exit 1
+fi
+
+if ! echo "$SUBJECT" | grep -q '[가-힣]'; then
+  cat <<'EOF' >&2
+[commit-msg] 제목에 한글이 포함되어 있지 않습니다.
+agent.md에 따라 제목은 한국어로 작성해야 합니다.
+EOF
+  exit 1
+fi
+
+declare -a REQUIRED_HEADERS=(
+  "문제 정의:"
+  "예상 사용자/이해관계자 영향:"
+  "원인:"
+  "해결 방안:"
+)
+
+MISSING_HEADERS=()
+for header in "${REQUIRED_HEADERS[@]}"; do
+  if ! grep -q "^${header}" "$COMMIT_MSG_FILE"; then
+    MISSING_HEADERS+=("$header")
+  fi
+done
+
+if (( ${#MISSING_HEADERS[@]} > 0 )); then
+  cat <<EOF >&2
+[commit-msg] 커밋 메시지 본문에 필수 섹션이 없습니다.
+다음 항목을 추가해주세요:
+$(printf '  - %s\n' "${MISSING_HEADERS[@]}")
+허용되는 형식은 agent.md의 "커밋 메시지" 절을 참고하세요.
+EOF
+  exit 1
+fi
+
+exit 0
