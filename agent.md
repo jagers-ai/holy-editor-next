@@ -67,6 +67,12 @@
 - 로깅/모니터링
   - `lib/logger.ts`의 헬퍼 사용(`logApiRequest`, `logPerformance`, `logError` 등). 콘솔 일원화.
   - Sentry/PostHog 키가 없으면 비활성 상태로 동작하도록 작성되어 있음.
+- 공용 레이어/어댑터 (MVP 기준)
+  - `packages/core/src/domain`: 문서/폴더/설교 타입과 유틸을 통합. 웹·RN 공용 도메인 진입점은 `import { ... } from 'core'`.
+  - `packages/core/src/services`: `DocumentService`, `FolderService` 인터페이스 정의. 각 메서드는 tRPC/Supabase 호출 규약을 명시.
+  - 웹 구현 훅: `lib/api/services/useDocumentService.ts`, `useFolderService.ts`가 tRPC `useUtils`/`useMutation`을 감싸 공용 인터페이스를 구현.
+  - 플랫폼 포트: `ports/toast.ts`, `ports/auth.ts` 추가. 웹 어댑터는 `adapters/web/toast.ts`(`toastPort`는 `lib/toast.ts`에서 export)와 `adapters/web/auth.ts`의 `webAuthPort`.
+  - 적용 예시: 로그인 폼은 `webAuthPort.signInWithPassword`를 사용하고, 문서/폴더 화면은 `toastPort`·공용 서비스 훅으로 교체됨.
 
 ## 흔한 작업 절차(체크리스트)
 - tRPC 엔드포인트 추가
