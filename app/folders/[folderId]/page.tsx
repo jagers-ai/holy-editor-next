@@ -1,12 +1,11 @@
-import { redirect } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 
 type LegacyFolderPageProps = {
-  params: {
-    folderId: string;
-  };
+  params: Promise<{ folderId: string }>;
 };
 
-export default function LegacyFolderPage({ params }: LegacyFolderPageProps) {
-  const query = new URLSearchParams({ folderId: params.folderId });
-  redirect(`/documents?${query.toString()}`);
+export default async function LegacyFolderPage({ params }: LegacyFolderPageProps) {
+  const { folderId } = await params;
+  const query = new URLSearchParams({ folderId });
+  permanentRedirect(`/documents?${query.toString()}`);
 }

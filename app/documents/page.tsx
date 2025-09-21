@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ListFilter, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -17,6 +17,8 @@ import { DocumentListItem } from '@/components/documents/DocumentListItem';
 import { useDocumentService } from '@/lib/api/services/useDocumentService';
 import type { DocumentListEntry } from 'core';
 
+export const dynamic = 'force-dynamic';
+
 const DOCUMENT_PAGE_LIMIT = 50;
 
 type TRPCErrorPayload = {
@@ -32,7 +34,7 @@ const getErrorCode = (error: unknown): string | undefined => {
   return typeof code === 'string' ? code : undefined;
 };
 
-export default function DocumentsPage() {
+function DocumentsPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -251,5 +253,32 @@ export default function DocumentsPage() {
         }}
       />
     </div>
+  );
+}
+
+function DocumentsPageFallback() {
+  return (
+    <div className="max-w-5xl mx-auto px-3 py-4 pb-24 space-y-5">
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, idx) => (
+          <Card key={idx} className="p-4">
+            <Skeleton className="h-4 w-1/3" />
+            <div className="mt-3 space-y-2">
+              <Skeleton className="h-3 w-2/3" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+            <Skeleton className="mt-3 h-3 w-1/4" />
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function DocumentsPage() {
+  return (
+    <Suspense fallback={<DocumentsPageFallback />}>
+      <DocumentsPageContent />
+    </Suspense>
   );
 }
