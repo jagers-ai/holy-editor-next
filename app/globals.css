@@ -260,6 +260,45 @@ html { -webkit-text-size-adjust: 100%; }
     outline-offset: 2px;
   }
 
+  /* 공유 보기(SSR) 성경구절 스타일 */
+  .read-only-content bible-verse {
+    display: block;
+    background-color: var(--muted);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin: 0.75rem 0;
+    color: inherit;
+    line-height: 1.625;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .read-only-content bible-verse:hover {
+    background-color: var(--muted);
+    background-color: color-mix(in srgb, var(--muted) 85%, black 15%);
+  }
+
+  .read-only-content bible-verse[reference]::before {
+    content: attr(reference);
+    display: block;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    color: var(--foreground);
+  }
+
+  .read-only-content bible-verse p {
+    margin: 0.5em 0;
+  }
+
+  .read-only-content bible-verse p:first-child {
+    margin-top: 0;
+  }
+
+  .read-only-content bible-verse p:last-child {
+    margin-bottom: 0;
+  }
+
   /* 형광펜 스타일 */
   .highlight {
     padding: 2px 4px;

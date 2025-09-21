@@ -27,7 +27,17 @@ EOF
   exit 1
 fi
 
-if ! echo "$SUBJECT" | grep -q '[가-힣]'; then
+if ! python3 - <<'PY' "$SUBJECT"; then
+import sys
+import re
+
+subject = sys.argv[1]
+
+if re.search(r'[\u3131-\u318E\uAC00-\uD7A3]', subject):
+    sys.exit(0)
+
+sys.exit(1)
+PY
   cat <<'EOF' >&2
 [commit-msg] 제목에 한글이 포함되어 있지 않습니다.
 agent.md에 따라 제목은 한국어로 작성해야 합니다.
