@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useFolderTabs } from '@/hooks/useFolderTabs';
 import { FolderTabsManagerDialog } from '@/components/documents/FolderTabsManagerDialog';
 import { DocumentListItem } from '@/components/documents/DocumentListItem';
+import { useDocumentService } from '@/lib/api/services/useDocumentService';
 import type { DocumentListEntry } from 'core';
 
 const DOCUMENT_PAGE_LIMIT = 50;
@@ -62,24 +63,21 @@ export default function DocumentsPage() {
     }
   );
 
-  const deleteDocument = api.document.delete.useMutation({
-    onSuccess: () => {
-      documentsQuery.refetch();
-      toast.success('문서가 삭제되었습니다');
-    },
-    onError: (error) => {
-      console.error('문서 삭제 실패:', error);
-      toast.error('문서 삭제에 실패했습니다');
-    },
-  });
+  const documentService = useDocumentService();
 
   const documents: DocumentListEntry[] = documentsQuery.data?.documents ?? [];
   const isLoadingDocuments = documentsQuery.isLoading;
   const isErrorDocuments = documentsQuery.isError;
 
   const handleDelete = async (id: string) => {
-    if (confirm('정말로 이 문서를 삭제하시겠습니까?')) {
-      await deleteDocument.mutateAsync({ id });
+    if (!confirm('정말로 이 문서를 삭제하시겠습니까?')) return;
+    try {
+      await documentService.delete(id);
+      documentsQuery.refetch();
+      toast.success('문서가 삭제되었습니다');
+    } catch (error) {
+      console.error('문서 삭제 실패:', error);
+      toast.error('문서 삭제에 실패했습니다');
     }
   };
 

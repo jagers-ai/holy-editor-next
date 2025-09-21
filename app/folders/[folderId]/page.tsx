@@ -29,6 +29,8 @@ import toast from 'react-hot-toast';
 import { api } from '@/utils/api';
 import { extractPlainTextFromTiptap, formatDateTimeKST } from 'core';
 import type { DocumentListEntry, FolderSummary } from 'core';
+import { useDocumentService } from '@/lib/api/services/useDocumentService';
+import { useFolderService } from '@/lib/api/services/useFolderService';
 import DocumentGridSkeleton from '@/components/skeleton/DocumentGridSkeleton';
 import FolderHeaderSkeleton from '@/components/skeleton/FolderHeaderSkeleton';
 
@@ -66,6 +68,9 @@ export default function FolderDocumentsPage() {
   const documents: DocumentListEntry[] = documentsData?.documents ?? [];
   const folderList: FolderSummary[] = (folders ?? []) as FolderSummary[];
 
+  const documentService = useDocumentService();
+  const folderService = useFolderService();
+
   // 폴더 수정/삭제 관련 뮤테이션
   const updateFolder = api.folder.update.useMutation({
     onSuccess: () => {
@@ -79,42 +84,18 @@ export default function FolderDocumentsPage() {
       toast.error(msg);
     },
   });
-  const deleteFolder = api.folder.delete.useMutation({
-    onSuccess: () => {
-      toast.success('폴더를 삭제했습니다');
-    },
-    onError: () => toast.error('폴더 삭제에 실패했습니다'),
-  });
-  const normalizeUncategorized = api.folder.normalizeUncategorized.useMutation();
-
-  const deleteDocument = api.document.delete.useMutation({
-    onSuccess: () => {
-      refetch();
-      toast.success('문서가 삭제되었습니다');
-      setSelectedDocs([]);
-    },
-    onError: (_error) => {
-      toast.error('문서 삭제에 실패했습니다');
-    },
-  });
-
-  const moveDocuments = api.folder.moveDocuments.useMutation({
-    onSuccess: (data) => {
-      refetch();
-      toast.success(`${data.movedCount}개 문서를 ${data.targetFolder} 폴더로 이동했습니다`);
-      setSelectedDocs([]);
-      setShowMoveConfirm(false);
-    },
-    onError: (_error) => {
-      toast.error('문서 이동에 실패했습니다');
-    },
-  });
 
   const handleDeleteDocument = async (id: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    
-    if (confirm('정말로 이 문서를 삭제하시겠습니까?')) {
-      await deleteDocument.mutateAsync({ id });
+    if (!confirm('정말로 이 문서를 삭제하시겠습니까?')) return;
+    try {
+      await documentService.delete(id);
+      refetch();
+      toast.success('문서가 삭제되었습니다');
+      setSelectedDocs([]);
+    } catch (error) {
+      console.error('문서 삭제 실패:', error);
+      toast.error('문서 삭제에 실패했습니다');
     }
   };
 
@@ -162,10 +143,19 @@ export default function FolderDocumentsPage() {
   };
 
   const handleMoveConfirm = async () => {
-    await moveDocuments.mutateAsync({
-      documentIds: selectedDocs,
-      targetFolderId,
-    });
+    try {
+      const result = await folderService.moveDocuments({
+        documentIds: selectedDocs,
+        targetFolderId,
+      });
+      refetch();
+      toast.success(`${result.movedCount}개 문서를 ${result.targetFolder} 폴더로 이동했습니다`);
+      setSelectedDocs([]);
+      setShowMoveConfirm(false);
+    } catch (error) {
+      console.error('문서 이동 실패:', error);
+      toast.error('문서 이동에 실패했습니다');
+    }
   };
 
   // 편집 모달 열기 시 기본값 세팅
@@ -483,11 +473,22 @@ export default function FolderDocumentsPage() {
               <p>이 폴더에는 문서가 없습니다. 삭제하시겠습니까?</p>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowDeleteModal(false)}>취소</Button>
-                <Button variant="destructive" onClick={async () => {
-                  await deleteFolder.mutateAsync({ id: folderId });
-                  setShowDeleteModal(false);
-                  router.push('/documents');
-                }}>삭제</Button>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    try {
+                      await folderService.delete(folderId);
+                      toast.success('폴더를 삭제했습니다');
+                      setShowDeleteModal(false);
+                      router.push('/documents');
+                    } catch (error) {
+                      console.error('폴더 삭제 실패:', error);
+                      toast.error('폴더 삭제에 실패했습니다');
+                    }
+                  }}
+                >
+                  삭제
+                </Button>
               </div>
             </div>
           ) : (
@@ -497,13 +498,18 @@ export default function FolderDocumentsPage() {
                 <Button
                   variant="secondary"
                   onClick={async () => {
-                    const unc = await normalizeUncategorized.mutateAsync();
-                    const docIds = documents.map(d => d.id);
-                    await moveDocuments.mutateAsync({ documentIds: docIds, targetFolderId: unc.folderId });
-                    await deleteFolder.mutateAsync({ id: folderId });
-                    setShowDeleteModal(false);
-                    toast.success('미분류로 이동 후 폴더를 삭제했습니다');
-                    router.push('/documents');
+                    try {
+                      const unc = await folderService.normalizeUncategorized();
+                      const docIds = documents.map((d) => d.id);
+                      await folderService.moveDocuments({ documentIds: docIds, targetFolderId: unc.folderId });
+                      await folderService.delete(folderId);
+                      setShowDeleteModal(false);
+                      toast.success('미분류로 이동 후 폴더를 삭제했습니다');
+                      router.push('/documents');
+                    } catch (error) {
+                      console.error('폴더 삭제 실패:', error);
+                      toast.error('폴더 삭제에 실패했습니다');
+                    }
                   }}
                 >
                   미분류로 모두 이동 후 삭제
@@ -515,12 +521,17 @@ export default function FolderDocumentsPage() {
                       <button
                         key={f.id}
                         onClick={async () => {
-                          const docIds = documents.map(d => d.id);
-                          await moveDocuments.mutateAsync({ documentIds: docIds, targetFolderId: f.id });
-                          await deleteFolder.mutateAsync({ id: folderId });
-                          setShowDeleteModal(false);
-                          toast.success(`${f.name}로 이동 후 폴더를 삭제했습니다`);
-                          router.push('/documents');
+                          try {
+                            const docIds = documents.map((d) => d.id);
+                            await folderService.moveDocuments({ documentIds: docIds, targetFolderId: f.id });
+                            await folderService.delete(folderId);
+                            setShowDeleteModal(false);
+                            toast.success(`${f.name}로 이동 후 폴더를 삭제했습니다`);
+                            router.push('/documents');
+                          } catch (error) {
+                            console.error('폴더 삭제 실패:', error);
+                            toast.error('폴더 삭제에 실패했습니다');
+                          }
                         }}
                         className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center justify-between"
                       >
