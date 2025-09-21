@@ -44,7 +44,7 @@ export function DocumentListItem({ document, onOpen, onShare, onDelete }: Docume
   const metaParts: string[] = [];
   if (sermonInfo?.serviceType) metaParts.push(sermonInfo.serviceType);
   if (sermonInfo?.pastor) metaParts.push(sermonInfo.pastor);
-  const formattedDate = formatDate(document.updatedAt);
+  const formattedDate = formatDate(document.createdAt);
   if (formattedDate) metaParts.push(formattedDate);
   const meta = metaParts.join(' · ');
 

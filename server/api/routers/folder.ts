@@ -156,9 +156,10 @@ export const folderRouter = createTRPCRouter({
           userId: ctx.user.id,
           folderId: input.folderId,
         },
-        orderBy: {
-          updatedAt: 'desc',
-        },
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
       });
 
       return { documents };

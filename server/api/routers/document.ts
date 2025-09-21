@@ -125,9 +125,10 @@ export const documentRouter = createTRPCRouter({
         },
         take: limit + 1,
         cursor: input?.cursor ? { id: input.cursor } : undefined,
-        orderBy: {
-          updatedAt: 'desc',
-        },
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
         select: {
           id: true,
           title: true,
