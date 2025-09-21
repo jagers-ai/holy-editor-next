@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ListFilter, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { toastPort } from '@/lib/toast';
@@ -34,6 +34,8 @@ const getErrorCode = (error: unknown): string | undefined => {
 
 export default function DocumentsPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [managerOpen, setManagerOpen] = useState(false);
 
   const folderQuery = api.folder.list.useQuery(undefined, {
@@ -42,6 +44,8 @@ export default function DocumentsPage() {
 
   const tabsState = useFolderTabs();
   const { tabs, visibleTabs, selectedTab, setSelectedTab, replaceFromFolders, persistTabs } = tabsState;
+
+  const folderIdParam = searchParams.get('folderId');
 
   useEffect(() => {
     if (folderQuery.data) {
@@ -69,6 +73,50 @@ export default function DocumentsPage() {
   const documents: DocumentListEntry[] = documentsQuery.data?.documents ?? [];
   const isLoadingDocuments = documentsQuery.isLoading;
   const isErrorDocuments = documentsQuery.isError;
+
+  const updateUrlForTab = useCallback((tabId: string) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    const currentParam = nextParams.get('folderId');
+
+    if (tabId === 'all') {
+      if (!currentParam) return;
+      nextParams.delete('folderId');
+    } else {
+      if (currentParam === tabId) return;
+      nextParams.set('folderId', tabId);
+    }
+
+    const queryString = nextParams.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  const handleTabSelect = (tabId: string) => {
+    if (tabId !== selectedTab) {
+      setSelectedTab(tabId);
+    }
+    updateUrlForTab(tabId);
+  };
+
+  useEffect(() => {
+    if (!folderQuery.isSuccess) return;
+
+    // 쿼리 파라미터가 없으면 'all' 탭으로 고정하고 종료
+    if (!folderIdParam) {
+      if (selectedTab !== 'all') setSelectedTab('all');
+      return;
+    }
+
+    // 서버에서 받은 실제 폴더 목록 기준으로 존재 여부 판별
+    const exists = (folderQuery.data ?? []).some((f) => f.id === folderIdParam);
+    if (exists) {
+      if (selectedTab !== folderIdParam) setSelectedTab(folderIdParam);
+      return;
+    }
+
+    // 유효하지 않은 ID인 것이 확정된 경우에만 URL 정리
+    if (selectedTab !== 'all') setSelectedTab('all');
+    updateUrlForTab('all');
+  }, [folderIdParam, folderQuery.isSuccess, folderQuery.data, selectedTab, setSelectedTab, updateUrlForTab]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('정말로 이 문서를 삭제하시겠습니까?')) return;
@@ -118,7 +166,7 @@ export default function DocumentsPage() {
                     size="sm"
                     variant={selectedTab === tab.id ? 'default' : 'outline'}
                     className="rounded-full px-4"
-                    onClick={() => setSelectedTab(tab.id)}
+                    onClick={() => handleTabSelect(tab.id)}
                   >
                     {tab.icon ? `${tab.icon} ${tab.name}` : tab.name}
                   </Button>
