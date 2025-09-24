@@ -339,7 +339,11 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       const { state } = instance;
       const { selection, schema } = state;
 
-      if (!(selection instanceof ProseMirrorGapCursor)) {
+      const isGapCursor =
+        selection instanceof ProseMirrorGapCursor ||
+        (selection && selection.constructor && selection.constructor.name === 'GapCursor');
+
+      if (!isGapCursor) {
         return;
       }
 
