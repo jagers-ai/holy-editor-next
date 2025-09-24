@@ -279,11 +279,11 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       allowGapCursor: true,
       addKeyboardShortcuts() {
         return {
-          'Backspace': ({ editor }) => {
+          'Backspace': ({ editor }: { editor: TiptapEditor }) => {
             const { selection } = editor.state;
             const pos = selection.$anchor.pos;
             const node = editor.state.doc.nodeAt(pos - 1);
-            
+
             // 이미지 바로 뒤에서 백스페이스 누르면 이미지 삭제
             if (node && node.type.name === 'image') {
               editor.chain()
