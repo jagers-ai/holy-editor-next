@@ -4,6 +4,7 @@ import { useEditor, EditorContent, type Editor as TiptapEditor } from '@tiptap/r
 import type { JSONContent } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
+import { GapSpacer } from './extensions/GapSpacer';
 import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
 import Focus from '@tiptap/extension-focus';
@@ -253,6 +254,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
 
   // ⚡ extensions 메모이제이션으로 재생성 방지
   const extensions = useMemo(() => [
+    GapSpacer,
     StarterKit.configure({
       gapcursor: false,
       heading: {

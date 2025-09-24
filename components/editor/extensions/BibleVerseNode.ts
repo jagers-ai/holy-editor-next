@@ -1,6 +1,7 @@
 import { Node, InputRule } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import BibleVerseComponent from './BibleVerseComponent'
+import { GapSpacer } from './GapSpacer'
 import { resolveBookId } from '@/lib/bible/books'
 
 type BibleVerseRecord = {
@@ -57,6 +58,10 @@ export const BibleVerseNode = Node.create({
   addNodeView() {
     // React 컴포넌트 렌더링
     return ReactNodeViewRenderer(BibleVerseComponent)
+  },
+
+  addExtensions() {
+    return [GapSpacer]
   },
   
   addInputRules() {
