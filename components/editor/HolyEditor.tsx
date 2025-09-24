@@ -342,10 +342,31 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       const selectionAsAny = selection as Selection & {
         constructor?: { name?: string };
         toJSON?: () => { type?: string };
+        from?: number;
+        to?: number;
+        $from?: { pos: number };
+        $to?: { pos: number };
       };
 
       const selectionType =
         typeof selectionAsAny.toJSON === 'function' ? selectionAsAny.toJSON()?.type : undefined;
+
+      if (typeof window !== 'undefined') {
+        const fromPos =
+          typeof selectionAsAny.from === 'number'
+            ? selectionAsAny.from
+            : selectionAsAny.$from?.pos;
+        const toPos =
+          typeof selectionAsAny.to === 'number'
+            ? selectionAsAny.to
+            : selectionAsAny.$to?.pos;
+        console.debug('[GapCursor] selectionUpdate', {
+          type: selectionType,
+          constructor: selectionAsAny.constructor?.name,
+          from: fromPos,
+          to: toPos,
+        });
+      }
 
       const isGapCursor =
         selection instanceof ProseMirrorGapCursor ||
