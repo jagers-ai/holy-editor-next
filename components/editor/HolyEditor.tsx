@@ -9,7 +9,7 @@ import Highlight from '@tiptap/extension-highlight';
 import Focus from '@tiptap/extension-focus';
 import Gapcursor from '@tiptap/extension-gapcursor';
 import { GapCursor as ProseMirrorGapCursor } from '@tiptap/pm/gapcursor';
-import { TextSelection } from '@tiptap/pm/state';
+import { TextSelection, NodeSelection, Selection } from '@tiptap/pm/state';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Toolbar } from './Toolbar';
@@ -339,16 +339,24 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       const { state } = instance;
       const { selection, schema } = state;
 
+      const selectionAsAny = selection as Selection & {
+        constructor?: { name?: string };
+        toJSON?: () => { type?: string };
+      };
+
       const selectionType =
-        typeof (selection as { toJSON?: () => { type?: string } }).toJSON === 'function'
-          ? (selection as { toJSON: () => { type?: string } }).toJSON()?.type
-          : undefined;
+        typeof selectionAsAny.toJSON === 'function' ? selectionAsAny.toJSON()?.type : undefined;
 
       const isGapCursor =
         selection instanceof ProseMirrorGapCursor ||
         selectionType === 'gapcursor';
 
-      if (!isGapCursor) {
+      const isNodeSelection =
+        selection instanceof NodeSelection ||
+        selectionType === 'node' ||
+        selectionAsAny.constructor?.name === 'NodeSelection';
+
+      if (!isGapCursor && !isNodeSelection) {
         return;
       }
 
@@ -357,8 +365,18 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
         return;
       }
 
-      const transaction = state.tr.insert(selection.from, paragraph.create());
-      const resolvedPos = transaction.doc.resolve(selection.from + 1);
+      const insertPos = isGapCursor
+        ? selectionAsAny.from
+        : selection instanceof NodeSelection
+            ? selection.$to.pos
+            : (selectionAsAny as { to?: number }).to ?? selectionAsAny.from;
+
+      if (typeof insertPos !== 'number') {
+        return;
+      }
+
+      const transaction = state.tr.insert(insertPos, paragraph.create());
+      const resolvedPos = transaction.doc.resolve(insertPos + 1);
       const textSelection = TextSelection.near(resolvedPos);
 
       instance.view.dispatch(transaction.setSelection(textSelection).scrollIntoView());
