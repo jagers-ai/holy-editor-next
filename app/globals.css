@@ -210,7 +210,7 @@ html { -webkit-text-size-adjust: 100%; }
   }
 
   /* 성경구절 스타일 */
-  .bible-verse-wrapper > div {
+  .bible-verse-wrapper > div:not([data-gap-spacer="true"]) {
     background-color: rgb(229 231 235) !important;  /* 연한 회색 (bg-gray-200) */
     border: 0 !important;                            /* 테두리 없음 */
     border-radius: 0.375rem;                          /* rounded-md */
@@ -220,8 +220,17 @@ html { -webkit-text-size-adjust: 100%; }
     max-width: 100%;
   }
 
-  .bible-verse-wrapper > div:hover {
+  .bible-verse-wrapper > div:not([data-gap-spacer="true"]):hover {
     background-color: rgb(229 231 235) !important;   /* hover 시 변화 없음 (회색 유지) */
+  }
+
+  /* 클릭 스페이서: 완전 투명, 공간 최소화 */
+  .bible-verse-wrapper > div[data-gap-spacer="true"] {
+    background-color: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 1px !important;
   }
 
   .bible-verse-wrapper [data-node-view-content] {

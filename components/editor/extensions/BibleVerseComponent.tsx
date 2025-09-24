@@ -44,7 +44,7 @@ const BibleVerseComponent = React.memo((props: NodeViewRendererProps) => {
 
   return (
     <NodeViewWrapper className="bible-verse-wrapper block">
-      <div className="h-px my-0 cursor-text bg-transparent select-none" onMouseDown={(e)=>{const pos=getBeforePos(); if(pos!==null){e.preventDefault(); insertParagraphAt(pos)}}}></div>
+      <div data-gap-spacer="true" className="h-px my-0 cursor-text bg-transparent select-none" onMouseDown={(e)=>{const pos=getBeforePos(); if(pos!==null){e.preventDefault(); insertParagraphAt(pos)}}}></div>
       <div className="bg-gray-200 rounded-md px-2 py-1 my-0 max-w-full">
         {/* 참조 표시 - 상단으로 이동 */}
         {reference && (
@@ -63,7 +63,7 @@ const BibleVerseComponent = React.memo((props: NodeViewRendererProps) => {
           {/* 노드 생성 시 이미 content가 설정되어 있음 */}
         </NodeViewContent>
       </div>
-      <div className="h-px my-0 cursor-text bg-transparent select-none" onMouseDown={(e)=>{const pos=getAfterPos(); if(pos!==null){e.preventDefault(); insertParagraphAt(pos)}}}></div>
+      <div data-gap-spacer="true" className="h-px my-0 cursor-text bg-transparent select-none" onMouseDown={(e)=>{const pos=getAfterPos(); if(pos!==null){e.preventDefault(); insertParagraphAt(pos)}}}></div>
     </NodeViewWrapper>
   )
 })
