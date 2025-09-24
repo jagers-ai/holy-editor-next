@@ -1,11 +1,11 @@
-# ⛪ Holy Editor - 성경 구절 삽입 에디터
+# ⛪ 홀리해빗 - 나만의 AI 신앙생활 파트너
 
-<img width="1200" alt="Holy Editor Banner" src="https://via.placeholder.com/1200x300/4A5568/FFFFFF?text=Holy+Editor+-+Bible+Verse+Editor">
+<img width="1200" alt="Holy Habit Banner" src="https://via.placeholder.com/1200x300/4A5568/FFFFFF?text=Holy+Habit+-+AI+Faith+Companion">
 
 [![Deploy Status](https://img.shields.io/badge/deploy-vercel-black)](https://holy-editor-next.vercel.app)
 [![Last Update](https://img.shields.io/badge/last%20update-2025.01.09-blue)](https://github.com/jagers-ai/holy-editor-next)
 
-> Note: Reasoning Summary(생각/사고 요약)는 한국어로 강제됩니다. 자세한 정책은 [instruction.md](./instruction.md)와 [AGENTS.md](./AGENTS.md)를 확인하세요.
+> Note: Reasoning Summary(생각/사고 요약)는 한국어로 강제됩니다. 자세한 정책은 [instruction.md](./instruction.md)와 [agent.md](./agent.md)를 확인하세요.
 
 ## 언어/Reasoning 정책
 - Reasoning Summary는 한국어로 강제합니다.
@@ -15,7 +15,7 @@
 
 ## 📖 소개
 
-Holy Editor는 설교문이나 성경 공부 자료를 작성할 때 성경 구절을 쉽게 삽입하고 관리할 수 있는 웹 기반 에디터입니다.
+홀리해빗은 설교문이나 신앙 노트를 작성할 때 성경 구절을 빠르게 삽입하고 AI 도우미와 함께 관리할 수 있는 웹 기반 에디터입니다.
 
 ### ✨ 주요 기능
 

@@ -14,9 +14,9 @@ TZ='Asia/Seoul' date '+%Y년 %m월 %d일 %H:%M:%S KST'
 node -e "console.log(new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'}))"
 ```
 
-## 📖 Holy Editor - 성경 구절 삽입 에디터
+## 📖 홀리해빗 - 나만의 AI 신앙생활 파트너
 
-성경 구절을 쉽게 삽입하고 편집할 수 있는 웹 기반 에디터입니다.
+성경 구절을 쉽게 삽입하고 편집할 수 있는 웹 기반 AI 신앙 노트 파트너입니다.
 
 ### 핵심 기술 스택
 - **프레임워크**: Next.js 15.5.0 with App Router + TypeScript 5

@@ -1,4 +1,4 @@
-# Holy Editor Next – 소개 및 최근 구조 개편 메모
+# 홀리해빗 Next – 소개 및 최근 구조 개편 메모
 
 ## 프로젝트 한눈에 보기
 - **플랫폼**: Next.js 15(App Router) 기반 웹앱 + Expo RN 워크스페이스(`apps/mobile`).
@@ -26,6 +26,6 @@
 ## 참고 문서
 - `docs/architecture/mvp-shared-plan.md`: 공용 레이어 계획, 체크리스트, 이행 현황
 - `agent.md`: 에이전트 작업 규칙 및 아키텍처 가이드
-- `AGENTS.md`: Reasoning/응답 정책 기본 규약
+- `instructions.md`: Reasoning/응답 정책 기본 규약
 
 앞으로도 모든 리팩토링/모듈화는 `core` 패키지와 포트/어댑터 계층을 중심으로 진행하여, 웹·RN 양쪽에서 재사용 가능한 구조를 유지합니다.
