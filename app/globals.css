@@ -211,17 +211,17 @@ html { -webkit-text-size-adjust: 100%; }
 
   /* 성경구절 스타일 */
   .bible-verse-wrapper > div {
-    background-color: #ffffff !important;   /* 배경 흰색 */
-    border: 0 !important;                   /* 테두리 제거 (투명 효과) */
-    border-radius: 0.375rem;                 /* rounded-md */
-    padding: 0.25rem 0.5rem;                 /* py-1 px-2 */
-    margin: 0;                               /* my-0 */
+    background-color: rgb(229 231 235) !important;  /* 연한 회색 (bg-gray-200) */
+    border: 0 !important;                            /* 테두리 없음 */
+    border-radius: 0.375rem;                          /* rounded-md */
+    padding: 0.25rem 0.5rem;                          /* py-1 px-2 */
+    margin: 0;                                        /* my-0 */
     display: block;
     max-width: 100%;
   }
 
   .bible-verse-wrapper > div:hover {
-    background-color: #ffffff !important;   /* hover시 색상 변화 없음 */
+    background-color: rgb(229 231 235) !important;   /* hover 시 변화 없음 (회색 유지) */
   }
 
   .bible-verse-wrapper [data-node-view-content] {
