@@ -1,5 +1,6 @@
 import React from 'react'
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react'
+import { TextSelection } from '@tiptap/pm/state'
 import type { NodeViewRendererProps } from '@tiptap/react'
 
 // ⚡ React.memo로 불필요한 re-render 방지
@@ -13,6 +14,34 @@ const BibleVerseComponent = React.memo((props: NodeViewRendererProps) => {
   // 📌 content는 이제 InputRule에서 생성 시 이미 설정됨
   // useEffect 불필요 - 노드 생성 시 content가 이미 포함되어 있음
   
+  const insertParagraphAt = (pos: number) => {
+    const { state, view } = props.editor
+    const paragraph = state.schema.nodes.paragraph
+    if (!paragraph) return
+    const tr = state.tr.insert(pos, paragraph.create())
+    const resolved = tr.doc.resolve(pos + 1)
+    const sel = TextSelection.near(resolved)
+    view.dispatch(tr.setSelection(sel).scrollIntoView())
+    view.focus()
+  }
+
+  const getBeforePos = (): number | null => {
+    try {
+      return typeof props.getPos === 'function' ? (props.getPos() as number) : null
+    } catch {
+      return null
+    }
+  }
+
+  const getAfterPos = (): number | null => {
+    try {
+      const base = typeof props.getPos === 'function' ? (props.getPos() as number) : null
+      return base !== null ? base + props.node.nodeSize : null
+    } catch {
+      return null
+    }
+  }
+
   return (
     <NodeViewWrapper className="bible-verse-wrapper block">
       <div className="h-3 my-1 cursor-text" onMouseDown={(e)=>{const pos=getBeforePos(); if(pos!==null){e.preventDefault(); insertParagraphAt(pos)}}}></div>
