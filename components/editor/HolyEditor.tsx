@@ -276,6 +276,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       }
     }),
     Image.extend({
+      allowGapCursor: true,
       addKeyboardShortcuts() {
         return {
           'Backspace': ({ editor }) => {

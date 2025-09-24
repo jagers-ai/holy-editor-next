@@ -22,6 +22,7 @@ export const BibleVerseNode = Node.create({
   group: 'block',
   inline: false,
   content: 'paragraph+',  // 여러 paragraph 허용 - 엔터키로 새 문단 생성 가능
+  allowGapCursor: true,
   isolating: false,       // 이벤트 전파 허용 - 엔터키 작동
   
   addAttributes() {
