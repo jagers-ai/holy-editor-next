@@ -339,9 +339,14 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       const { state } = instance;
       const { selection, schema } = state;
 
+      const selectionType =
+        typeof (selection as { toJSON?: () => { type?: string } }).toJSON === 'function'
+          ? (selection as { toJSON: () => { type?: string } }).toJSON()?.type
+          : undefined;
+
       const isGapCursor =
         selection instanceof ProseMirrorGapCursor ||
-        (selection && selection.constructor && selection.constructor.name === 'GapCursor');
+        selectionType === 'gapcursor';
 
       if (!isGapCursor) {
         return;
