@@ -7,6 +7,9 @@ import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
 import Focus from '@tiptap/extension-focus';
+import Gapcursor from '@tiptap/extension-gapcursor';
+import { GapCursor as ProseMirrorGapCursor } from '@tiptap/pm/gapcursor';
+import { TextSelection } from '@tiptap/pm/state';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Toolbar } from './Toolbar';
@@ -251,6 +254,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
   // ⚡ extensions 메모이제이션으로 재생성 방지
   const extensions = useMemo(() => [
     StarterKit.configure({
+      gapcursor: false,
       heading: {
         levels: [1, 2, 3]
       },
@@ -259,6 +263,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
         newGroupDelay: 500
       }
     }),
+    Gapcursor,
     BibleVerseExtension,  // 새로운 성경구절 노드
     Focus.configure({
       className: 'is-focused',
@@ -325,6 +330,37 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
       }
     }
   });
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleSelectionUpdate = ({ editor: instance }: { editor: TiptapEditor }) => {
+      const { state } = instance;
+      const { selection, schema } = state;
+
+      if (!(selection instanceof ProseMirrorGapCursor)) {
+        return;
+      }
+
+      const paragraph = schema.nodes.paragraph;
+      if (!paragraph) {
+        return;
+      }
+
+      const transaction = state.tr.insert(selection.from, paragraph.create());
+      const resolvedPos = transaction.doc.resolve(selection.from + 1);
+      const textSelection = TextSelection.near(resolvedPos);
+
+      instance.view.dispatch(transaction.setSelection(textSelection).scrollIntoView());
+      instance.view.focus();
+      userInteractedRef.current = true;
+    };
+
+    editor.on('selectionUpdate', handleSelectionUpdate);
+    return () => {
+      editor.off('selectionUpdate', handleSelectionUpdate);
+    };
+  }, [editor]);
 
   // 에디터 DOM에서 사용자 입력 이벤트를 감지하여 실제 입력임을 표시
   useEffect(() => {
