@@ -45,7 +45,7 @@ const BibleVerseComponent = React.memo((props: NodeViewRendererProps) => {
   return (
     <NodeViewWrapper className="bible-verse-wrapper block">
       <div className="h-px my-0 cursor-text bg-white select-none" onMouseDown={(e)=>{const pos=getBeforePos(); if(pos!==null){e.preventDefault(); insertParagraphAt(pos)}}}></div>
-      <div className="bg-white rounded-lg px-3 py-2 my-1 max-w-full border border-gray-200">
+      <div className="bg-white rounded-md px-2 py-1 my-0 max-w-full border border-transparent">
         {/* 참조 표시 - 상단으로 이동 */}
         {reference && (
           <div className="text-sm font-bold text-gray-800 mb-2" 
