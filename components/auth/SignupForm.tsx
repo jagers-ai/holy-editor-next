@@ -98,7 +98,7 @@ export function SignupForm() {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">회원가입</CardTitle>
         <CardDescription>
-          Holy Editor 계정을 만들어 문서를 안전하게 보관하세요
+          홀리해빗 계정을 만들어 문서를 안전하게 보관하세요
         </CardDescription>
       </CardHeader>
       <CardContent>

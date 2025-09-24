@@ -26,8 +26,18 @@ const notoSansKr = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "HolyEditor - 성경 구절 에디터",
-  description: "성경 구절을 쉽게 삽입할 수 있는 에디터",
+  title: "홀리해빗",
+  description: "나만의 AI 신앙생활 파트너 : 홀리해빗",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png" }],
+  },
+  manifest: "/manifest.webmanifest",
+  themeColor: "#ffcc00",
 };
 
 export const viewport: Viewport = {

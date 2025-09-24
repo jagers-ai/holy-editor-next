@@ -13,10 +13,10 @@ export default async function HomePage() {
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold flex items-center justify-center gap-2">
             <BookOpen className="h-10 w-10" />
-            HolyEditor
+            홀리해빗
           </h1>
           <p className="text-lg text-muted-foreground">
-            성경 구절을 쉽게 삽입할 수 있는 에디터
+            나만의 AI 신앙생활 파트너 : 홀리해빗
           </p>
         </div>
 

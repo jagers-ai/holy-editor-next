@@ -45,7 +45,7 @@ function LoginFormInner({ redirectTo }: { redirectTo: string }) {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">로그인</CardTitle>
         <CardDescription>
-          Holy Editor에 로그인하여 문서를 관리하세요
+          홀리해빗에 로그인하여 문서를 관리하세요
         </CardDescription>
       </CardHeader>
       <CardContent>

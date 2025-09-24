@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import { SignupForm } from '@/components/auth/SignupForm';
 
 export const metadata: Metadata = {
-  title: '회원가입 - HolyEditor',
-  description: 'Holy Editor 계정을 만드세요',
+  title: '회원가입 - 홀리해빗',
+  description: '홀리해빗 계정을 만드세요',
 };
 
 export default function SignupPage() {
