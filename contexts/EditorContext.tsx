@@ -37,7 +37,7 @@ interface EditorContextType {
   /** 새 문서 진입 시 상태를 초기화합니다. (dirty/hash/내용/설교정보/문서ID/폴더ID) */
   resetForNewDocument: (folderId?: string) => void;
   /** 서버에서 불러온 최신 content 해시를 동기화합니다. */
-  syncServerHash: (content: JSONContent | null) => void;
+  syncServerHash: (content: JSONContent | null, hashOverride?: string) => void;
   /** 강제 덮어쓰기 후 더티 플래그를 수동으로 초기화합니다. */
   markClean: () => void;
   /** 저장 직전 콘텐츠를 editor에서 직접 제공받기 위한 등록자 */
@@ -77,7 +77,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   // 리셋 중 더티 플래그를 건드리지 않기 위한 가드
   const resettingRef = useRef(false);
   const isUnmountedRef = useRef(false);
-  
   // setEditorContent 래퍼: 더티 플래그 표시
   const armAutoSaveTimers = useCallback(() => {
     if (isUnmountedRef.current) return;
@@ -129,13 +128,32 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const syncServerHash = useCallback((content: JSONContent | null) => {
+  const syncServerHash = useCallback((content: JSONContent | null, hashOverride?: string) => {
+    if (hashOverride) {
+      lastSavedHashRef.current = hashOverride;
+      return;
+    }
     if (content) {
       lastSavedHashRef.current = fingerprint(content);
     } else {
       lastSavedHashRef.current = undefined;
     }
   }, []);
+
+  const pullServerSnapshot = useCallback(async (targetId?: string) => {
+    if (!targetId || targetId === 'new') return;
+    try {
+      const fresh = await documentUtils.getById.fetch({ id: targetId });
+      const content = (fresh?.content ?? null) as JSONContent | null;
+      const hashFromServer = fresh?.contentHash ?? (content ? fingerprint(content) : undefined);
+      syncServerHash(content, hashFromServer);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[SAVE] synced server snapshot', { targetId, hashFromServer });
+      }
+    } catch (fetchError) {
+      console.warn('[SAVE] server snapshot fetch failed', { targetId, fetchError });
+    }
+  }, [documentUtils, syncServerHash]);
 
   const markClean = useCallback(() => {
     dirtyRef.current = false;
@@ -216,6 +234,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       }
       if (code === 'CONFLICT') {
         toast.error('다른 기기에서 먼저 저장되었습니다. 복구 메뉴에서 비교 후 처리해주세요.');
+        startTransition(() => {
+          void pullServerSnapshot(documentId);
+        });
         return;
       }
       if (code === 'BAD_REQUEST') {
@@ -265,8 +286,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       console.log('[SAVE] manual start', { id: documentId ?? 'new', at: saveStart.toISOString(), hash: newHash, previousHash });
 
       let targetId = documentId;
+      let serverHash: string | undefined;
       if (documentId && documentId !== 'new') {
-        await updateDocument.mutateAsync({ 
+        const updated = await updateDocument.mutateAsync({ 
           id: documentId, 
           data: {
             ...documentData,
@@ -275,18 +297,21 @@ export function EditorProvider({ children }: { children: ReactNode }) {
           },
           expectedHash: previousHash,
         });
+        serverHash = updated?.contentHash;
       } else {
         const created = await createDocument.mutateAsync({
           ...documentData,
           folderId: currentFolderId,
         });
+        serverHash = created?.contentHash;
         targetId = created?.id ?? targetId;
         if (created?.id) {
           setDocumentId(created.id);
         }
       }
 
-      lastSavedHashRef.current = newHash;
+      const effectiveHash = serverHash ?? newHash;
+      lastSavedHashRef.current = effectiveHash;
       dirtyRef.current = false;
       if (targetId && targetId !== documentId) {
         setDocumentId(targetId);
@@ -296,13 +321,13 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       try {
         if (targetId) {
           const fresh = await documentUtils.getById.fetch({ id: targetId });
-          const serverHash = fingerprint(fresh?.content);
-          if (serverHash !== newHash) {
-            console.warn('[SAVE] verify mismatch', { targetId, expected: newHash, server: serverHash });
+          const serverHashLatest = fresh?.contentHash ?? fingerprint(fresh?.content);
+          if (serverHashLatest !== effectiveHash) {
+            console.warn('[SAVE] verify mismatch', { targetId, expected: effectiveHash, server: serverHashLatest });
             toast.error('서버에 다른 내용이 저장되어 있습니다. 복구 메뉴에서 확인해주세요.');
-            lastSavedHashRef.current = serverHash;
+            lastSavedHashRef.current = serverHashLatest;
           } else {
-            console.log('[SAVE] verify ok', { targetId, hash: serverHash });
+            console.log('[SAVE] verify ok', { targetId, hash: serverHashLatest });
           }
         }
       } catch (e) {
@@ -324,14 +349,19 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('저장 실패:', error);
       redirectOnSaveRef.current = false;
-      toast.error('저장 실패: 잠시 후 다시 시도해주세요');
+      const code = getErrorCode(error);
+      if (code === 'CONFLICT') {
+        await pullServerSnapshot(documentId);
+      } else {
+        toast.error('저장 실패: 잠시 후 다시 시도해주세요');
+      }
     } finally {
       setIsSaving(false);
       // 저장 완료 후 타이머 초기화
       if (debounceTimerRef.current) { clearTimeout(debounceTimerRef.current); debounceTimerRef.current = null; }
       if (maxWaitTimerRef.current) { clearTimeout(maxWaitTimerRef.current); maxWaitTimerRef.current = null; }
     }
-  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, documentUtils, folderUtils, currentFolderId, handleRedirectAfterSave, setDocumentId]);
+  }, [editorContent, documentId, sermonInfo, createDocument, updateDocument, documentUtils, folderUtils, currentFolderId, handleRedirectAfterSave, setDocumentId, pullServerSnapshot]);
 
   // 자동 저장 루틴 (30초마다, 화면 이탈 시 플러시)
   const doAutoSave = useCallback(async (opts?: AutoSaveOptions) => {
@@ -370,11 +400,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       const start = new Date();
       console.log('[SAVE] autosave start', { id: documentId ?? 'new', at: start.toISOString(), hash });
 
+      let serverHash: string | undefined;
       if (documentId && documentId !== 'new') {
-        await updateDocumentSilent.mutateAsync({ id: documentId, data, expectedHash: previousHash });
+        const updated = await updateDocumentSilent.mutateAsync({ id: documentId, data, expectedHash: previousHash });
+        serverHash = updated?.contentHash;
       } else {
         // 새 문서일 경우 1회만 생성 후 URL 교체, 이후 모두 update
         const created = await createDocumentSilent.mutateAsync({ ...data });
+        serverHash = created?.contentHash;
         if (created?.id) {
           setDocumentId(created.id);
           try {
@@ -385,7 +418,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }
       }
       dirtyRef.current = false;
-      lastSavedHashRef.current = hash;
+      lastSavedHashRef.current = serverHash ?? hash;
       setLastAutoSavedAt(new Date());
       // 자동저장에서는 무분별한 캐시 무효화 생략
     } catch (e) {
@@ -393,6 +426,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       const code = getErrorCode(e);
       if (code === 'CONFLICT') {
         toast.error('자동 저장이 충돌했습니다. 복구 메뉴에서 비교 후 처리해주세요.');
+        await pullServerSnapshot(documentId);
       } else if (code === 'BAD_REQUEST') {
         toast.error('내용이 비어 있어 자동 저장하지 못했습니다. 내용을 확인해주세요.');
       }
@@ -402,7 +436,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       if (debounceTimerRef.current) { clearTimeout(debounceTimerRef.current); debounceTimerRef.current = null; }
       if (maxWaitTimerRef.current) { clearTimeout(maxWaitTimerRef.current); maxWaitTimerRef.current = null; }
     }
-  }, [editorContent, sermonInfo, currentFolderId, documentId, createDocumentSilent, updateDocumentSilent, router, setDocumentId, isSaving]);
+  }, [editorContent, sermonInfo, currentFolderId, documentId, createDocumentSilent, updateDocumentSilent, router, setDocumentId, isSaving, pullServerSnapshot]);
 
   useEffect(() => {
     autoSaveFnRef.current = doAutoSave;

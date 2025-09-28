@@ -144,7 +144,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
             verse: sermonData.verse || '',
             serviceType: sermonData.serviceType || '감사일기'
           });
-          syncServerHash(contentJson);
+          syncServerHash(contentJson, data?.contentHash);
           markClean();
         } catch (err) {
           console.error('복원 콘텐츠 적용 실패:', err);
@@ -434,7 +434,7 @@ export default function HolyEditor({ documentId }: HolyEditorProps) {
         const contentJson = toJsonContent(document.content);
         if (!hasLocalEditsRef.current) {
           setEditorContent(contentJson);
-          syncServerHash(contentJson);
+          syncServerHash(contentJson, typeof document?.contentHash === 'string' ? document.contentHash : undefined);
           markClean();
           if (!initialContentAppliedRef.current) {
             editor.commands.setContent(contentJson);

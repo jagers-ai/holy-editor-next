@@ -105,7 +105,17 @@ export const documentRouter = createTRPCRouter({
       });
       await pruneOldRevisions(ctx.prisma, document.id);
 
-      return document;
+      const documentWithHash = {
+        ...document,
+        contentHash: fingerprint(document.content),
+      };
+
+      console.info('[document.create] saved', {
+        documentId: document.id,
+        contentHash: documentWithHash.contentHash,
+      });
+
+      return documentWithHash;
     }),
 
   // 문서 목록 조회 (사용자별 필터링)
@@ -145,8 +155,13 @@ export const documentRouter = createTRPCRouter({
         nextCursor = nextItem!.id;
       }
 
+      const documentsWithHash = documents.map((doc) => ({
+        ...doc,
+        contentHash: fingerprint(doc.content),
+      }));
+
       return {
-        documents,
+        documents: documentsWithHash,
         nextCursor,
       };
     }),
@@ -177,7 +192,12 @@ export const documentRouter = createTRPCRouter({
         });
       }
 
-      return document;
+      const documentWithHash = {
+        ...document,
+        contentHash: fingerprint(document.content),
+      };
+
+      return documentWithHash;
     }),
 
   // 문서 업데이트 (소유권 검증 포함)
@@ -203,6 +223,11 @@ export const documentRouter = createTRPCRouter({
 
       const currentHash = fingerprint(document.content);
       if (input.expectedHash && input.expectedHash !== currentHash) {
+        console.warn('[document.update] hash conflict', {
+          documentId: input.id,
+          expectedHash: input.expectedHash,
+          currentHash,
+        });
         throw new TRPCError({
           code: 'CONFLICT',
           message: '문서가 다른 기기에서 우선 저장되었습니다. 새로고침 후 다시 시도해주세요.',
@@ -235,7 +260,10 @@ export const documentRouter = createTRPCRouter({
       }
 
       if (!Object.keys(allowedData).length) {
-        return document;
+        return {
+          ...document,
+          contentHash: currentHash,
+        };
       }
 
       if (contentChanged) {
@@ -254,7 +282,18 @@ export const documentRouter = createTRPCRouter({
         data: allowedData,
       });
 
-      return updated;
+      const updatedWithHash = {
+        ...updated,
+        contentHash: fingerprint(updated.content),
+      };
+
+      console.info('[document.update] saved', {
+        documentId: updated.id,
+        contentHash: updatedWithHash.contentHash,
+        contentChanged,
+      });
+
+      return updatedWithHash;
     }),
 
   revisions: protectedProcedure
@@ -322,7 +361,12 @@ export const documentRouter = createTRPCRouter({
         },
       });
 
-      return restored;
+      const restoredWithHash = {
+        ...restored,
+        contentHash: fingerprint(restored.content),
+      };
+
+      return restoredWithHash;
     }),
 
   // 문서 삭제 (소유권 검증 포함)
